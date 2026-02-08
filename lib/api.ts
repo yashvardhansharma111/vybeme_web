@@ -6,7 +6,7 @@
 const getBaseUrl = (): string => {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (url) return url.endsWith('/api') ? url : `${url}/api`;
-  return 'https://api.vybeme.com/api';
+  return ' https://300c-2405-201-3016-9117-dda6-956d-d8c0-3545.ngrok-free.app/api';
 };
 
 const BASE_URL = getBaseUrl();
