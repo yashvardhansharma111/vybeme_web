@@ -12,15 +12,23 @@ export interface PostAuthor {
 
 export interface PostData {
   post_id?: string;
+  plan_id?: string;
   id?: string;
   title: string;
   description: string;
+  type?: 'business' | 'regular';
   tags?: string[];
   category_sub?: string[];
   image?: string | null;
+  media?: Array<{ url: string; type?: string }>;
   user?: PostAuthor;
   author?: PostAuthor;
   user_id?: string;
+  location_text?: string;
+  date?: string | Date;
+  time?: string;
+  add_details?: Array<{ title: string; description?: string }>;
+  passes?: Array<{ pass_id: string; name: string; price: number; description?: string }>;
   created_at?: string;
   interacted_users?: unknown[];
   interaction_count?: number;

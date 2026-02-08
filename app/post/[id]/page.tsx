@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
 import { EventDetailCard, type EventDetailPost } from '../../components/EventDetailCard';
+import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
 import { getPost, createJoinRequest, getWebUser, getPostImageUrlOrPlaceholder, getUserProfile } from '@/lib/api';
@@ -27,9 +28,14 @@ export default function PostPage() {
     try {
       const res = await getPost(postId);
       if (res.success && res.data) {
-        const p = res.data;
-        const authorId = p.user_id ?? p.user?.id ?? p.user?.user_id ?? p.author?.id ?? p.author?.user_id;
-        let author = p.user ?? p.author;
+        const p = res.data as Record<string, unknown>;
+        // Backend returns plan_id and plan_type (discriminator); normalize for web
+        const postIdFromApi = (p.plan_id ?? p.post_id ?? postId) as string;
+        const planType = p.plan_type as string | undefined;
+        const type = planType === 'BusinessPlan' ? 'business' : (p.type as string) ?? 'regular';
+
+        const authorId = (p.user_id ?? p.user?.id ?? p.user?.user_id ?? p.author?.id ?? p.author?.user_id) as string | undefined;
+        let author = (p.user ?? p.author) as { id?: string; user_id?: string; name?: string; profile_image?: string } | undefined;
         if (!author?.name && authorId) {
           try {
             const profileRes = await getUserProfile(authorId);
@@ -45,20 +51,25 @@ export default function PostPage() {
             author = author ?? { id: authorId, user_id: authorId, name: 'Unknown User' };
           }
         }
-        const imageUrl = getPostImageUrlOrPlaceholder(p);
+        const imageUrl = getPostImageUrlOrPlaceholder(p as { media?: Array<{ url: string }>; image?: string | null });
         setPost({
           ...p,
-          title: p.title ?? '',
-          description: p.description ?? '',
+          post_id: postIdFromApi,
+          id: postIdFromApi,
+          plan_id: postIdFromApi,
+          type,
+          title: (p.title ?? '') as string,
+          description: (p.description ?? '') as string,
           image: imageUrl,
           user: author ? { ...author, id: author.id ?? author.user_id ?? authorId, user_id: author.user_id ?? author.id ?? authorId } : undefined,
           user_id: authorId,
-        });
+        } as PostData);
       } else {
         setError('Post not found');
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load post');
+      const message = e instanceof Error ? e.message : 'Failed to load post';
+      setError(message || 'Could not load this plan. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -119,7 +130,25 @@ export default function PostPage() {
         <button type="button" onClick={() => router.back()} className="self-start text-sm font-medium text-neutral-700 underline hover:text-neutral-900 md:mb-2">
           ← Back
         </button>
-        {post && (
+        {post && (post as PostData).type === 'business' ? (
+          <BusinessDetailCard
+            post={{
+              plan_id: post.plan_id ?? post.post_id ?? (post as { id?: string }).id,
+              title: post.title ?? '',
+              description: post.description ?? '',
+              media: post.media,
+              image: post.image,
+              user: post.user,
+              user_id: post.user_id,
+              location_text: post.location_text,
+              date: post.date,
+              time: post.time,
+              add_details: (post as { add_details?: Array<{ title: string; description?: string }> }).add_details,
+              passes: (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string }> }).passes,
+            }}
+            authorName={authorName}
+          />
+        ) : (
           <EventDetailCard
             post={post as EventDetailPost}
             joinSent={joinSent}
@@ -128,7 +157,7 @@ export default function PostPage() {
             authorName={authorName}
           />
         )}
-        {!joinSent && post && <DownloadAppCTA className="mt-4" />}
+        {post && <DownloadAppCTA className="mt-4" />}
         {error && !joinSent && (
           <p className="text-center text-sm text-red-600">{error}</p>
         )}

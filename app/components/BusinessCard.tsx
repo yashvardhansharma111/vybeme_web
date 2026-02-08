@@ -11,6 +11,7 @@ export interface BusinessPlan {
   description: string;
   media?: Array<{ url: string; type?: string }>;
   image?: string | null;
+  category_main?: string;
   category_sub?: string[];
   tags?: string[];
   passes?: Array<{ pass_id: string; name: string; price: number; description?: string }>;
@@ -50,10 +51,13 @@ export function BusinessCard({
     user?.time ??
     (plan.date ? new Date(plan.date).toLocaleDateString() : '') ??
     (plan.time ?? '');
-  const tags = plan.category_sub ?? plan.tags ?? [];
+  const mainTag = plan.category_main ? [plan.category_main] : [];
+  const subTags = plan.category_sub ?? plan.tags ?? [];
+  const tags = mainTag.length > 0 ? [...mainTag, ...subTags.filter((t) => t !== plan.category_main)] : subTags;
   const passes = plan.passes ?? [];
-  const prices = passes.filter((p) => p.price > 0).map((p) => p.price);
-  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+  const hasFreePass = passes.some((p) => Number(p.price) === 0);
+  const prices = passes.filter((p) => Number(p.price) > 0).map((p) => p.price);
+  const minPrice = hasFreePass ? 0 : (prices.length > 0 ? Math.min(...prices) : null);
   const showInteracted = attendeesCount > 0 || interactedUsers.length > 0;
   const displayUsers = interactedUsers.slice(0, 3);
   const extraCount = Math.max(0, attendeesCount - displayUsers.length) || (displayUsers.length === 0 ? attendeesCount : 0);
@@ -123,15 +127,17 @@ export function BusinessCard({
         </div>
       )}
 
-      {/* White content overlay - bottom, rounded top corners */}
-      <div className="absolute inset-x-0 bottom-0 min-h-[52%] rounded-t-[24px] bg-white px-4 pt-4 pb-4">
-        <h2 className="mb-1 text-xl font-bold text-[#1C1C1E]">{plan.title}</h2>
-        <p className="mb-2 line-clamp-3 text-sm leading-5 text-[#3C3C43]">{plan.description}</p>
+      {/* White content overlay - fixed height same as app (208px content area) */}
+      <div className="absolute inset-x-0 bottom-0 h-[208px] flex flex-col rounded-t-[24px] bg-white px-4 pt-3.5 pb-4">
+        <h2 className="mb-1 truncate text-xl font-bold text-[#1C1C1E]">{plan.title}</h2>
+        <div className="h-[60px] shrink-0 overflow-hidden">
+          <p className="line-clamp-3 text-sm leading-5 text-[#3C3C43]">{plan.description}</p>
+        </div>
         {(minPrice != null || tags.length > 0) && (
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-2 flex flex-wrap gap-2">
             {minPrice != null && (
               <span className="inline-flex items-center rounded-[14px] bg-[#EFEFEF] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]">
-                ₹{minPrice}
+                {minPrice === 0 ? 'Free' : `₹${minPrice}`}
               </span>
             )}
             {tags.slice(0, 3).map((tag, i) => (
@@ -144,7 +150,7 @@ export function BusinessCard({
             ))}
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="mt-auto flex shrink-0 items-center gap-2">
           {planHref ? (
             <Link
               href={planHref}
