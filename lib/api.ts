@@ -6,7 +6,7 @@
 const getBaseUrl = (): string => {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (url) return url.endsWith('/api') ? url : `${url}/api`;
-  return 'http://localhost:8000/api';
+  return 'https://api.vybeme.com/api';
 };
 
 const BASE_URL = getBaseUrl();
