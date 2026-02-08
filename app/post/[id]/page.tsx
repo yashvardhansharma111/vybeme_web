@@ -9,6 +9,33 @@ import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
 import { getPost, createJoinRequest, getWebUser, getPostImageUrlOrPlaceholder, getUserProfile } from '@/lib/api';
 
+type ApiUser = {
+  id?: string;
+  user_id?: string;
+  name?: string;
+  profile_image?: string;
+};
+
+type ApiPost = {
+  plan_id?: string;
+  post_id?: string;
+  plan_type?: string;
+  type?: string;
+
+  title?: string;
+  description?: string;
+  image?: string | null;
+
+  media?: Array<{ url: string }>;
+
+  user_id?: string;
+  user?: ApiUser;
+  author?: ApiUser;
+
+  [key: string]: unknown;
+};
+
+
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
@@ -28,7 +55,7 @@ export default function PostPage() {
     try {
       const res = await getPost(postId);
       if (res.success && res.data) {
-        const p = res.data as Record<string, unknown>;
+        const p = res.data as ApiPost;
         // Backend returns plan_id and plan_type (discriminator); normalize for web
         const postIdFromApi = (p.plan_id ?? p.post_id ?? postId) as string;
         const planType = p.plan_type as string | undefined;
