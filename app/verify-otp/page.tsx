@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../components/AppHeader';
 import { verifyOTP, resendOTP, setWebUser } from '@/lib/api';
@@ -18,6 +18,7 @@ function VerifyOTPContent() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const otpString = otp.join('');
   const isComplete = otpString.length === OTP_LENGTH;
@@ -29,7 +30,45 @@ function VerifyOTPContent() {
       next[index] = digit;
       return next;
     });
+    if (digit && index < OTP_LENGTH - 1) {
+      setTimeout(() => inputRefs.current[index + 1]?.focus(), 0);
+    }
   }, []);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    const digits = pasted.split('');
+    setOtp((prev) => {
+      const next = [...prev];
+      digits.forEach((d, i) => { next[i] = d; });
+      return next;
+    });
+    const focusIndex = Math.min(digits.length, OTP_LENGTH) - 1;
+    setTimeout(() => inputRefs.current[focusIndex]?.focus(), 0);
+  }, []);
+
+  const handleKeyDown = useCallback((index: number, e: React.KeyboardEvent<HTMLInputElement>, current: string) => {
+    if (e.key === 'Backspace' && !current && index > 0) {
+      setOtp((prev) => {
+        const next = [...prev];
+        next[index - 1] = '';
+        return next;
+      });
+      setTimeout(() => inputRefs.current[index - 1]?.focus(), 0);
+    }
+  }, []);
+
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!resending && otp.every((d) => !d)) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [otp, resending]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,16 +151,15 @@ function VerifyOTPContent() {
               {otp.map((d, i) => (
                 <input
                   key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
                   type="text"
                   inputMode="numeric"
+                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
                   maxLength={1}
                   value={d}
                   onChange={(e) => updateDigit(i, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Backspace' && !d && i > 0) {
-                      updateDigit(i - 1, '');
-                    }
-                  }}
+                  onKeyDown={(e) => handleKeyDown(i, e, d)}
+                  onPaste={handlePaste}
                   className="h-12 w-10 rounded-lg border border-neutral-200 bg-neutral-50 text-center text-lg font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
                 />
               ))}
