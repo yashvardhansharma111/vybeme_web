@@ -123,6 +123,12 @@ export async function getCurrentUser(session_id: string) {
   return request<any>(`/user/me?session_id=${session_id}`);
 }
 
+/** Get current user profile (includes gender for women-only post check). */
+export async function getCurrentUserProfile(session_id: string) {
+  const res = await getCurrentUser(session_id);
+  return res.success ? (res.data ?? null) : null;
+}
+
 export async function updateProfile(session_id: string, data: { name?: string; gender?: string }) {
   return request<any>('/user/update', {
     method: 'POST',
@@ -163,6 +169,23 @@ export async function createJoinRequest(post_id: string, user_id: string, messag
     method: 'POST',
     body: JSON.stringify({ post_id, user_id, message }),
   });
+}
+
+// Business event: register and get ticket
+export async function registerForBusinessEvent(
+  plan_id: string,
+  user_id: string,
+  pass_id?: string,
+  message?: string
+) {
+  return request<{ registration: unknown; ticket: unknown }>('/ticket/register', {
+    method: 'POST',
+    body: JSON.stringify({ plan_id, user_id, pass_id, message }),
+  });
+}
+
+export async function getUserTicket(plan_id: string, user_id: string) {
+  return request<any>(`/ticket/${plan_id}/${user_id}`);
 }
 
 export async function getFeed(user_id: string | null, limit = 30, offset = 0) {

@@ -30,6 +30,7 @@ export interface PostData {
   add_details?: Array<{ title: string; description?: string }>;
   passes?: Array<{ pass_id: string; name: string; price: number; description?: string }>;
   created_at?: string;
+  is_women_only?: boolean;
   interacted_users?: unknown[];
   interaction_count?: number;
 }

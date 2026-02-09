@@ -188,11 +188,20 @@ export default function ProfilePage() {
   );
 
   const recentPlansCard = (
-    <div className="relative overflow-hidden rounded-2xl border border-neutral-100 bg-neutral-100/80 py-10 shadow-sm backdrop-blur-sm md:min-h-[200px] md:py-12">
-      <p className="text-center text-sm font-bold text-neutral-900 md:text-base">Recent Plans</p>
-      <p className="mt-2 text-center text-sm text-neutral-500">
-        Download App to view {name}&apos;s plans
-      </p>
+    <div className="relative min-h-[180px] overflow-hidden rounded-2xl border border-white/20 bg-white/40 shadow-lg backdrop-blur-xl md:min-h-[200px]">
+      <div className="absolute inset-0 rounded-2xl bg-white/30 backdrop-blur-md" aria-hidden />
+      <div className="relative z-10 flex flex-col items-center justify-center gap-3 px-4 py-10 md:py-12">
+        <p className="text-center text-sm font-bold text-neutral-900 md:text-base">Recent Plans</p>
+        <p className="text-center text-sm font-medium text-neutral-700 md:text-base">
+          Download App to view {name}&apos;s plans
+        </p>
+        <a
+          href="#"
+          className="mt-2 rounded-full bg-neutral-800 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-opacity hover:bg-neutral-700"
+        >
+          Download App
+        </a>
+      </div>
     </div>
   );
 

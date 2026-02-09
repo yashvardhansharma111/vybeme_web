@@ -48,18 +48,25 @@ export function EventDetailCard({
   joining,
   onJoin,
   authorName,
+  authorId: authorIdProp,
+  isWomenOnly,
+  womenOnlyBlocked,
 }: {
   post: EventDetailPost;
   joinSent: boolean;
   joining: boolean;
   onJoin: () => void;
   authorName: string;
+  authorId?: string;
+  isWomenOnly?: boolean;
+  womenOnlyBlocked?: boolean;
 }) {
   const author = post.user || post.author;
-  const authorId = author?.id ?? author?.user_id ?? post.user_id;
-  const authorNameDisplay = author?.name ?? 'Someone';
+  const authorId = authorIdProp ?? author?.id ?? author?.user_id ?? post.user_id;
+  const authorNameDisplay = author?.name ?? authorName ?? 'Someone';
   const avatar = author?.profile_image;
   const profileHref = authorId ? `/profile/${authorId}` : undefined;
+  const showWomenOnlyMessage = isWomenOnly && womenOnlyBlocked;
   const hasImage = post.image && String(post.image).trim();
   const interactedUsers = (post.interacted_users ?? []) as { profile_image?: string; avatar?: string; name?: string; id?: string }[];
   const details = post.add_details ?? [];
@@ -164,13 +171,27 @@ export function EventDetailCard({
           </div>
         </div>
 
+        {/* Women-only message when user is male */}
+        {showWomenOnlyMessage && (
+          <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 py-3 text-center text-sm font-medium text-amber-800">
+            This is a women&apos;s post. Only women can join this plan.
+          </p>
+        )}
+
         {/* Primary CTA */}
         {!joinSent ? (
-          <button type="button" onClick={onJoin} disabled={joining} className="mt-6 w-full rounded-xl bg-neutral-800 py-4 text-base font-bold text-white disabled:opacity-60">
-            {joining ? 'Sending…' : "View Your Ticket"}
+          <button
+            type="button"
+            onClick={onJoin}
+            disabled={joining || showWomenOnlyMessage}
+            className="mt-6 w-full rounded-xl bg-neutral-800 py-4 text-base font-bold text-white disabled:opacity-60"
+          >
+            {joining ? 'Sending…' : 'Join'}
           </button>
         ) : (
-          <p className="mt-6 rounded-xl bg-[#F2F2F7] py-4 text-center text-sm font-semibold text-neutral-800">Join request sent to {authorName}</p>
+          <p className="mt-6 rounded-xl bg-[#F2F2F7] py-4 text-center text-sm font-semibold text-neutral-800">
+            Join request sent to {authorNameDisplay}
+          </p>
         )}
       </div>
     </div>

@@ -56,10 +56,16 @@ export function BusinessDetailCard({
   post,
   authorName,
   appBaseUrl = 'https://app.vybeme.in',
+  onBookEvent,
+  registered = false,
+  viewTicketHref,
 }: {
   post: BusinessDetailPost;
   authorName: string;
   appBaseUrl?: string;
+  onBookEvent?: () => void;
+  registered?: boolean;
+  viewTicketHref?: string;
 }) {
   const planId = post.plan_id ?? (post as { id?: string }).id;
   const author = post.user;
@@ -184,8 +190,23 @@ export function BusinessDetailCard({
           </div>
         )}
 
-        {/* Register CTA – same as app, link to app for registration */}
-        {registerOrViewHref ? (
+        {/* Book Event or View ticket */}
+        {registered && viewTicketHref ? (
+          <Link
+            href={viewTicketHref}
+            className="mt-6 flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
+          >
+            View ticket
+          </Link>
+        ) : onBookEvent ? (
+          <button
+            type="button"
+            onClick={onBookEvent}
+            className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white"
+          >
+            Book Event
+          </button>
+        ) : registerOrViewHref ? (
           <a
             href={registerOrViewHref}
             className="mt-6 flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
