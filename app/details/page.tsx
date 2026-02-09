@@ -5,7 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../components/AppHeader';
 import { updateProfile, getWebUser } from '@/lib/api';
 
-const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other'];
+// Backend User model expects enum: ['male', 'female', 'other'] (lowercase)
+const GENDERS: { value: string; label: string }[] = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+];
 
 function DetailsContent() {
   const router = useRouter();
@@ -94,8 +99,8 @@ function DetailsContent() {
             >
               <option value="">Gender</option>
               {GENDERS.map((g) => (
-                <option key={g} value={g}>
-                  {g}
+                <option key={g.value} value={g.value}>
+                  {g.label}
                 </option>
               ))}
             </select>
