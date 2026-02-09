@@ -64,12 +64,6 @@ function VerifyOTPContent() {
     inputRefs.current[0]?.focus();
   }, []);
 
-  useEffect(() => {
-    if (!resending && otp.every((d) => !d)) {
-      inputRefs.current[0]?.focus();
-    }
-  }, [otp, resending]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isComplete || !phone) return;
@@ -112,6 +106,7 @@ function VerifyOTPContent() {
       if (res.success && res.data?.otp_id) {
         setOtpId(res.data.otp_id);
         setOtp(Array(OTP_LENGTH).fill(''));
+        setTimeout(() => inputRefs.current[0]?.focus(), 0);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Resend failed');
