@@ -188,6 +188,15 @@ export async function getUserTicket(plan_id: string, user_id: string) {
   return request<any>(`/ticket/${plan_id}/${user_id}`);
 }
 
+/** Get all tickets for the current user (for My Tickets). */
+export async function getTicketsByUser(user_id: string) {
+  return request<{ tickets: Array<{
+    ticket_id: string;
+    ticket_number: string;
+    plan: { plan_id: string; title?: string; date?: string; media?: Array<{ url: string }> } | null;
+  }> }>(`/ticket/user/${user_id}`, { method: 'GET' });
+}
+
 export async function getFeed(user_id: string | null, limit = 30, offset = 0) {
   return request<any[]>('/feed/home', {
     method: 'POST',
@@ -216,6 +225,9 @@ export interface FormattedPost {
   interaction_count?: number;
   interacted_users?: Array<{ id?: string; user_id?: string; name?: string; profile_image?: string | null; avatar?: string | null }>;
   type?: 'business' | 'regular';
+  is_repost?: boolean;
+  original_author_name?: string | null;
+  original_plan_id?: string;
   [key: string]: unknown;
 }
 
@@ -264,6 +276,9 @@ export async function formatFeedData(posts: any[]): Promise<FormattedPost[]> {
     posts.map(async (post: any) => {
       const user_id = post.user_id ?? post.author_id;
       const userData = user_id ? await fetchUser(user_id) : { name: 'Unknown User', profile_image: null as string | null };
+      const isRepost = !!post.is_repost || !!post.repost_data;
+      const originalAuthorId = post.repost_data?.original_author_id ?? post.user_id;
+      const originalAuthorData = isRepost && originalAuthorId ? await fetchUser(originalAuthorId) : null;
       const imageUrl = getPostImageUrl(post) || DEFAULT_POST_IMAGE;
       const rawInteracted = post.interacted_users || post.recent_interactors || [];
       const interacted_users = rawInteracted.slice(0, 10).map((u: any) => ({
@@ -296,6 +311,9 @@ export async function formatFeedData(posts: any[]): Promise<FormattedPost[]> {
         interaction_count: post.interaction_count ?? 0,
         interacted_users,
         type: post.type ?? 'regular',
+        is_repost: isRepost,
+        original_author_name: isRepost && originalAuthorData ? originalAuthorData.name : null,
+        original_plan_id: post.repost_data?.original_plan_id,
         ...post,
       } as FormattedPost;
     })
