@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../components/AppHeader';
 import { verifyOTP, resendOTP, setWebUser } from '@/lib/api';
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 4;
 
 function VerifyOTPContent() {
   const router = useRouter();
