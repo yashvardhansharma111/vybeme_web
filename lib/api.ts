@@ -140,7 +140,7 @@ export async function getCurrentUserProfile(session_id: string) {
   return res.success ? (res.data ?? null) : null;
 }
 
-export async function updateProfile(session_id: string, data: { name?: string; gender?: string }) {
+export async function updateProfile(session_id: string, data: { name?: string; gender?: string; is_business?: boolean }) {
   return request<any>('/user/update', {
     method: 'POST',
     body: JSON.stringify({ session_id, ...data }),

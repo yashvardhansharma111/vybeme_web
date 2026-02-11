@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations, updateProfile } from '@/lib/api';
 
 interface Plan {
   plan_id: string;
@@ -26,6 +26,8 @@ export default function BusinessPage() {
   const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
   const [plans, setPlans] = useState<PlanWithCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enablingBusiness, setEnablingBusiness] = useState(false);
+  const [enableError, setEnableError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -87,16 +89,24 @@ export default function BusinessPage() {
     load();
   }, [mounted, user?.user_id, router, load]);
 
-  useEffect(() => {
-    if (!mounted || loading) return;
-    // Only redirect when we have a profile and is_business is explicitly false.
-    // If profile is null (e.g. API failed) or is_business is undefined, do NOT redirect.
-    if (profile === null) return;
-    if (profile.is_business === false) {
-      console.log('[business] redirecting to home: profile.is_business is false. To access Business, set is_business: true for this user in the database.');
-      router.replace('/');
+  const handleEnableBusiness = useCallback(async () => {
+    if (!user?.session_id) return;
+    setEnableError(null);
+    setEnablingBusiness(true);
+    try {
+      const res = await updateProfile(user.session_id, { is_business: true });
+      if (res.success) {
+        setProfile({ is_business: true });
+        console.log('[business] is_business set to true');
+      } else {
+        setEnableError((res as { message?: string }).message || 'Failed to enable');
+      }
+    } catch (err) {
+      setEnableError(err instanceof Error ? err.message : 'Failed to enable');
+    } finally {
+      setEnablingBusiness(false);
     }
-  }, [mounted, loading, profile, router]);
+  }, [user?.session_id]);
 
   if (!mounted) {
     return (
@@ -106,10 +116,9 @@ export default function BusinessPage() {
     );
   }
   if (!user?.user_id) return null;
-  // Only hide when is_business is explicitly false (redirect runs in useEffect)
-  if (!loading && profile && profile.is_business === false) return null;
 
-  console.log('[business] rendering page (user logged in, is_business !== false)');
+  // When profile loaded and is_business is false, show "Enable business account" instead of redirecting
+  const showEnablePrompt = !loading && profile && profile.is_business === false;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -117,6 +126,23 @@ export default function BusinessPage() {
         <h1 className="text-xl font-semibold text-neutral-900">Business</h1>
         <p className="mt-0.5 text-sm text-neutral-500">Scan tickets and manage attendees.</p>
 
+        {showEnablePrompt && (
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-900">Enable business account</p>
+            <p className="mt-1 text-sm text-amber-800">Your account is not set as a business account. Enable it to create events, scan tickets, and manage attendees.</p>
+            {enableError && <p className="mt-2 text-sm text-red-600">{enableError}</p>}
+            <button
+              type="button"
+              onClick={handleEnableBusiness}
+              disabled={enablingBusiness}
+              className="mt-3 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {enablingBusiness ? 'Enabling…' : 'Enable business account'}
+            </button>
+          </div>
+        )}
+
+        {(!showEnablePrompt || profile?.is_business === true) && (
         <div className="mt-6 flex flex-col gap-3">
           <Link
             href="/business/scan"
@@ -176,6 +202,7 @@ export default function BusinessPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
