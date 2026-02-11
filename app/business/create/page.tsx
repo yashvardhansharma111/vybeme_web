@@ -173,33 +173,31 @@ export default function BusinessCreatePage() {
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-lg px-4 pb-28 pt-4">
-        {/* Description first (app order) */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-[#1C1C1E] placeholder:text-neutral-500"
-            placeholder="Join the run club for another 5k..."
-            maxLength={250}
-          />
-          <p className="mt-1 text-right text-xs text-[#8E8E93]">{description.length}/250</p>
-        </section>
-
-        {/* Title */}
+        {/* Title first (app order) */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-[#1C1C1E] placeholder:text-neutral-400"
+            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-black/60"
             placeholder="Title"
+          />
+        </section>
+
+        {/* Description (no limit) */}
+        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-black/60"
+            placeholder="Join the run club for another 5k..."
           />
         </section>
 
         {/* Post media upload */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
-          <p className="mb-2 text-[14px] font-semibold uppercase tracking-wide text-neutral-500">Post images</p>
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
           <div className="flex flex-wrap gap-2">
             {mediaFiles.map((file, i) => (
               <div key={i} className="relative">
@@ -210,29 +208,29 @@ export default function BusinessCreatePage() {
               </div>
             ))}
             {mediaFiles.length < MAX_MEDIA && (
-              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-neutral-500">
+              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-black/70">
                 <input type="file" accept="image/*" multiple className="hidden" onChange={onPostMediaChange} />
                 <span className="text-2xl">+</span>
               </label>
             )}
           </div>
-          <p className="mt-1 text-xs text-neutral-500">Or paste image URL below</p>
+          <p className="mt-2 text-xs text-black/70">Or paste image URL below</p>
           <input
             type="url"
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
             placeholder="https://..."
           />
         </section>
 
-        {/* Location */}
+        {/* Address */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-[#1C1C1E] placeholder:text-neutral-500"
+            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-black/60"
             placeholder="Bohemians Indiranagar, 1st Main"
           />
         </section>
@@ -240,21 +238,32 @@ export default function BusinessCreatePage() {
         {/* Date & Time */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <div className="grid grid-cols-2 gap-3">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm" />
-            <input type="text" value={time} onChange={(e) => setTime(e.target.value)} placeholder="8:00 AM" className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60 [color-scheme:light]"
+            />
+            <input
+              type="text"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              placeholder="8:00 AM"
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60"
+            />
           </div>
         </section>
 
         {/* Category */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
-          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-neutral-500">Category</p>
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Category</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => setCategory(c)}
-                className={`rounded-full px-5 py-2.5 text-[14px] font-semibold ${category === c ? 'bg-[#1C1C1E] text-white' : 'bg-[#E5E5E5] text-neutral-600'}`}
+                className={`rounded-full px-5 py-2.5 text-[14px] font-semibold ${category === c ? 'bg-[#1C1C1E] text-white' : 'bg-[#E5E5E5] text-black'}`}
               >
                 {c}
               </button>
@@ -265,22 +274,22 @@ export default function BusinessCreatePage() {
         {/* Tickets */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[16px] font-semibold text-[#1C1C1E]">Tickets</span>
+            <span className="text-[16px] font-semibold text-black">Tickets</span>
             <input type="checkbox" checked={ticketsEnabled} onChange={(e) => setTicketsEnabled(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           {ticketsEnabled && (
             <div className="mt-3 space-y-2">
               {passes.map((p, i) => (
                 <div key={i} className="flex gap-2">
-                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm" />
-                  <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-24 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm" />
-                  <button type="button" onClick={() => removePass(i)} className="text-neutral-500">×</button>
+                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60" />
+                  <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-24 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60" />
+                  <button type="button" onClick={() => removePass(i)} className="text-black/70">×</button>
                 </div>
               ))}
-              <button type="button" onClick={addPass} className="text-sm font-semibold text-neutral-600">+ Add type</button>
+              <button type="button" onClick={addPass} className="text-sm font-semibold text-black">+ Add type</button>
               <div className="mt-2">
-                <p className="mb-1 text-xs font-semibold text-neutral-500">Ticket image (optional)</p>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm">
+                <p className="mb-1 text-xs font-semibold text-black">Ticket image (optional)</p>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black">
                   <input type="file" accept="image/*" className="hidden" onChange={onTicketImageChange} />
                   {ticketImageFile ? ticketImageFile.name : 'Choose image'}
                 </label>
@@ -292,11 +301,11 @@ export default function BusinessCreatePage() {
         {/* Toggles */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <div className="flex items-center justify-between py-2">
-            <span className="text-[16px] font-semibold text-[#1C1C1E]">Women&apos;s only</span>
+            <span className="text-[16px] font-semibold text-black">Women&apos;s only</span>
             <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           <div className="flex items-center justify-between py-2">
-            <span className="text-[16px] font-semibold text-[#1C1C1E]">Allow viewing guest list</span>
+            <span className="text-[16px] font-semibold text-black">Allow viewing guest list</span>
             <input type="checkbox" checked={allowGuestList} onChange={(e) => setAllowGuestList(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
         </section>
