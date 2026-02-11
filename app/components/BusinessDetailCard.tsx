@@ -9,7 +9,7 @@ export interface BusinessDetailPost {
   description: string;
   media?: Array<{ url: string; type?: string }>;
   image?: string | null;
-  user?: { user_id?: string; id?: string; name?: string; profile_image?: string };
+  user?: { user_id?: string; id?: string; name?: string; profile_image?: string | null };
   user_id?: string;
   location_text?: string;
   date?: string | Date;

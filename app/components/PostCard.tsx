@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export interface PostAuthor {
   name?: string;
-  profile_image?: string;
+  profile_image?: string | null;
   id?: string;
   user_id?: string;
 }

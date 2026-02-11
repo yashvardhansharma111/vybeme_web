@@ -25,7 +25,7 @@ export interface BusinessCardProps {
   plan: BusinessPlan;
   user?: { id?: string; name?: string; avatar?: string; profile_image?: string; time?: string };
   attendeesCount?: number;
-  interactedUsers?: Array<{ id?: string; avatar?: string; profile_image?: string }>;
+  interactedUsers?: Array<{ id?: string; avatar?: string | null; profile_image?: string | null }>;
   planHref?: string;
   onRegister?: () => void;
 }
