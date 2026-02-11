@@ -197,6 +197,61 @@ export async function getTicketsByUser(user_id: string) {
   }> }>(`/ticket/user/${user_id}`, { method: 'GET' });
 }
 
+/** Get user's plans (for business: filter type === 'business'). */
+export async function getUserPlans(user_id: string, limit = 50, offset = 0) {
+  return request<any[]>(`/user/plans?user_id=${encodeURIComponent(user_id)}&limit=${limit}&offset=${offset}`, { method: 'GET' });
+}
+
+/** Get attendee list for a plan (organizer only). */
+export async function getAttendeeList(plan_id: string, user_id: string) {
+  return request<{
+    attendees: Array<{
+      registration_id: string;
+      user_id: string;
+      user: { user_id: string; name: string; profile_image?: string | null } | null;
+      ticket_id: string | null;
+      ticket_number: string | null;
+      status: string;
+      checked_in: boolean;
+      checked_in_at: string | null;
+      checked_in_via?: 'qr' | 'manual' | null;
+      price_paid: number;
+      created_at: string;
+    }>;
+    statistics: { total: number; checked_in: number; pending: number };
+  }>(`/ticket/attendees/${plan_id}?user_id=${encodeURIComponent(user_id)}`, { method: 'GET' });
+}
+
+/** Get guest list for an event (public: who's coming). */
+export async function getGuestList(plan_id: string) {
+  return request<{ guests: Array<{ user_id: string; name: string; profile_image: string | null; bio?: string; is_returning?: boolean }>; total: number }>(
+    `/ticket/guest-list/${plan_id}`,
+    { method: 'GET' }
+  );
+}
+
+/** Scan QR code and check in attendee (organizer only). */
+export async function scanQRCode(qr_code_hash: string, scanner_user_id: string) {
+  return request<{
+    plan?: { plan_id: string; title?: string; date?: string; time?: string; location_text?: string };
+    attendee?: { user_id: string; name?: string; profile_image?: string };
+    checked_in_count?: number;
+    total?: number;
+    already_checked_in?: boolean;
+  }>('/ticket/scan', {
+    method: 'POST',
+    body: JSON.stringify({ qr_code_hash, scanner_user_id }),
+  });
+}
+
+/** Manual check-in or check-out (organizer only). */
+export async function manualCheckIn(registration_id: string, user_id: string, action: 'checkin' | 'checkout') {
+  return request<any>('/ticket/checkin', {
+    method: 'POST',
+    body: JSON.stringify({ registration_id, user_id, action }),
+  });
+}
+
 export async function getFeed(user_id: string | null, limit = 30, offset = 0) {
   return request<any[]>('/feed/home', {
     method: 'POST',

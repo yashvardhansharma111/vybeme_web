@@ -7,7 +7,7 @@ import { getWebUser, getCurrentUserProfile, getTicketsByUser } from '@/lib/api';
 
 export function AppHeader() {
   const user = getWebUser();
-  const [profile, setProfile] = useState<{ name?: string; profile_image?: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ name?: string; profile_image?: string | null; is_business?: boolean } | null>(null);
   const [tickets, setTickets] = useState<Array<{ ticket_id: string; ticket_number: string; plan: { plan_id: string; title?: string } | null }>>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ export function AppHeader() {
         getCurrentUserProfile(user.session_id),
         getTicketsByUser(user.user_id).catch(() => ({ success: false, data: { tickets: [] } })),
       ]);
-      if (profileRes) setProfile({ name: profileRes.name, profile_image: profileRes.profile_image });
+      if (profileRes) setProfile({ name: profileRes.name, profile_image: profileRes.profile_image, is_business: !!profileRes.is_business });
       if (ticketsRes.success && ticketsRes.data?.tickets) setTickets(ticketsRes.data.tickets);
     } catch {
       // ignore
@@ -50,7 +50,13 @@ export function AppHeader() {
       </Link>
 
       {user?.user_id ? (
-        <div className="relative" ref={dropdownRef}>
+        <div className="flex items-center gap-4">
+          {profile?.is_business && (
+            <Link href="/business" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+              Business
+            </Link>
+          )}
+          <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen((o) => !o)}
@@ -93,6 +99,7 @@ export function AppHeader() {
               </div>
             </div>
           )}
+          </div>
         </div>
       ) : (
         <a
