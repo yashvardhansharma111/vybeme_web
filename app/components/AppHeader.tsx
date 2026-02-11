@@ -6,11 +6,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, getTicketsByUser } from '@/lib/api';
 
 export function AppHeader() {
-  const user = getWebUser();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ name?: string; profile_image?: string | null; is_business?: boolean } | null>(null);
   const [tickets, setTickets] = useState<Array<{ ticket_id: string; ticket_number: string; plan: { plan_id: string; title?: string } | null }>>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    setUser(getWebUser());
+  }, []);
 
   const loadProfileAndTickets = useCallback(async () => {
     if (!user?.user_id || !user?.session_id) return;
@@ -27,12 +33,13 @@ export function AppHeader() {
   }, [user?.user_id, user?.session_id]);
 
   useEffect(() => {
-    if (user?.user_id) loadProfileAndTickets();
+    if (!mounted || !user) return;
+    if (user.user_id) loadProfileAndTickets();
     else {
       setProfile(null);
       setTickets([]);
     }
-  }, [user?.user_id, loadProfileAndTickets]);
+  }, [mounted, user, loadProfileAndTickets]);
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -43,13 +50,15 @@ export function AppHeader() {
     return () => document.removeEventListener('click', close);
   }, [dropdownOpen]);
 
+  const showLoggedIn = mounted && user?.user_id;
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-neutral-100 bg-white px-4 md:px-6">
       <Link href="/" className="text-lg font-semibold text-neutral-900">
         vybeme.
       </Link>
 
-      {user?.user_id ? (
+      {showLoggedIn ? (
         <div className="flex items-center gap-4">
           {profile?.is_business && (
             <Link href="/business" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">

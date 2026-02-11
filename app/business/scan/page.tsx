@@ -17,7 +17,8 @@ interface Plan {
 
 export default function BusinessScanPage() {
   const router = useRouter();
-  const user = getWebUser();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
@@ -52,16 +53,23 @@ export default function BusinessScanPage() {
   }, [user?.user_id, user?.session_id]);
 
   useEffect(() => {
+    setMounted(true);
+    setUser(getWebUser());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!user?.user_id) {
       router.replace('/login');
       return;
     }
     load();
-  }, [user?.user_id, router, load]);
+  }, [mounted, user?.user_id, router, load]);
 
   useEffect(() => {
-    if (!loading && profile && !profile.is_business) router.replace('/');
-  }, [loading, profile, router]);
+    if (!mounted || loading || !profile) return;
+    if (!profile.is_business) router.replace('/');
+  }, [mounted, loading, profile, router]);
 
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
@@ -141,19 +149,27 @@ export default function BusinessScanPage() {
     };
   }, [stopScanner]);
 
-  if (!user?.user_id || (!loading && profile && !profile.is_business)) return null;
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
+      </div>
+    );
+  }
+  if (!user?.user_id) return null;
+  if (!loading && profile && !profile.is_business) return null;
 
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-lg px-4 py-6">
-        <div className="flex items-center gap-4">
-          <Link href="/business" className="text-neutral-500 hover:text-neutral-700">
+        <div className="flex items-center gap-3">
+          <Link href="/business" className="text-sm text-neutral-500 hover:text-neutral-700">
             ← Back
           </Link>
-          <h1 className="text-xl font-bold text-neutral-900">Scan ticket</h1>
+          <h1 className="text-lg font-semibold text-neutral-900">Scan ticket</h1>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <label className="block text-sm font-medium text-neutral-700">Event</label>
           <select
             value={selectedPlanId}
@@ -161,7 +177,7 @@ export default function BusinessScanPage() {
               stopScanner();
               setSelectedPlanId(e.target.value);
             }}
-            className="mt-1 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
           >
             <option value="">Select event</option>
             {plans.map((p) => (
@@ -172,19 +188,19 @@ export default function BusinessScanPage() {
           </select>
         </div>
 
-        {stats && (
-          <p className="mt-3 text-sm text-neutral-600">
+        {stats != null && (
+          <p className="mt-2 text-sm text-neutral-600">
             Checked in: {stats.checked_in} / {stats.total}
           </p>
         )}
 
         <div className="mt-4">
-          <div id="qr-reader" className="min-h-[240px] overflow-hidden rounded-xl border border-neutral-200 bg-black" />
+          <div id="qr-reader" className="min-h-[220px] overflow-hidden rounded-lg border border-neutral-200 bg-black" />
           {!scanning && selectedPlanId && (
             <button
               type="button"
               onClick={startScanner}
-              className="mt-3 w-full rounded-lg bg-neutral-800 py-2.5 text-sm font-medium text-white hover:bg-neutral-700"
+              className="mt-3 w-full rounded-lg bg-neutral-800 py-2 text-sm font-medium text-white hover:bg-neutral-700"
             >
               Start camera
             </button>
@@ -193,7 +209,7 @@ export default function BusinessScanPage() {
             <button
               type="button"
               onClick={stopScanner}
-              className="mt-3 w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700"
+              className="mt-3 w-full rounded-lg border border-neutral-200 py-2 text-sm font-medium text-neutral-700"
             >
               Stop camera
             </button>
@@ -201,19 +217,19 @@ export default function BusinessScanPage() {
         </div>
 
         {scanResult && (
-          <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+          <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
             {scanResult.already ? 'Already checked in: ' : 'Checked in: '}
             <strong>{scanResult.name}</strong>
           </div>
         )}
         {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
         )}
 
         {selectedPlanId && (
           <Link
             href={`/business/attendees/${selectedPlanId}`}
-            className="mt-6 block text-center text-sm font-medium text-blue-600 hover:underline"
+            className="mt-4 block text-center text-sm text-blue-600 hover:underline"
           >
             View attendee list →
           </Link>

@@ -22,7 +22,8 @@ export default function BusinessAttendeesPage() {
   const params = useParams();
   const router = useRouter();
   const planId = (params?.planId as string) || '';
-  const user = getWebUser();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [stats, setStats] = useState<{ total: number; checked_in: number; pending: number } | null>(null);
@@ -54,6 +55,12 @@ export default function BusinessAttendeesPage() {
   }, [user?.user_id, user?.session_id, planId]);
 
   useEffect(() => {
+    setMounted(true);
+    setUser(getWebUser());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!user?.user_id) {
       router.replace('/login');
       return;
@@ -63,11 +70,12 @@ export default function BusinessAttendeesPage() {
       return;
     }
     load();
-  }, [user?.user_id, planId, router, load]);
+  }, [mounted, user?.user_id, planId, router, load]);
 
   useEffect(() => {
-    if (!loading && profile && !profile.is_business) router.replace('/');
-  }, [loading, profile, router]);
+    if (!mounted || loading || !profile) return;
+    if (!profile.is_business) router.replace('/');
+  }, [mounted, loading, profile, router]);
 
   const handleCheckIn = useCallback(
     async (registration_id: string, action: 'checkin' | 'checkout') => {
@@ -85,78 +93,84 @@ export default function BusinessAttendeesPage() {
     [user?.user_id, load]
   );
 
-  if (!user?.user_id || !planId || (!loading && profile && !profile.is_business)) return null;
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
+      </div>
+    );
+  }
+  if (!user?.user_id || !planId) return null;
+  if (!loading && profile && !profile.is_business) return null;
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="flex items-center gap-4">
-          <Link href="/business" className="text-neutral-500 hover:text-neutral-700">
+      <div className="mx-auto max-w-xl px-4 py-6">
+        <div className="flex items-center gap-3">
+          <Link href="/business" className="text-sm text-neutral-500 hover:text-neutral-700">
             ← Back
           </Link>
-          <h1 className="text-xl font-bold text-neutral-900">Attendees</h1>
+          <h1 className="text-lg font-semibold text-neutral-900">Attendees</h1>
         </div>
 
-        {stats && (
-          <div className="mt-4 flex gap-4 rounded-xl border border-neutral-200 bg-white p-4">
-            <span className="text-sm text-neutral-600">Total: <strong>{stats.total}</strong></span>
-            <span className="text-sm text-green-600">Checked in: <strong>{stats.checked_in}</strong></span>
-            <span className="text-sm text-neutral-500">Pending: <strong>{stats.pending}</strong></span>
+        {stats != null && (
+          <div className="mt-4 flex gap-4 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm">
+            <span className="text-neutral-600">Total <strong>{stats.total}</strong></span>
+            <span className="text-green-600">In <strong>{stats.checked_in}</strong></span>
+            <span className="text-neutral-500">Pending <strong>{stats.pending}</strong></span>
           </div>
         )}
 
         {loading ? (
-          <p className="mt-6 text-sm text-neutral-500">Loading…</p>
+          <p className="mt-4 text-sm text-neutral-500">Loading…</p>
         ) : attendees.length === 0 ? (
-          <p className="mt-6 text-sm text-neutral-500">No attendees yet.</p>
+          <p className="mt-4 text-sm text-neutral-500">No attendees yet.</p>
         ) : (
-          <ul className="mt-6 space-y-2">
+          <ul className="mt-4 space-y-2">
             {attendees.map((a) => (
               <li
                 key={a.registration_id}
-                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   {a.user?.profile_image ? (
                     <Image
                       src={a.user.profile_image}
                       alt=""
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full object-cover"
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-200 text-sm font-medium text-neutral-500">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-medium text-neutral-500">
                       {a.user?.name?.charAt(0) ?? '?'}
                     </div>
                   )}
-                  <div>
-                    <p className="font-medium text-neutral-900">{a.user?.name ?? 'Guest'}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-neutral-900">{a.user?.name ?? 'Guest'}</p>
                     <p className="text-xs text-neutral-500">
-                      {a.checked_in
-                        ? `Checked in${a.checked_in_at ? ` ${new Date(a.checked_in_at).toLocaleString()}` : ''} (${a.checked_in_via ?? '—'})`
-                        : 'Not checked in'}
+                      {a.checked_in ? `In (${a.checked_in_via ?? '—'})` : 'Not in'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="shrink-0">
                   {a.checked_in ? (
                     <button
                       type="button"
                       disabled={actionId === a.registration_id}
                       onClick={() => handleCheckIn(a.registration_id, 'checkout')}
-                      className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
+                      className="rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"
                     >
-                      {actionId === a.registration_id ? '…' : 'Check out'}
+                      {actionId === a.registration_id ? '…' : 'Out'}
                     </button>
                   ) : (
                     <button
                       type="button"
                       disabled={actionId === a.registration_id}
                       onClick={() => handleCheckIn(a.registration_id, 'checkin')}
-                      className="rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+                      className="rounded-md bg-neutral-800 px-2 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
                     >
-                      {actionId === a.registration_id ? '…' : 'Check in'}
+                      {actionId === a.registration_id ? '…' : 'In'}
                     </button>
                   )}
                 </div>
@@ -165,11 +179,11 @@ export default function BusinessAttendeesPage() {
           </ul>
         )}
 
-        <div className="mt-6 flex gap-4">
-          <Link href="/business/scan" className="text-sm font-medium text-blue-600 hover:underline">
+        <div className="mt-4 flex gap-4">
+          <Link href="/business/scan" className="text-sm text-blue-600 hover:underline">
             Scan tickets
           </Link>
-          <Link href="/business" className="text-sm font-medium text-neutral-500 hover:underline">
+          <Link href="/business" className="text-sm text-neutral-500 hover:underline">
             All events
           </Link>
         </div>
