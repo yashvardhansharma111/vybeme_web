@@ -15,7 +15,11 @@ export function AppHeader() {
 
   useEffect(() => {
     setMounted(true);
-    setUser(getWebUser());
+    const stored = getWebUser();
+    setUser(stored);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AppHeader] mounted, user from storage:', stored ? { user_id: stored.user_id } : null);
+    }
   }, []);
 
   const loadProfileAndTickets = useCallback(async () => {

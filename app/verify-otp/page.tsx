@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../components/AppHeader';
-import { verifyOTP, resendOTP, setWebUser } from '@/lib/api';
+import { verifyOTP, resendOTP, setWebUser, getCurrentUserProfile } from '@/lib/api';
 
 const OTP_LENGTH = 4;
 
@@ -71,26 +71,45 @@ function VerifyOTPContent() {
     setError(null);
     try {
       const res = await verifyOTP(phone, otpString, otpId || '');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[verify-otp] verifyOTP response:', { success: res.success, hasData: !!res.data, message: (res as { message?: string }).message });
+      }
       if (res.success && res.data) {
         const d = res.data;
-        setWebUser({
+        const auth = {
           user_id: d.user_id,
           session_id: d.session_id,
           access_token: d.access_token,
           refresh_token: d.refresh_token,
           is_new_user: d.is_new_user,
-        });
-        if (d.is_new_user) {
-          router.push(
-            `/details?redirect=${encodeURIComponent(redirect)}`
-          );
-        } else {
-          router.push(redirect);
+        };
+        setWebUser(auth);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[verify-otp] auth stored, user_id=', auth.user_id, 'redirect param=', redirect);
         }
-        return;
+        if (d.is_new_user) {
+          router.push(`/details?redirect=${encodeURIComponent(redirect)}`);
+          return;
+        }
+        // Existing user: if business, send to dashboard; otherwise use redirect param
+        try {
+          const profile = await getCurrentUserProfile(auth.session_id);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[verify-otp] getCurrentUserProfile:', { is_business: profile?.is_business });
+          }
+          if (profile?.is_business) {
+            router.push('/business');
+            return;
+          }
+        } catch (_) {
+          // use redirect param if profile fetch fails
+        }
+        router.push(redirect);
+      } else {
+        setError((res as { message?: string }).message || 'Verification failed');
       }
-      setError(res.message || 'Verification failed');
     } catch (e: unknown) {
+      if (process.env.NODE_ENV === 'development') console.warn('[verify-otp] submit error', e);
       setError(e instanceof Error ? e.message : 'Verification failed');
     } finally {
       setLoading(false);

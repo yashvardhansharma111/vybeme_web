@@ -31,17 +31,28 @@ function getStoredUser(): WebUser | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as WebUser;
-  } catch {
+    if (!raw) {
+      if (process.env.NODE_ENV === 'development') console.log('[auth] getStoredUser: no value in sessionStorage');
+      return null;
+    }
+    const parsed = JSON.parse(raw) as WebUser;
+    if (process.env.NODE_ENV === 'development') console.log('[auth] getStoredUser: found user_id=', parsed?.user_id);
+    return parsed;
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') console.warn('[auth] getStoredUser: parse error', e);
     return null;
   }
 }
 
 function setStoredUser(user: WebUser | null): void {
   if (typeof window === 'undefined') return;
-  if (user) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  else sessionStorage.removeItem(STORAGE_KEY);
+  if (user) {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    if (process.env.NODE_ENV === 'development') console.log('[auth] setStoredUser: stored user_id=', user.user_id);
+  } else {
+    sessionStorage.removeItem(STORAGE_KEY);
+    if (process.env.NODE_ENV === 'development') console.log('[auth] setStoredUser: cleared');
+  }
 }
 
 export function getWebUser(): WebUser | null {

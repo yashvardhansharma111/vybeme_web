@@ -25,7 +25,11 @@ export default function BusinessPage() {
 
   useEffect(() => {
     setMounted(true);
-    setUser(getWebUser());
+    const stored = getWebUser();
+    setUser(stored);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[business] mounted, user from storage:', stored ? { user_id: stored.user_id } : null);
+    }
   }, []);
 
   const load = useCallback(async () => {
@@ -61,7 +65,10 @@ export default function BusinessPage() {
 
   useEffect(() => {
     if (!mounted || loading || !profile) return;
-    if (!profile.is_business) router.replace('/');
+    if (!profile.is_business) {
+      if (process.env.NODE_ENV === 'development') console.log('[business] redirecting to / (profile.is_business=false)');
+      router.replace('/');
+    }
   }, [mounted, loading, profile, router]);
 
   if (!mounted) {
