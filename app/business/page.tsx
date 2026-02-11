@@ -160,6 +160,14 @@ export default function BusinessPage() {
             <span className="text-neutral-400">→</span>
           </Link>
 
+          <Link
+            href="/business/attendees"
+            className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
+          >
+            <span className="font-medium">Attendee list</span>
+            <span className="text-neutral-400">→</span>
+          </Link>
+
           <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
             <h2 className="text-sm font-medium text-neutral-800">My plans</h2>
             {loading ? (
@@ -167,31 +175,31 @@ export default function BusinessPage() {
             ) : plans.length === 0 ? (
               <p className="mt-2 text-sm text-neutral-500">No events yet. Create a post above.</p>
             ) : (
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-2 space-y-2">
                 {plans.map((p) => (
-                  <li key={p.plan_id} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between rounded-md px-2 py-2 hover:bg-neutral-50">
+                  <li key={p.plan_id} className="rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
+                    <div className="flex items-center justify-between">
                       <span className="truncate font-medium text-neutral-900">{p.title ?? 'Event'}</span>
                       {typeof p.registrationCount === 'number' && (
                         <span className="text-xs text-neutral-500">{p.registrationCount} registered</span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 px-2 pb-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <Link
                         href={`/business/attendees/${p.plan_id}`}
-                        className="text-xs font-medium text-blue-600 hover:underline"
+                        className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
                       >
                         Attendees
                       </Link>
                       <Link
                         href={`/business/plan/${p.plan_id}/edit`}
-                        className="text-xs font-medium text-neutral-600 hover:underline"
+                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
                       >
                         Edit
                       </Link>
                       <Link
                         href={`/business/scan?plan=${p.plan_id}`}
-                        className="text-xs font-medium text-neutral-600 hover:underline"
+                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
                       >
                         Scan
                       </Link>

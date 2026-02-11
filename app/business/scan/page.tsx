@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getWebUser, getCurrentUserProfile, getUserPlans, scanQRCode } from '@/lib/api';
 
+const SCAN_COOLDOWN_MS = 2000;
+
 interface Plan {
   plan_id: string;
   title?: string;
@@ -28,6 +30,8 @@ export default function BusinessScanPage() {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{ checked_in: number; total: number } | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
+  const processingRef = useRef<boolean>(false);
 
   const load = useCallback(async () => {
     if (!user?.user_id) return;
@@ -93,19 +97,23 @@ export default function BusinessScanPage() {
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 240, height: 240 } },
+        { fps: 8, qrbox: { width: 240, height: 240 } },
         (decodedText) => {
           const hash = decodedText?.trim();
           if (!hash) return;
+          const now = Date.now();
+          if (processingRef.current) return;
+          if (now - lastScanTimeRef.current < SCAN_COOLDOWN_MS) return;
+          lastScanTimeRef.current = now;
+          processingRef.current = true;
 
-          setScanning(true);
           scanQRCode(hash, user.user_id)
             .then((res) => {
               const data = res.data as Record<string, unknown>;
               const scannedPlanId = (data?.plan as { plan_id?: string })?.plan_id;
               if (scannedPlanId && scannedPlanId !== selectedPlanId) {
                 setError('Wrong event – select the correct event.');
-                setTimeout(() => setError(null), 3000);
+                setTimeout(() => setError(null), 4000);
                 return;
               }
               setStats({
@@ -114,18 +122,23 @@ export default function BusinessScanPage() {
               });
               const attendee = data?.attendee as { name?: string } | undefined;
               const usr = data?.user as { name?: string } | undefined;
-              setScanResult({
-                name: attendee?.name ?? (usr?.name as string) ?? 'Guest',
-                already: !!(data?.already_checked_in as boolean),
-              });
+              const name = attendee?.name ?? (usr?.name as string) ?? 'Guest';
+              const already = !!(data?.already_checked_in as boolean);
+              setScanResult({ name, already });
               setError(null);
-              setTimeout(() => setScanResult(null), 4000);
+              if (already) {
+                setTimeout(() => setScanResult(null), 6000);
+              } else {
+                setTimeout(() => setScanResult(null), 4000);
+              }
             })
             .catch((err: Error) => {
               setError(err?.message ?? 'Invalid or already used ticket.');
-              setTimeout(() => setError(null), 3000);
+              setTimeout(() => setError(null), 4000);
             })
-            .finally(() => setScanning(false));
+            .finally(() => {
+              processingRef.current = false;
+            });
         },
         () => {}
       )
@@ -151,7 +164,7 @@ export default function BusinessScanPage() {
 
   if (!mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+      <div className="flex min-h-screen items-center justify-center bg-[#F2F2F7]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
       </div>
     );
@@ -160,24 +173,30 @@ export default function BusinessScanPage() {
   if (!loading && profile && !profile.is_business) return null;
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-lg px-4 py-6">
-        <div className="flex items-center gap-3">
-          <Link href="/business" className="text-sm text-neutral-500 hover:text-neutral-700">
-            ← Back
+    <div className="min-h-screen bg-[#F2F2F7]">
+      <div
+        className="h-36 w-full shrink-0 rounded-b-3xl"
+        style={{ background: 'linear-gradient(180deg, #4A3B69 0%, #6B5B8E 50%, #F2F2F7 100%)' }}
+      />
+      <div className="relative -mt-28 mx-auto max-w-lg px-4 pb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <Link href="/business" className="flex items-center gap-1 text-white">
+            <span className="text-lg">←</span>
+            <span className="font-medium">Back</span>
           </Link>
-          <h1 className="text-lg font-semibold text-neutral-900">Scan ticket</h1>
+          <h1 className="text-lg font-bold text-white">Scan ticket</h1>
+          <div className="w-14" />
         </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-neutral-700">Event</label>
+        <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-neutral-600">Event</label>
           <select
             value={selectedPlanId}
             onChange={(e) => {
               stopScanner();
               setSelectedPlanId(e.target.value);
             }}
-            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-[15px] text-neutral-900"
           >
             <option value="">Select event</option>
             {plans.map((p) => (
@@ -189,49 +208,62 @@ export default function BusinessScanPage() {
         </div>
 
         {stats != null && (
-          <p className="mt-2 text-sm text-neutral-600">
+          <p className="mb-3 text-[16px] font-semibold text-[#1C1C1E]">
             Checked in: {stats.checked_in} / {stats.total}
           </p>
         )}
 
-        <div className="mt-4">
-          <div id="qr-reader" className="min-h-[220px] overflow-hidden rounded-lg border border-neutral-200 bg-black" />
-          {!scanning && selectedPlanId && (
-            <button
-              type="button"
-              onClick={startScanner}
-              className="mt-3 w-full rounded-lg bg-neutral-800 py-2 text-sm font-medium text-white hover:bg-neutral-700"
-            >
-              Start camera
-            </button>
-          )}
-          {scanning && (
-            <button
-              type="button"
-              onClick={stopScanner}
-              className="mt-3 w-full rounded-lg border border-neutral-200 py-2 text-sm font-medium text-neutral-700"
-            >
-              Stop camera
-            </button>
-          )}
+        <div className="overflow-hidden rounded-2xl border-2 border-neutral-200 bg-black shadow-lg">
+          <div id="qr-reader" className="min-h-[240px]" />
         </div>
+        {!scanning && selectedPlanId && (
+          <button
+            type="button"
+            onClick={startScanner}
+            className="mt-4 w-full rounded-full bg-[#1C1C1E] py-3 text-[16px] font-bold text-white"
+          >
+            Start camera
+          </button>
+        )}
+        {scanning && (
+          <button
+            type="button"
+            onClick={stopScanner}
+            className="mt-4 w-full rounded-full border-2 border-neutral-300 bg-white py-3 text-[16px] font-semibold text-neutral-800"
+          >
+            Stop camera
+          </button>
+        )}
 
         {scanResult && (
-          <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-            {scanResult.already ? 'Already checked in: ' : 'Checked in: '}
-            <strong>{scanResult.name}</strong>
+          <div
+            className={`mt-4 rounded-2xl p-4 ${
+              scanResult.already
+                ? 'border-2 border-amber-300 bg-amber-50 text-amber-900'
+                : 'border-2 border-green-300 bg-green-50 text-green-900'
+            }`}
+          >
+            <p className="font-semibold">
+              {scanResult.already ? 'Already checked in' : 'Checked in'}
+            </p>
+            <p className="mt-1 text-[15px]">{scanResult.name}</p>
+            {scanResult.already && (
+              <p className="mt-2 text-sm opacity-90">This ticket was already scanned. No action taken.</p>
+            )}
           </div>
         )}
         {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
+          <div className="mt-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">
+            {error}
+          </div>
         )}
 
         {selectedPlanId && (
           <Link
             href={`/business/attendees/${selectedPlanId}`}
-            className="mt-4 block text-center text-sm text-blue-600 hover:underline"
+            className="mt-6 flex w-full items-center justify-center rounded-full bg-[#E5E5EA] py-3 text-[16px] font-semibold text-[#1C1C1E]"
           >
-            View attendee list →
+            Attendee list (manual check-in)
           </Link>
         )}
       </div>

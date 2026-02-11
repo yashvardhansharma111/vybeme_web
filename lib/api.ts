@@ -1,6 +1,6 @@
 /**
  * Web API client for vybeme backend.
- * Uses sessionStorage for tokens (no AsyncStorage on web).
+ * Uses localStorage with 10-day expiry for auth persistence.
  */
 
 const getBaseUrl = (): string => {
@@ -12,6 +12,7 @@ const getBaseUrl = (): string => {
 const BASE_URL = getBaseUrl();
 
 const STORAGE_KEY = 'vybeme_web_user';
+const AUTH_EXPIRY_DAYS = 10;
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -27,19 +28,24 @@ export interface WebUser {
   is_new_user?: boolean;
 }
 
+interface StoredAuth {
+  user: WebUser;
+  expires_at: number;
+}
+
 function getStoredUser(): WebUser | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      if (process.env.NODE_ENV === 'development') console.log('[auth] getStoredUser: no value in sessionStorage');
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as StoredAuth;
+    if (!stored?.user) return null;
+    if (stored.expires_at && Date.now() > stored.expires_at) {
+      localStorage.removeItem(STORAGE_KEY);
       return null;
     }
-    const parsed = JSON.parse(raw) as WebUser;
-    if (process.env.NODE_ENV === 'development') console.log('[auth] getStoredUser: found user_id=', parsed?.user_id);
-    return parsed;
-  } catch (e) {
-    if (process.env.NODE_ENV === 'development') console.warn('[auth] getStoredUser: parse error', e);
+    return stored.user;
+  } catch {
     return null;
   }
 }
@@ -47,11 +53,10 @@ function getStoredUser(): WebUser | null {
 function setStoredUser(user: WebUser | null): void {
   if (typeof window === 'undefined') return;
   if (user) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    if (process.env.NODE_ENV === 'development') console.log('[auth] setStoredUser: stored user_id=', user.user_id);
+    const expires_at = Date.now() + AUTH_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, expires_at }));
   } else {
-    sessionStorage.removeItem(STORAGE_KEY);
-    if (process.env.NODE_ENV === 'development') console.log('[auth] setStoredUser: cleared');
+    localStorage.removeItem(STORAGE_KEY);
   }
 }
 
@@ -268,12 +273,33 @@ export async function getBusinessPlanDetails(plan_id: string) {
   return request<any>(`/business-post/details/${plan_id}`, { method: 'GET' });
 }
 
-/** Create business post. body: title, description, user_id, business_id, category_main, category_sub?, location_text?, date?, time?, end_time?, passes?, add_details?, is_women_only?, allow_view_guest_list?, media? (array of {url, type}). */
+/** Create business post. body: title, description, user_id, business_id, category_main, etc. Use createBusinessPlanWithFiles when you have File objects for media/ticket. */
 export async function createBusinessPlan(body: Record<string, unknown>) {
   return request<{ post_id: string; group_id?: string | null }>('/business-post/create', {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+/** Create business post with file uploads (post media + optional ticket image). */
+export async function createBusinessPlanWithFiles(formData: FormData): Promise<ApiResponse<{ post_id: string; group_id?: string | null }>> {
+  const user = getStoredUser();
+  if (!user?.access_token) throw new Error('Not authenticated');
+  const url = `${BASE_URL}/business-post/create`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${user.access_token}`,
+  };
+  const res = await fetch(url, { method: 'POST', headers, body: formData });
+  const contentType = res.headers.get('content-type');
+  let data: ApiResponse<{ post_id: string; group_id?: string | null }>;
+  if (contentType?.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(text || `Request failed ${res.status}`);
+  }
+  if (!res.ok) throw new Error(data.message || `Request failed ${res.status}`);
+  return data;
 }
 
 /** Update business post. */
