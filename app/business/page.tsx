@@ -40,11 +40,15 @@ export default function BusinessPage() {
     if (!user?.user_id) return;
     try {
       setLoading(true);
+      console.log('[business] load: fetching profile (session_id present:', !!user.session_id, ', user_id:', user.user_id, ')');
       const [profileRes, plansRes] = await Promise.all([
         getCurrentUserProfile(user.session_id),
         getUserPlans(user.user_id, 50, 0).catch(() => ({ success: false, data: [] })),
       ]);
-      if (profileRes) setProfile({ is_business: !!profileRes.is_business });
+      // Log profile response to debug redirects
+      console.log('[business] load: profileRes =', profileRes ? { is_business: profileRes.is_business, user_id: profileRes.user_id } : null);
+      // Keep is_business as-is (true/false/undefined). Only redirect when explicitly false.
+      if (profileRes) setProfile({ is_business: profileRes.is_business });
       const raw = plansRes.success && Array.isArray(plansRes.data) ? plansRes.data : [];
       const businessPlans = raw.filter(
         (p: Plan) =>
@@ -66,7 +70,8 @@ export default function BusinessPage() {
           prev.map((p, i) => ({ ...p, registrationCount: counts[i] ?? 0 }))
         );
       });
-    } catch {
+    } catch (err) {
+      console.warn('[business] load failed:', err);
       setPlans([]);
     } finally {
       setLoading(false);
@@ -83,9 +88,12 @@ export default function BusinessPage() {
   }, [mounted, user?.user_id, router, load]);
 
   useEffect(() => {
-    if (!mounted || loading || !profile) return;
-    if (!profile.is_business) {
-      if (process.env.NODE_ENV === 'development') console.log('[business] redirecting to / (profile.is_business=false)');
+    if (!mounted || loading) return;
+    // Only redirect when we have a profile and is_business is explicitly false.
+    // If profile is null (e.g. API failed) or is_business is undefined, do NOT redirect.
+    if (profile === null) return;
+    if (profile.is_business === false) {
+      console.log('[business] redirecting to home: profile.is_business is false. To access Business, set is_business: true for this user in the database.');
       router.replace('/');
     }
   }, [mounted, loading, profile, router]);
@@ -98,7 +106,10 @@ export default function BusinessPage() {
     );
   }
   if (!user?.user_id) return null;
-  if (!loading && profile && !profile.is_business) return null;
+  // Only hide when is_business is explicitly false (redirect runs in useEffect)
+  if (!loading && profile && profile.is_business === false) return null;
+
+  console.log('[business] rendering page (user logged in, is_business !== false)');
 
   return (
     <div className="min-h-screen bg-neutral-50">
