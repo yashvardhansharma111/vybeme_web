@@ -244,17 +244,28 @@ export default function PostPage() {
                     type="button"
                     onClick={() => setSelectedPassId(pass.pass_id)}
                     className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
-                      isSelected ? 'ring-2 ring-neutral-900 ring-offset-2' : 'opacity-90 hover:opacity-100'
+                      isSelected
+                        ? 'ring-4 ring-neutral-900 ring-offset-2 shadow-lg scale-[1.02]'
+                        : 'opacity-90 hover:opacity-100'
                     }`}
                     style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
                   >
-                    <div className="flex-1 pr-3">
-                      <p className="text-base font-bold">{pass.name}</p>
-                      {pass.description ? (
-                        <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p>
-                      ) : null}
+                    <div className="flex flex-1 items-center gap-3 pr-3">
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/20' : 'border-white/50'}`}>
+                        {isSelected ? (
+                          <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-bold">{pass.name}</p>
+                        {pass.description ? (
+                          <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="text-lg font-extrabold">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                    <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
                   </button>
                 );
               })}
@@ -289,6 +300,8 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
+            selectedPassId={selectedPassId}
+            onSelectPass={!businessRegistered ? (passId) => setSelectedPassId(passId) : undefined}
           />
         ) : post ? (
           <EventDetailCard

@@ -141,6 +141,9 @@ function VerifyOTPContent() {
           <h1 className="text-center text-xl font-semibold text-neutral-900">
             Enter OTP
           </h1>
+          <p className="mt-1 text-center text-sm text-neutral-500">
+            Enter the 4-digit code we sent to your phone
+          </p>
           <form onSubmit={handleSubmit} className="mt-6">
             <div className="flex justify-center gap-2">
               {otp.map((d, i) => (

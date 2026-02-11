@@ -59,6 +59,8 @@ export function BusinessDetailCard({
   onBookEvent,
   registered = false,
   viewTicketHref,
+  selectedPassId = null,
+  onSelectPass,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -66,6 +68,9 @@ export function BusinessDetailCard({
   onBookEvent?: () => void;
   registered?: boolean;
   viewTicketHref?: string;
+  /** Highlight and optionally select a pass on the detail view */
+  selectedPassId?: string | null;
+  onSelectPass?: (passId: string) => void;
 }) {
   const planId = post.plan_id ?? (post as { id?: string }).id;
   const author = post.user;
@@ -165,24 +170,56 @@ export function BusinessDetailCard({
           </div>
         </div>
 
-        {/* Select Tickets – gradient pass cards, same as app */}
+        {/* Select Tickets – gradient pass cards, same as app; highlight selected on detail view */}
         {passes.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-3.5 text-lg font-extrabold text-[#1C1C1E]">Select Tickets</h2>
             <div className="space-y-3">
               {passes.map((pass, index) => {
                 const colors = GRADIENT_PASSES[index % GRADIENT_PASSES.length];
-                return (
-                  <div
+                const isSelected = selectedPassId === pass.pass_id;
+                const cardClass = `flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
+                  isSelected
+                    ? 'ring-4 ring-neutral-900 ring-offset-2 shadow-lg scale-[1.02]'
+                    : onSelectPass ? 'opacity-90 hover:opacity-100' : ''
+                }`;
+                const content = (
+                  <>
+                    <div className="flex flex-1 items-center gap-3 pr-3">
+                      {onSelectPass && (
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/20' : 'border-white/50'}`}>
+                          {isSelected ? (
+                            <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : null}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-bold">{pass.name}</p>
+                        {pass.description ? <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p> : null}
+                      </div>
+                    </div>
+                    <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                  </>
+                );
+                return onSelectPass ? (
+                  <button
                     key={pass.pass_id}
-                    className="flex items-center justify-between rounded-2xl px-4 py-4 text-white"
+                    type="button"
+                    onClick={() => onSelectPass(pass.pass_id)}
+                    className={cardClass}
                     style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
                   >
-                    <div className="flex-1 pr-3">
-                      <p className="text-base font-bold">{pass.name}</p>
-                      {pass.description ? <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p> : null}
-                    </div>
-                    <p className="text-lg font-extrabold">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                    {content}
+                  </button>
+                ) : (
+                  <div
+                    key={pass.pass_id}
+                    className={cardClass}
+                    style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
+                  >
+                    {content}
                   </div>
                 );
               })}
