@@ -263,6 +263,35 @@ export async function manualCheckIn(registration_id: string, user_id: string, ac
   });
 }
 
+/** Get business plan/post details (for edit and display). */
+export async function getBusinessPlanDetails(plan_id: string) {
+  return request<any>(`/business-post/details/${plan_id}`, { method: 'GET' });
+}
+
+/** Create business post. body: title, description, user_id, business_id, category_main, category_sub?, location_text?, date?, time?, end_time?, passes?, add_details?, is_women_only?, allow_view_guest_list?, media? (array of {url, type}). */
+export async function createBusinessPlan(body: Record<string, unknown>) {
+  return request<{ post_id: string; group_id?: string | null }>('/business-post/create', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/** Update business post. */
+export async function updateBusinessPlan(plan_id: string, body: Record<string, unknown>) {
+  return request<any>(`/business-post/update/${plan_id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/** Get registration counts for a business post. */
+export async function getRegistrations(plan_id: string) {
+  return request<{ total_registrations: number; approved_registrations: number; rejected_registrations: number }>(
+    `/business-post/registrations/${plan_id}`,
+    { method: 'GET' }
+  );
+}
+
 export async function getFeed(user_id: string | null, limit = 30, offset = 0) {
   return request<any[]>('/feed/home', {
     method: 'POST',

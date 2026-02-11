@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getUserPlans } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations } from '@/lib/api';
 
 interface Plan {
   plan_id: string;
@@ -15,12 +15,16 @@ interface Plan {
   is_repost?: boolean;
 }
 
+interface PlanWithCount extends Plan {
+  registrationCount?: number;
+}
+
 export default function BusinessPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<PlanWithCount[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +51,21 @@ export default function BusinessPage() {
           (p?.type === 'business' || p?.plan_type === 'BusinessPlan') && p?.post_status !== 'deleted' && !p?.is_repost
       );
       setPlans(businessPlans);
+      // Fetch registration counts in parallel
+      Promise.all(
+        businessPlans.slice(0, 30).map(async (p: Plan) => {
+          try {
+            const reg = await getRegistrations(p.plan_id);
+            return reg.success && reg.data ? reg.data.total_registrations : 0;
+          } catch {
+            return 0;
+          }
+        })
+      ).then((counts) => {
+        setPlans((prev) =>
+          prev.map((p, i) => ({ ...p, registrationCount: counts[i] ?? 0 }))
+        );
+      });
     } catch {
       setPlans([]);
     } finally {
@@ -96,31 +115,50 @@ export default function BusinessPage() {
             <span className="text-neutral-400">→</span>
           </Link>
 
-          <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
-            <p className="text-sm font-medium text-neutral-800">Create event</p>
-            <p className="mt-0.5 text-xs text-neutral-500">Create a new event in the vybeme app.</p>
-            <a href="#" className="mt-2 inline-block text-xs font-medium text-blue-600 hover:underline">
-              Open app
-            </a>
-          </div>
+          <Link
+            href="/business/create"
+            className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
+          >
+            <span className="font-medium">Create post</span>
+            <span className="text-neutral-400">→</span>
+          </Link>
 
           <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
-            <h2 className="text-sm font-medium text-neutral-800">Your events</h2>
+            <h2 className="text-sm font-medium text-neutral-800">My plans</h2>
             {loading ? (
               <p className="mt-2 text-sm text-neutral-500">Loading…</p>
             ) : plans.length === 0 ? (
-              <p className="mt-2 text-sm text-neutral-500">No events yet. Create one in the app.</p>
+              <p className="mt-2 text-sm text-neutral-500">No events yet. Create a post above.</p>
             ) : (
               <ul className="mt-2 space-y-1">
                 {plans.map((p) => (
-                  <li key={p.plan_id}>
-                    <Link
-                      href={`/business/attendees/${p.plan_id}`}
-                      className="flex items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-neutral-50"
-                    >
+                  <li key={p.plan_id} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between rounded-md px-2 py-2 hover:bg-neutral-50">
                       <span className="truncate font-medium text-neutral-900">{p.title ?? 'Event'}</span>
-                      <span className="text-neutral-400">Attendees →</span>
-                    </Link>
+                      {typeof p.registrationCount === 'number' && (
+                        <span className="text-xs text-neutral-500">{p.registrationCount} registered</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 px-2 pb-2">
+                      <Link
+                        href={`/business/attendees/${p.plan_id}`}
+                        className="text-xs font-medium text-blue-600 hover:underline"
+                      >
+                        Attendees
+                      </Link>
+                      <Link
+                        href={`/business/plan/${p.plan_id}/edit`}
+                        className="text-xs font-medium text-neutral-600 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <Link
+                        href={`/business/scan?plan=${p.plan_id}`}
+                        className="text-xs font-medium text-neutral-600 hover:underline"
+                      >
+                        Scan
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>
