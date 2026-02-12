@@ -97,18 +97,16 @@ export function BusinessDetailCard({
           vybeme
         </Link>
         {profileHref ? (
-          <Link href={profileHref} className="flex items-center gap-2 rounded-full bg-white/20 p-1 pr-2 backdrop-blur-sm transition-opacity hover:bg-white/30">
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/40">
+          <Link href={profileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={authorName}>
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
               {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
             </div>
-            <span className="max-w-[100px] truncate text-sm font-medium text-white drop-shadow-md">{authorName}</span>
           </Link>
         ) : (
-          <div className="flex items-center gap-2 rounded-full bg-white/20 px-2 py-1 backdrop-blur-sm">
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/40">
+          <div className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm">
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
               {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
             </div>
-            <span className="max-w-[100px] truncate text-sm font-medium text-white drop-shadow-md">{authorName}</span>
           </div>
         )}
       </header>
@@ -133,8 +131,8 @@ export function BusinessDetailCard({
             </svg>
           </div>
         )}
-        {/* User pill – below top bar */}
-        <div className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
+        {/* User pill – below top bar, above scrollable div */}
+        <div className="absolute left-1/2 top-16 z-[25] flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
           {profileHref ? (
             <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
