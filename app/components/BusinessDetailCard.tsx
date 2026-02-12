@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export interface BusinessDetailPost {
   plan_id?: string;
@@ -40,27 +41,25 @@ function formatOrganizerTime(date: string | Date | undefined): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function getMainImage(post: BusinessDetailPost): string | null {
-  if (post.media && post.media.length > 0 && post.media[0].url) return post.media[0].url;
-  if (post.image && String(post.image).trim()) return post.image;
-  return null;
+function getAllImages(post: BusinessDetailPost): string[] {
+  const list: string[] = [];
+  if (post.media?.length) {
+    post.media.forEach((m) => { if (m?.url) list.push(m.url); });
+  }
+  if (post.image && String(post.image).trim() && !list.includes(String(post.image))) {
+    list.push(String(post.image));
+  }
+  return list.length ? list : [];
 }
 
-const GRADIENT_PASSES: [string, string][] = [
-  ['#7C3AED', '#6366F1'],
-  ['#059669', '#10B981'],
-  ['#047857', '#059669'],
-];
+const CAROUSEL_INTERVAL_MS = 2000;
 
 export function BusinessDetailCard({
   post,
   authorName,
-  appBaseUrl = 'https://app.vybeme.in',
   onBookEvent,
   registered = false,
   viewTicketHref,
-  selectedPassId = null,
-  onSelectPass,
   attendees,
 }: {
   post: BusinessDetailPost;
@@ -69,64 +68,93 @@ export function BusinessDetailCard({
   onBookEvent?: () => void;
   registered?: boolean;
   viewTicketHref?: string;
-  /** Highlight and optionally select a pass on the detail view */
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
-  /** Who's coming – from guest list API */
   attendees?: Array<{ name?: string; profile_image?: string | null }>;
 }) {
-  const planId = post.plan_id ?? (post as { id?: string }).id;
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
   const avatar = author?.profile_image;
   const profileHref = authorId ? `/profile/${authorId}` : undefined;
-  const mainImage = getMainImage(post);
-  const hasImage = mainImage && mainImage.trim().length > 0;
+  const images = getAllImages(post);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
-  const passes = post.passes ?? [];
-  const registerOrViewHref = planId ? `${appBaseUrl}/post/${planId}` : undefined;
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const t = setInterval(() => {
+      setCarouselIndex((i) => (i + 1) % images.length);
+    }, CAROUSEL_INTERVAL_MS);
+    return () => clearInterval(t);
+  }, [images.length]);
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
-      {/* Hero image – same as app business-plan detail */}
-      <div className="relative h-[280px] w-full">
+      {/* Hero image with carousel, user pill upper-center, blur above curve */}
+      <div className="relative h-[280px] w-full overflow-hidden">
         {hasImage ? (
-          <Image src={mainImage!} alt="" fill className="object-cover" sizes="100vw" />
+          <>
+            {images.map((url, i) => (
+              <div
+                key={url}
+                className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'}`}
+              >
+                <Image src={url} alt="" fill className="object-cover" sizes="100vw" />
+              </div>
+            ))}
+          </>
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#E5E5EA]">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#E5E5EA]">
             <svg className="h-14 w-14 text-[#8E8E93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
             </svg>
           </div>
         )}
-        {/* Organizer pill – top left, same as app */}
-        <div className="absolute left-4 top-14 z-10 flex max-w-[38%] items-center gap-2 rounded-[20px] bg-white/95 px-2.5 py-1.5 shadow-md">
+        {/* Blur above the curve (bottom of image) */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/80 to-transparent z-[1]" aria-hidden />
+        {/* User pill – upper center, in between image */}
+        <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
           {profileHref ? (
-            <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-2 transition-opacity hover:opacity-90">
+            <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                {avatar ? <Image src={avatar} alt="" fill className="object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+                {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
                 <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
               </div>
             </Link>
           ) : (
             <>
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                {avatar ? <Image src={avatar} alt="" fill className="object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+                {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
                 <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
               </div>
             </>
           )}
         </div>
+        {/* Dots – when more than one image */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCarouselIndex(i)}
+                className={`h-2 rounded-full transition-all ${i === carouselIndex ? 'w-5 bg-white' : 'w-2 bg-white/60'}`}
+                aria-label={`Image ${i + 1} of ${images.length}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* White content panel – overlaps bottom, same as app */}
-      <div className="-mt-6 rounded-t-[24px] bg-white px-5 pb-10 pt-6 shadow-lg">
+      {/* White content panel – overlaps image, scrollable; title & description above curve */}
+      <div className="-mt-6 rounded-t-[24px] bg-white px-5 pb-28 pt-6 shadow-lg">
         <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
         <p className="mt-2 text-sm leading-[21px] text-[#444]">
           {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
@@ -140,7 +168,7 @@ export function BusinessDetailCard({
           )}
         </p>
 
-        {/* Location + Date side by side – same as app keyInfoRow */}
+        {/* Location + Date */}
         {(post.location_text || post.date) && (
           <div className="mt-4 flex gap-3">
             {post.location_text && (
@@ -158,7 +186,7 @@ export function BusinessDetailCard({
           </div>
         )}
 
-        {/* Detail pills – Distance, Starting Point, Dress Code, F&B – same as app */}
+        {/* Detail pills */}
         {addDetails.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2.5">
             {addDetails.slice(0, 4).map((detail, i) => (
@@ -170,7 +198,7 @@ export function BusinessDetailCard({
           </div>
         )}
 
-        {/* See who's coming – dark block, same as app attendeesCard */}
+        {/* See who's coming – no app CTA */}
         <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl bg-[#1C1C1E] px-4 py-4">
           <div>
             <p className="text-base font-bold text-white">See who&apos;s coming</p>
@@ -196,69 +224,15 @@ export function BusinessDetailCard({
                 ))}
           </div>
         </div>
+      </div>
 
-        {/* Select Tickets – gradient pass cards, same as app; highlight selected on detail view */}
-        {passes.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-3.5 text-lg font-extrabold text-[#1C1C1E]">Select Tickets</h2>
-            <div className="space-y-3">
-              {passes.map((pass, index) => {
-                const colors = GRADIENT_PASSES[index % GRADIENT_PASSES.length];
-                const isSelected = selectedPassId === pass.pass_id;
-                const cardClass = `flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
-                  isSelected
-                    ? 'ring-4 ring-neutral-900 ring-offset-2 shadow-lg scale-[1.02]'
-                    : onSelectPass ? 'opacity-90 hover:opacity-100' : ''
-                }`;
-                const content = (
-                  <>
-                    <div className="flex flex-1 items-center gap-3 pr-3">
-                      {onSelectPass && (
-                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/20' : 'border-white/50'}`}>
-                          {isSelected ? (
-                            <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          ) : null}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-base font-bold">{pass.name}</p>
-                        {pass.description ? <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p> : null}
-                      </div>
-                    </div>
-                    <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
-                  </>
-                );
-                return onSelectPass ? (
-                  <button
-                    key={pass.pass_id}
-                    type="button"
-                    onClick={() => onSelectPass(pass.pass_id)}
-                    className={cardClass}
-                    style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
-                  >
-                    {content}
-                  </button>
-                ) : (
-                  <div
-                    key={pass.pass_id}
-                    className={cardClass}
-                    style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
-                  >
-                    {content}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Book Event or View ticket */}
+      {/* Book Event / View ticket – fixed at bottom, always visible */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#E5E5EA] bg-white py-3 pb-[env(safe-area-inset-bottom)]">
+        <div className="mx-auto max-w-md px-4">
         {registered && viewTicketHref ? (
           <Link
             href={viewTicketHref}
-            className="mt-6 flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
+            className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
           >
             View ticket
           </Link>
@@ -266,22 +240,19 @@ export function BusinessDetailCard({
           <button
             type="button"
             onClick={onBookEvent}
-            className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white"
+            className="w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white"
           >
             Book Event
           </button>
-        ) : registerOrViewHref ? (
-          <a
-            href={registerOrViewHref}
-            className="mt-6 flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
-          >
-            Register
-          </a>
         ) : (
-          <div className="mt-6 rounded-[25px] bg-[#1C1C1E] py-4 text-center text-base font-bold text-white">
-            Register
-          </div>
+          <a
+            href="/login"
+            className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
+          >
+            Book Event
+          </a>
         )}
+        </div>
       </div>
     </div>
   );

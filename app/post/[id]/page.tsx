@@ -315,8 +315,6 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
-            selectedPassId={selectedPassId}
-            onSelectPass={!businessRegistered ? (passId) => setSelectedPassId(passId) : undefined}
             attendees={guestList}
           />
         ) : post ? (
@@ -331,7 +329,7 @@ export default function PostPage() {
             womenOnlyBlocked={womenOnlyBlocked}
           />
         ) : null}
-        {post && (joinSent || (isBusiness && businessRegistered)) && (
+        {post && !isBusiness && (joinSent || businessRegistered) && (
           <div className="mt-4 flex flex-col gap-3">
             <p className="text-center text-sm font-semibold text-neutral-800">
               Continue plan conversation on the app
@@ -339,7 +337,7 @@ export default function PostPage() {
             <DownloadAppCTA className="mt-0" />
           </div>
         )}
-        {post && !joinSent && !(isBusiness && businessRegistered) && <DownloadAppCTA className="mt-4" />}
+        {post && !isBusiness && !joinSent && !businessRegistered && <DownloadAppCTA className="mt-4" />}
         {(error && !joinSent) || (error && isBusiness && !businessRegistered) ? (
           <p className="text-center text-sm text-red-600">{error}</p>
         ) : null}
