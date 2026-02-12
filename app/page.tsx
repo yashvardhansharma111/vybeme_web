@@ -23,7 +23,8 @@ export default function Home() {
       const formatted = await formatFeedData(list);
       setPosts(formatted);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load feed');
+      const msg = e instanceof Error ? e.message : 'Couldn’t load feed';
+      setError(msg.includes('Connection') || msg.includes('Server is busy') ? msg : 'Couldn’t load feed. Check your connection and try again.');
       setPosts([]);
     } finally {
       setLoading(false);

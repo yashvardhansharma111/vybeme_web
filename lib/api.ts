@@ -68,6 +68,18 @@ export function setWebUser(user: WebUser | null): void {
   setStoredUser(user);
 }
 
+/** User-friendly messages for network/502 so CORS or gateway errors don't confuse users */
+function normalizeRequestError(res: Response | null, body: string, err: unknown): Error {
+  if (res?.status === 502) {
+    return new Error('Server is busy. Please try again in a moment.');
+  }
+  if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message.includes('NetworkError'))) {
+    return new Error('Connection problem. Please check your connection and try again.');
+  }
+  if (body && body.length < 200) return new Error(body);
+  return err instanceof Error ? err : new Error('Something went wrong. Please try again.');
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -90,14 +102,29 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${user.access_token}`;
   }
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch (e) {
+    throw normalizeRequestError(null, '', e);
+  }
+
   const contentType = res.headers.get('content-type');
+  if (res.status === 502) {
+    await res.text().catch(() => '');
+    throw normalizeRequestError(res, '', new Error('502'));
+  }
+
   let data: ApiResponse<T>;
   if (contentType?.includes('application/json')) {
-    data = await res.json();
+    try {
+      data = await res.json();
+    } catch {
+      throw normalizeRequestError(res, '', new Error('Invalid response'));
+    }
   } else {
     const text = await res.text();
-    throw new Error(text || `Request failed ${res.status}`);
+    throw normalizeRequestError(res, text || `Request failed ${res.status}`, new Error(text || String(res.status)));
   }
 
   if (!res.ok) {
@@ -106,12 +133,33 @@ async function request<T>(
   return data;
 }
 
+const OTP_RETRY_DELAY_MS = 1500;
+
+async function withRetryOnce<T>(
+  fn: () => Promise<T>,
+  isRetryable: (e: Error) => boolean
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    if (!isRetryable(err)) throw e;
+    await new Promise((r) => setTimeout(r, OTP_RETRY_DELAY_MS));
+    return fn();
+  }
+}
+
 // Auth
 export async function sendOTP(phone_number: string) {
-  return request<{ otp_id: string; expires_at: string }>('/auth/send-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone_number }),
-  });
+  return withRetryOnce(
+    () =>
+      request<{ otp_id: string; expires_at: string }>('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phone_number }),
+      }),
+    (e) =>
+      e.message.includes('Server is busy') || e.message.includes('Connection problem')
+  );
 }
 
 export async function verifyOTP(phone_number: string, otp_code: string, otp_id: string) {
@@ -128,10 +176,15 @@ export async function verifyOTP(phone_number: string, otp_code: string, otp_id: 
 }
 
 export async function resendOTP(phone_number: string) {
-  return request<{ otp_id: string }>('/auth/resend-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone_number }),
-  });
+  return withRetryOnce(
+    () =>
+      request<{ otp_id: string }>('/auth/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phone_number }),
+      }),
+    (e) =>
+      e.message.includes('Server is busy') || e.message.includes('Connection problem')
+  );
 }
 
 // User

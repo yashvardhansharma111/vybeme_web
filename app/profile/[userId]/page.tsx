@@ -61,7 +61,10 @@ export default function ProfilePage() {
         setProfile(p ?? null);
         setStats(s ?? null);
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : 'Couldn’t load profile';
+        setError(msg.includes('Connection') || msg.includes('Server is busy') ? msg : 'Couldn’t load profile. Check your connection and try again.');
+      })
       .finally(() => setLoading(false));
   }, [userId]);
 
