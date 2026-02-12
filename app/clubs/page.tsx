@@ -122,7 +122,7 @@ export default function BusinessPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
-  const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ is_business?: boolean; name?: string } | null>(null);
   const [plans, setPlans] = useState<PlanWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [enablingBusiness, setEnablingBusiness] = useState(false);
@@ -149,7 +149,7 @@ export default function BusinessPage() {
       // Log profile response to debug redirects
       console.log('[business] load: profileRes =', profileRes ? { is_business: profileRes.is_business, user_id: profileRes.user_id } : null);
       // Keep is_business as-is (true/false/undefined). Only redirect when explicitly false.
-      if (profileRes) setProfile({ is_business: profileRes.is_business });
+      if (profileRes) setProfile({ is_business: profileRes.is_business, name: profileRes.name });
       const raw = plansRes.success && Array.isArray(plansRes.data) ? plansRes.data : [];
       const businessPlans = raw.filter(
         (p: Plan) =>
@@ -226,7 +226,7 @@ export default function BusinessPage() {
     <div className="min-h-screen bg-neutral-50">
       <AppHeader />
       <div className="mx-auto max-w-xl px-4 py-8">
-        <h1 className="text-xl font-semibold text-neutral-900">Vybeme.home</h1>
+        <h1 className="text-xl font-semibold text-neutral-900">{profile?.name ?? 'User'} home</h1>
         <p className="mt-0.5 text-sm text-neutral-500">Scan tickets and manage attendees.</p>
 
         {showEnablePrompt && (

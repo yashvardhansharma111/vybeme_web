@@ -74,7 +74,7 @@ export function AppHeader() {
         <div className="flex items-center gap-4">
           {profile?.is_business && (
             <Link href="/clubs" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
-              Business
+              {profile?.name ?? 'Clubs'}
             </Link>
           )}
           <div className="relative" ref={dropdownRef}>
