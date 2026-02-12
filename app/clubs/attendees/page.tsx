@@ -89,7 +89,7 @@ export default function BusinessAttendeesIndexPage() {
             <span className="text-lg">←</span>
             <span className="font-medium">Back</span>
           </Link>
-          <h1 className="text-lg font-bold text-white">Attendee list</h1>
+          <h1 className="text-lg font-bold text-white">View Registrations</h1>
           <div className="w-14" />
         </div>
         {loading ? (

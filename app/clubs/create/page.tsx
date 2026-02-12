@@ -44,6 +44,12 @@ export default function BusinessCreatePage() {
   const [planLivePostId, setPlanLivePostId] = useState<string | null>(null);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
 
+  // Min date for event: today (local), so only future dates can be selected
+  const todayMin = (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  })();
+
   useEffect(() => {
     setMounted(true);
     setUser(getWebUser());
@@ -206,7 +212,7 @@ export default function BusinessCreatePage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-neutral-600"
+            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Title"
           />
         </section>
@@ -217,7 +223,7 @@ export default function BusinessCreatePage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600"
+            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Join the run club for another 5k..."
           />
         </section>
@@ -246,7 +252,7 @@ export default function BusinessCreatePage() {
             type="url"
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
+            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="https://..."
           />
         </section>
@@ -257,30 +263,25 @@ export default function BusinessCreatePage() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-neutral-600"
+            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Bohemians Indiranagar, 1st Main"
           />
         </section>
 
-        {/* Date & Time — no past dates; time numeric (e.g. 8:00 AM) */}
+        {/* Date & Time — only future dates; time placeholder visible on mobile */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <input
               type="date"
               value={date}
-              min={(() => {
-                const t = new Date();
-                return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-              })()}
+              min={todayMin}
               onChange={(e) => {
                 const val = e.target.value;
-                const today = new Date();
-                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                if (val && val < todayStr) return;
+                if (val && val < todayMin) return;
                 setDate(val);
               }}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 [color-scheme:light]"
-              placeholder="mm/dd/yyyy"
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100 [color-scheme:light]"
+              placeholder="Date"
             />
             <input
               type="text"
@@ -295,7 +296,7 @@ export default function BusinessCreatePage() {
                 setTime(cleaned);
               }}
               placeholder="8:00 AM"
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600"
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
             />
           </div>
         </section>
@@ -327,9 +328,9 @@ export default function BusinessCreatePage() {
             <div className="mt-3 space-y-2">
               {passes.map((p, i) => (
                 <div key={i} className="flex gap-2">
-                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600" />
+                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100" />
                   <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
-                    <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600" />
+                    <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100" />
                     {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
                   </div>
                   <button type="button" onClick={() => removePass(i)} className="text-black/70">×</button>
@@ -379,7 +380,7 @@ export default function BusinessCreatePage() {
                     setAdditionalDetails(next);
                   }}
                   placeholder={option?.placeholder ?? 'Value (e.g. 5k)'}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
                 />
                 <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
               </div>
@@ -413,15 +414,15 @@ export default function BusinessCreatePage() {
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
-        <div className="fixed bottom-0 left-0 right-0 flex flex-col gap-2 border-t border-[#E5E5EA] bg-[#F5F5F7] p-4 sm:flex-row sm:gap-3 sm:px-6 md:px-8">
+        <div className="fixed bottom-0 left-0 right-0 flex flex-row items-center justify-center gap-3 border-t border-[#E5E5EA] bg-[#F5F5F7] p-4 sm:gap-4 sm:px-6 md:px-8">
           <button
             type="button"
             onClick={() => setShowPreview(true)}
-            className="order-2 rounded-full border-2 border-[#1C1C1E] bg-transparent py-3 px-6 font-bold text-[#1C1C1E] sm:order-1 sm:flex-1"
+            className="flex-1 rounded-full border-2 border-[#1C1C1E] bg-transparent py-3 px-4 font-bold text-[#1C1C1E] sm:max-w-[180px]"
           >
             Preview
           </button>
-          <button type="submit" disabled={submitting} className="order-1 rounded-full bg-[#1C1C1E] py-3 font-bold text-white disabled:opacity-50 sm:order-2 sm:flex-[2]">
+          <button type="submit" disabled={submitting} className="flex-1 rounded-full bg-[#1C1C1E] py-3 px-4 font-bold text-white disabled:opacity-50 sm:max-w-[200px]">
             {submitting ? 'Creating…' : 'Post'}
           </button>
         </div>
