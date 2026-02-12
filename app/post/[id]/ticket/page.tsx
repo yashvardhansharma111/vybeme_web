@@ -199,9 +199,9 @@ export default function TicketPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-md px-4 pb-10 pt-6">
+      <main className="mx-auto max-w-md px-4 pb-10 pt-6 sm:px-6">
         {/* Ticket card — capture this for download */}
-        <div ref={ticketCardRef} className="overflow-hidden rounded-2xl bg-white shadow-lg">
+        <div ref={ticketCardRef} className="overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
           {/* Banner: image + gradient overlay */}
           <div className="relative h-[280px] w-full">
             {mainImage ? (
@@ -264,6 +264,13 @@ export default function TicketPage() {
         >
           Done
         </button>
+
+        <Link
+          href={`/post/${planId}`}
+          className="mt-3 flex w-full items-center justify-center rounded-xl border-2 border-[#E5E5EA] bg-white py-3 text-sm font-semibold text-[#1C1C1E] no-underline hover:bg-neutral-50"
+        >
+          View event
+        </Link>
 
         <p className="mt-4 text-center text-sm text-neutral-600">
           Show this ticket at the venue. For full experience and chat, use the app.

@@ -8,6 +8,18 @@ import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPl
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
 const MAX_MEDIA = 5;
 
+const ADDITIONAL_DETAIL_OPTIONS = [
+  { id: 'distance', label: 'Distance', placeholder: 'e.g. 5k' },
+  { id: 'starting_point', label: 'Starting Point', placeholder: 'e.g. Alienkind Indiranagar' },
+  { id: 'dress_code', label: 'Dress Code', placeholder: 'e.g. Cafe Joggers' },
+  { id: 'music_type', label: 'Music Type', placeholder: 'e.g. Electronic' },
+  { id: 'parking', label: 'Parking', placeholder: 'e.g. Available' },
+  { id: 'f&b', label: 'F&B', placeholder: 'e.g. Post Run Coffee' },
+  { id: 'links', label: 'Links', placeholder: 'https://...' },
+  { id: 'google_drive_link', label: 'Link for photos', placeholder: 'https://drive.google.com/...' },
+  { id: 'additional_info', label: 'Additional Info', placeholder: 'Heading and description' },
+];
+
 export default function BusinessCreatePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -29,6 +41,7 @@ export default function BusinessCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [planLivePostId, setPlanLivePostId] = useState<string | null>(null);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
 
   useEffect(() => {
@@ -128,14 +141,17 @@ export default function BusinessCreatePage() {
         body.is_paid_plan = true;
         body.registration_required = true;
       }
-      if (additionalDetails.filter((d) => d.title.trim() || d.description.trim()).length > 0) {
+      if (additionalDetails.filter((d) => d.detail_type || d.title.trim() || d.description.trim()).length > 0) {
         body.add_details = additionalDetails
-          .filter((d) => d.title.trim() || d.description.trim())
-          .map((d) => ({
-            detail_type: d.detail_type || d.title.trim().toLowerCase().replace(/\s+/g, '_') || 'info',
-            title: d.title.trim(),
-            description: d.description.trim(),
-          }));
+          .filter((d) => d.detail_type || d.title.trim() || d.description.trim())
+          .map((d) => {
+            const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === d.detail_type);
+            return {
+              detail_type: d.detail_type || d.title.trim().toLowerCase().replace(/\s+/g, '_') || 'info',
+              title: d.title.trim() || opt?.label || '',
+              description: d.description.trim(),
+            };
+          });
       }
 
       const hasFiles = mediaFiles.length > 0 || ticketImageFile !== null;
@@ -155,7 +171,7 @@ export default function BusinessCreatePage() {
       }
 
       if (res.success && res.data?.post_id) {
-        router.push(`/business?created=${res.data.post_id}`);
+        setPlanLivePostId(res.data.post_id);
         return;
       }
       setError(res?.message || 'Failed to create post');
@@ -190,7 +206,7 @@ export default function BusinessCreatePage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-black/60"
+            className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-neutral-600"
             placeholder="Title"
           />
         </section>
@@ -201,7 +217,7 @@ export default function BusinessCreatePage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-black/60"
+            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600"
             placeholder="Join the run club for another 5k..."
           />
         </section>
@@ -230,7 +246,7 @@ export default function BusinessCreatePage() {
             type="url"
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
+            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
             placeholder="https://..."
           />
         </section>
@@ -241,7 +257,7 @@ export default function BusinessCreatePage() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-black/60"
+            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-neutral-600"
             placeholder="Bohemians Indiranagar, 1st Main"
           />
         </section>
@@ -252,9 +268,19 @@ export default function BusinessCreatePage() {
             <input
               type="date"
               value={date}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60 [color-scheme:light]"
+              min={(() => {
+                const t = new Date();
+                return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+              })()}
+              onChange={(e) => {
+                const val = e.target.value;
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                if (val && val < todayStr) return;
+                setDate(val);
+              }}
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 [color-scheme:light]"
+              placeholder="mm/dd/yyyy"
             />
             <input
               type="text"
@@ -269,7 +295,7 @@ export default function BusinessCreatePage() {
                 setTime(cleaned);
               }}
               placeholder="8:00 AM"
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60"
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600"
             />
           </div>
         </section>
@@ -301,9 +327,9 @@ export default function BusinessCreatePage() {
             <div className="mt-3 space-y-2">
               {passes.map((p, i) => (
                 <div key={i} className="flex gap-2">
-                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60" />
-                  <div className="flex w-28 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
-                    <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-black/60" />
+                  <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600" />
+                  <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+                    <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600" />
                     {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
                   </div>
                   <button type="button" onClick={() => removePass(i)} className="text-black/70">×</button>
@@ -321,36 +347,44 @@ export default function BusinessCreatePage() {
           )}
         </section>
 
-        {/* Additional Details */}
+        {/* Additional Details — options like app */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
-          {additionalDetails.map((d, i) => (
-            <div key={i} className="mb-3 flex min-w-0 gap-2">
-              <input
-                type="text"
-                value={d.title}
-                onChange={(e) => {
-                  const next = [...additionalDetails];
-                  next[i] = { ...next[i], title: e.target.value };
-                  setAdditionalDetails(next);
-                }}
-                placeholder="Label (e.g. Distance)"
-                className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
-              />
-              <input
-                type="text"
-                value={d.description}
-                onChange={(e) => {
-                  const next = [...additionalDetails];
-                  next[i] = { ...next[i], description: e.target.value };
-                  setAdditionalDetails(next);
-                }}
-                placeholder="Value (e.g. 5k)"
-                className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
-              />
-              <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
-            </div>
-          ))}
+          {additionalDetails.map((d, i) => {
+            const option = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === (d.detail_type || d.title));
+            return (
+              <div key={i} className="mb-3 flex min-w-0 flex-wrap gap-2 sm:flex-nowrap">
+                <select
+                  value={d.detail_type || ADDITIONAL_DETAIL_OPTIONS.find((o) => o.label === d.title)?.id || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
+                    const next = [...additionalDetails];
+                    next[i] = { detail_type: id, title: opt?.label ?? '', description: next[i].description };
+                    setAdditionalDetails(next);
+                  }}
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
+                >
+                  <option value="">Label (e.g. Distance)</option>
+                  {ADDITIONAL_DETAIL_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={d.description}
+                  onChange={(e) => {
+                    const next = [...additionalDetails];
+                    next[i] = { ...next[i], description: e.target.value };
+                    setAdditionalDetails(next);
+                  }}
+                  placeholder={option?.placeholder ?? 'Value (e.g. 5k)'}
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
+                />
+                <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={() => setAdditionalDetails((prev) => [...prev, { detail_type: '', title: '', description: '' }])}
@@ -362,9 +396,14 @@ export default function BusinessCreatePage() {
 
         {/* Toggles */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
-          <div className="flex items-center justify-between py-2">
-            <span className="text-[16px] font-semibold text-black">Women&apos;s only</span>
-            <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} className="h-5 w-5 rounded" />
+          <div className="py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[16px] font-semibold text-black">Women&apos;s only</span>
+              <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} className="h-5 w-5 rounded" />
+            </div>
+            {womenOnly && (
+              <p className="mt-2 text-sm text-neutral-600">Only women can register for this event.</p>
+            )}
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-[16px] font-semibold text-black">Allow viewing guest list</span>
@@ -388,36 +427,121 @@ export default function BusinessCreatePage() {
         </div>
       </form>
 
-      {/* Preview modal */}
+      {/* Preview modal — full-screen, as users will see */}
       {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowPreview(false)}>
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-[#1C1C1E]">Preview</h2>
-            <p className="mt-1 text-[20px] font-bold text-[#1C1C1E]">{title || 'Title'}</p>
-            <p className="mt-2 text-sm text-[#444] whitespace-pre-wrap">{description || 'Description'}</p>
-            {(mediaFiles[0] || mediaUrl) && (
-              <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-xl bg-neutral-200">
-                {mediaFiles[0] ? (
-                  <img src={URL.createObjectURL(mediaFiles[0])} alt="" className="h-full w-full object-cover" />
+        <div className="fixed inset-0 z-50 flex flex-col bg-white" role="dialog" aria-modal="true" aria-label="Preview">
+          <div className="flex shrink-0 items-center justify-between border-b border-[#E5E5EA] bg-[#F5F5F7] px-4 py-3">
+            <span className="text-sm font-medium text-[#8E8E93]">Preview — as users will see</span>
+            <button type="button" onClick={() => setShowPreview(false)} className="rounded-full p-2 text-[#1C1C1E] hover:bg-black/10" aria-label="Close">×</button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-md pb-12">
+              {/* Hero image */}
+              <div className="relative aspect-[4/3] w-full bg-[#E5E5EA]">
+                {(mediaFiles[0] || mediaUrl) ? (
+                  mediaFiles[0] ? (
+                    <img src={URL.createObjectURL(mediaFiles[0])} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
+                  )
                 ) : (
-                  <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
+                  <div className="flex h-full items-center justify-center text-[#8E8E93]">
+                    <span className="text-sm">No image</span>
+                  </div>
                 )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                  <h1 className="text-xl font-extrabold text-white">{title || 'Title'}</h1>
+                  {(date || time) && <p className="mt-1 text-sm text-white/90">{date && new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} {time && time}</p>}
+                </div>
               </div>
-            )}
-            {location && <p className="mt-3 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">Location:</span> {location}</p>}
-            {(date || time) && <p className="mt-1 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">When:</span> {date && new Date(date).toLocaleDateString()} {time && time}</p>}
-            {category && <p className="mt-1 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">Category:</span> {category}</p>}
-            {ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-[#8E8E93]">Tickets</p>
-                {passes.filter((p) => p.name.trim()).map((p, i) => (
-                  <p key={i} className="mt-1 text-sm text-[#1C1C1E]">{p.name} — {p.price === 0 ? 'Free' : `₹${p.price}`}</p>
-                ))}
+              <div className="-mt-6 rounded-t-[24px] bg-white px-5 pb-10 pt-6 shadow-lg">
+                <p className="text-sm leading-relaxed text-[#444] whitespace-pre-wrap">{description || 'Description'}</p>
+                {location && (
+                  <div className="mt-4 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                    <p className="text-sm font-semibold text-[#1C1C1E]">📍 {location}</p>
+                  </div>
+                )}
+                {(date || time) && (
+                  <div className="mt-3 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                    <p className="text-sm font-semibold text-[#1C1C1E]">📅 {date && new Date(date).toLocaleDateString()} {time && time}</p>
+                  </div>
+                )}
+                {category && <p className="mt-3 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">Category:</span> {category}</p>}
+                {additionalDetails.filter((d) => d.title || d.description).length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2.5">
+                    {additionalDetails.filter((d) => d.title || d.description).map((d, i) => (
+                      <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
+                        <p className="text-xs font-semibold text-[#8E8E93]">{d.title || 'Detail'}</p>
+                        {d.description && <p className="mt-1 text-sm font-semibold text-[#1C1C1E]">{d.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="mb-3.5 text-lg font-extrabold text-[#1C1C1E]">Select Tickets</h2>
+                    <div className="space-y-3">
+                      {passes.filter((p) => p.name.trim()).map((p, i) => (
+                        <div key={i} className="rounded-2xl bg-[#E5E5EA] px-4 py-4 flex items-center justify-between">
+                          <p className="text-base font-bold text-[#1C1C1E]">{p.name}</p>
+                          <p className="text-lg font-extrabold text-[#1C1C1E]">{p.price === 0 ? 'Free' : `₹${p.price}`}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="mt-6 rounded-[25px] bg-[#1C1C1E] py-4 text-center text-base font-bold text-white">
+                  Book Event
+                </div>
               </div>
-            )}
-            <button type="button" onClick={() => setShowPreview(false)} className="mt-6 w-full rounded-full bg-[#1C1C1E] py-3 font-bold text-white">
-              Close
-            </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plan Live popup — after create success */}
+      {planLivePostId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Plan is live">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-[#1C1C1E]">Plan is live!</p>
+              <p className="mt-2 text-sm text-neutral-600">Your event is published. Share it or view as a user would see it.</p>
+            </div>
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    navigator.share({
+                      title: title || 'Event',
+                      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${planLivePostId}`,
+                      text: title ? `Join ${title} on vybeme` : 'Join this event on vybeme',
+                    }).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/post/${planLivePostId}`);
+                  }
+                  setPlanLivePostId(null);
+                  router.push('/business');
+                }}
+                className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
+              >
+                Share
+              </button>
+              <Link
+                href={`/post/${planLivePostId}`}
+                className="flex w-full items-center justify-center rounded-full bg-[#1C1C1E] py-3 font-bold text-white no-underline"
+                onClick={() => setPlanLivePostId(null)}
+              >
+                Go to Plan
+              </Link>
+              <button
+                type="button"
+                onClick={() => { setPlanLivePostId(null); router.push('/business'); }}
+                className="w-full py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

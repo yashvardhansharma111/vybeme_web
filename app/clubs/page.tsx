@@ -195,6 +195,12 @@ export default function BusinessPage() {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Link
+                        href={`/post/${p.plan_id}`}
+                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                      >
+                        View
+                      </Link>
+                      <Link
                         href={`/business/attendees/${p.plan_id}`}
                         className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
                       >
