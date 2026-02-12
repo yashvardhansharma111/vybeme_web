@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getWebUser, getCurrentUserProfile, getUserPlans, scanQRCode } from '@/lib/api';
@@ -21,11 +21,13 @@ interface Plan {
 
 export default function BusinessScanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planIdFromUrl = searchParams.get('plan') ?? '';
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ is_business?: boolean } | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(planIdFromUrl);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<{ name?: string; already?: boolean } | null>(null);
@@ -50,13 +52,17 @@ export default function BusinessScanPage() {
           (p?.type === 'business' || p?.plan_type === 'BusinessPlan') && p?.post_status !== 'deleted' && !p?.is_repost
       );
       setPlans(businessPlans);
-      if (businessPlans.length && !selectedPlanId) setSelectedPlanId(businessPlans[0].plan_id);
+      if (planIdFromUrl && businessPlans.some((p: Plan) => p.plan_id === planIdFromUrl)) {
+        setSelectedPlanId(planIdFromUrl);
+      } else if (businessPlans.length && !planIdFromUrl) {
+        setSelectedPlanId(businessPlans[0].plan_id);
+      }
     } catch {
       setPlans([]);
     } finally {
       setLoading(false);
     }
-  }, [user?.user_id, user?.session_id]);
+  }, [user?.user_id, user?.session_id, planIdFromUrl]);
 
   useEffect(() => {
     setMounted(true);
@@ -69,8 +75,12 @@ export default function BusinessScanPage() {
       router.replace('/login');
       return;
     }
+    if (!planIdFromUrl) {
+      router.replace('/clubs/attendees');
+      return;
+    }
     load();
-  }, [mounted, user?.user_id, router, load]);
+  }, [mounted, user?.user_id, planIdFromUrl, router, load]);
 
   useEffect(() => {
     if (!mounted || loading || !profile) return;
@@ -209,27 +219,6 @@ export default function BusinessScanPage() {
       </div>
 
       <div className="mx-auto max-w-lg px-4 pb-8">
-        {/* Event selector – light dropdown so hover keeps text visible */}
-        <div className="mb-3">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
-          <select
-            value={selectedPlanId}
-            onChange={(e) => {
-              stopScanner();
-              setSelectedPlanId(e.target.value);
-            }}
-            className="mt-1 w-full rounded-xl border border-white/20 bg-[#2C2C2E] px-3 py-2.5 text-[15px] text-white [color-scheme:light]"
-            style={{ colorScheme: 'light' }}
-          >
-            <option value="">Select event</option>
-            {plans.map((p) => (
-              <option key={p.plan_id} value={p.plan_id} className="bg-white text-[#1C1C1E]">
-                {p.title ?? 'Event'}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {total > 0 && (
           <p className="mb-3 text-center text-base font-semibold text-white">
             Checked In: {checkedIn}/{total}

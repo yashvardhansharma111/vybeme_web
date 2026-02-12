@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getAttendeeList } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getAttendeeList, manualCheckIn } from '@/lib/api';
 
 interface Attendee {
   registration_id: string;
@@ -33,6 +33,7 @@ export default function BusinessAttendeesPage() {
   const [stats, setStats] = useState<{ total: number; checked_in: number; pending: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user?.user_id || !planId) return;
@@ -81,12 +82,49 @@ export default function BusinessAttendeesPage() {
     if (!profile.is_business) router.replace('/');
   }, [mounted, loading, profile, router]);
 
+  const handleCheckInToggle = useCallback(
+    async (attendee: Attendee) => {
+      if (!user?.user_id || togglingId) return;
+      setTogglingId(attendee.registration_id);
+      try {
+        await manualCheckIn(attendee.registration_id, user.user_id, attendee.checked_in ? 'checkout' : 'checkin');
+        setAttendees((prev) =>
+          prev.map((x) =>
+            x.registration_id === attendee.registration_id
+              ? {
+                  ...x,
+                  checked_in: !x.checked_in,
+                  checked_in_at: x.checked_in ? null : new Date().toISOString(),
+                  checked_in_via: 'manual' as const,
+                }
+              : x
+          )
+        );
+        if (stats) {
+          setStats((s) =>
+            s
+              ? {
+                  ...s,
+                  checked_in: attendee.checked_in ? (s.checked_in > 0 ? s.checked_in - 1 : 0) : s.checked_in + 1,
+                }
+              : s
+          );
+        }
+      } catch {
+        // keep UI as-is on error
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [user?.user_id, togglingId, stats]
+  );
+
   const handleDownloadAll = useCallback(() => {
     const escape = (v: string | null | undefined) => {
       const s = String(v ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
       return `"${s}"`;
     };
-    const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Registered at'];
+    const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Checked in', 'Registered at'];
     const rows = attendees.map((a) => [
       escape(a.user?.name ?? 'Guest'),
       escape(a.gender ?? null),
@@ -94,6 +132,7 @@ export default function BusinessAttendeesPage() {
       escape(a.running_experience ?? null),
       escape(a.what_brings_you ?? null),
       escape(a.ticket_number ?? null),
+      escape(a.checked_in ? (a.checked_in_at ?? 'Yes') : 'No'),
       escape(a.created_at ? new Date(a.created_at).toISOString() : null),
     ]);
     const csvBody = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
@@ -211,13 +250,23 @@ export default function BusinessAttendeesPage() {
                   <p className="font-semibold text-neutral-900">{a.user?.name ?? 'Guest'}</p>
                   <p className="text-sm text-neutral-500">{a.gender ?? '—'}</p>
                 </div>
+                <label className="flex shrink-0 items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-600">Check-in</span>
+                  <input
+                    type="checkbox"
+                    checked={!!a.checked_in}
+                    disabled={togglingId === a.registration_id}
+                    onChange={() => handleCheckInToggle(a)}
+                    className="h-5 w-5 rounded border-neutral-300 text-[#4A3B69] focus:ring-[#4A3B69]"
+                  />
+                </label>
               </li>
             ))}
           </ul>
         )}
 
         <div className="mt-6 flex gap-4">
-          <Link href="/clubs/scan" className="text-sm font-medium text-blue-600 hover:underline">
+          <Link href={`/clubs/scan?plan=${planId}`} className="text-sm font-medium text-blue-600 hover:underline">
             Scan tickets
           </Link>
           <Link href="/clubs" className="text-sm text-neutral-500 hover:underline">
