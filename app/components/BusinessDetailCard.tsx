@@ -61,6 +61,9 @@ export function BusinessDetailCard({
   registered = false,
   viewTicketHref,
   attendees,
+  currentUserProfileHref,
+  currentUserAvatar,
+  currentUserName,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -71,6 +74,10 @@ export function BusinessDetailCard({
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
   attendees?: Array<{ name?: string; profile_image?: string | null }>;
+  /** When set (logged in), show profile button top-left; otherwise only organiser pill in middle */
+  currentUserProfileHref?: string;
+  currentUserAvatar?: string | null;
+  currentUserName?: string;
 }) {
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
@@ -91,28 +98,19 @@ export function BusinessDetailCard({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
-      {/* Fixed top bar: vybeme (left) + profile (right) */}
-      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent">
-        <Link href="/" className="text-lg font-bold text-white drop-shadow-md">
-          vybeme
-        </Link>
-        {profileHref ? (
-          <Link href={profileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={authorName}>
+      {/* Fixed top bar: current user profile (top right) when logged in */}
+      {currentUserProfileHref ? (
+        <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent">
+          <Link href={currentUserProfileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={currentUserName ?? 'Your profile'}>
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
-              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
+              {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
             </div>
           </Link>
-        ) : (
-          <div className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm">
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
-              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
-            </div>
-          </div>
-        )}
-      </header>
+        </header>
+      ) : null}
 
-      {/* Fixed: Hero image – full screen width, below top bar */}
-      <div className="fixed left-1/2 top-0 z-10 h-[280px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
+      {/* Fixed: Hero image – full-width background */}
+      <div className="fixed left-1/2 top-0 z-10 h-[340px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
         {hasImage ? (
           <>
             {images.map((url, i) => (
@@ -147,7 +145,7 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* User pill – fixed in its own layer above image and scrollable card (z-30) */}
+      {/* Organiser pill – fixed center above image (z-30); same position with or without header */}
       <div className="fixed left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
         {profileHref ? (
           <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
@@ -172,9 +170,9 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Scrollable area sits ON TOP of the image; starts lower so more image is visible */}
+      {/* Scrollable area: 5px inset from edges; starts lower so more image visible */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[220px]"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[300px] mx-[5px]"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
