@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getWebUser, getCurrentUserProfile, getUserPlans, scanQRCode } from '@/lib/api';
 
@@ -19,7 +19,7 @@ interface Plan {
   time?: string;
 }
 
-export default function BusinessScanPage() {
+function BusinessScanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planIdFromUrl = searchParams.get('plan') ?? '';
@@ -293,5 +293,19 @@ export default function BusinessScanPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BusinessScanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F2F2F7]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
+        </div>
+      }
+    >
+      <BusinessScanContent />
+    </Suspense>
   );
 }
