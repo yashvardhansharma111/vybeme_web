@@ -151,9 +151,9 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Only this part scrolls: white card with gradient blur (top→bottom) and curved top */}
+      {/* Scrollable area sits ON TOP of the image; on scroll the card moves up over the image */}
       <div
-        className="flex-1 overflow-y-auto pt-[240px] min-h-0"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[140px]"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
@@ -235,7 +235,7 @@ export function BusinessDetailCard({
       </div>
 
       {/* Fixed: Book Event / View ticket at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#E5E5EA] bg-white py-3 pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5EA] bg-white py-3 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto max-w-md px-4">
         {registered && viewTicketHref ? (
           <Link
