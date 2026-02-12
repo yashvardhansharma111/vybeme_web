@@ -88,10 +88,10 @@ function EventCard({
             View
           </Link>
           <Link
-            href={`/clubs/attendees/${p.plan_id}`}
+            href={`/clubs/registration/${p.plan_id}`}
             className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
           >
-            Registeration
+            Registration
           </Link>
           <Link
             href={`/clubs/plan/${p.plan_id}/edit`}

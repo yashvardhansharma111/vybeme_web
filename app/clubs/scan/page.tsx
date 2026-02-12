@@ -36,7 +36,6 @@ function BusinessScanContent() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanTimeRef = useRef<number>(0);
   const processingRef = useRef<boolean>(false);
-  const autoStartedRef = useRef<boolean>(false);
 
   const load = useCallback(async () => {
     if (!user?.user_id) return;
@@ -164,17 +163,6 @@ function BusinessScanContent() {
       });
   }, [selectedPlanId, user?.user_id, stopScanner]);
 
-  // Auto-start camera once when we have a plan from URL and are ready (no Start/Stop buttons)
-  useEffect(() => {
-    if (!planIdFromUrl || !selectedPlanId || loading || !user?.user_id || !profile?.is_business || autoStartedRef.current) return;
-    autoStartedRef.current = true;
-    const t = setTimeout(() => {
-      const el = document.getElementById('qr-reader');
-      if (el) startScanner();
-    }, 400);
-    return () => clearTimeout(t);
-  }, [planIdFromUrl, selectedPlanId, loading, user?.user_id, profile?.is_business, startScanner]);
-
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
@@ -300,10 +288,29 @@ function BusinessScanContent() {
           </p>
         )}
 
-        {/* Camera – auto-starts when plan in URL; no Start/Stop buttons */}
+        {/* Camera – user taps Start camera to begin */}
         <div className="overflow-hidden rounded-2xl bg-black">
           <div id="qr-reader" className="min-h-[280px] w-full" />
         </div>
+
+        {!scanning && selectedPlanId && (
+          <button
+            type="button"
+            onClick={startScanner}
+            className="mt-4 w-full rounded-full bg-white py-3.5 text-base font-bold text-[#1C1C1E]"
+          >
+            Start camera
+          </button>
+        )}
+        {scanning && (
+          <button
+            type="button"
+            onClick={stopScanner}
+            className="mt-4 w-full rounded-full border-2 border-white/30 bg-white/10 py-3 text-base font-semibold text-white"
+          >
+            Stop camera
+          </button>
+        )}
 
         {/* Selected plan card */}
         <div className="mt-5 rounded-2xl bg-white/10 py-4 px-4">
