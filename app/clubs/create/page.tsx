@@ -495,7 +495,7 @@ export default function BusinessCreatePage() {
                     {additionalDetails.filter((d) => d.title || d.description).map((d, i) => (
                       <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
                         <p className="text-xs font-semibold text-[#8E8E93]">{d.title || 'Detail'}</p>
-                        {d.description && <p className="mt-1 text-sm font-semibold text-[#1C1C1E]">{d.description}</p>}
+                        {d.description && <p className="mt-1 text-sm font-semibold text-[#1C1C1E] whitespace-pre-line">{d.description}</p>}
                       </div>
                     ))}
                   </div>

@@ -131,7 +131,7 @@ export function BusinessCard({
       <div className="absolute inset-x-0 bottom-0 h-[208px] flex flex-col rounded-t-[24px] bg-white px-4 pt-3.5 pb-4">
         <h2 className="mb-1 truncate text-xl font-bold text-[#1C1C1E]">{plan.title}</h2>
         <div className="h-[60px] shrink-0 overflow-hidden">
-          <p className="line-clamp-3 text-sm leading-5 text-[#3C3C43]">{plan.description}</p>
+          <p className="line-clamp-3 text-sm leading-5 text-[#3C3C43] whitespace-pre-line">{plan.description}</p>
         </div>
         {(minPrice != null || tags.length > 0) && (
           <div className="mb-2 flex flex-wrap gap-2">

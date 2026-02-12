@@ -161,7 +161,7 @@ export function PostDetailDesktop({
         )}
 
         {/* Description */}
-        <p className="mt-4 flex-1 text-sm leading-relaxed text-neutral-600">
+        <p className="mt-4 flex-1 text-sm leading-relaxed text-neutral-600 whitespace-pre-line">
           {post.description}
         </p>
 

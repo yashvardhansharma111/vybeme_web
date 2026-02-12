@@ -298,7 +298,7 @@ export default function PostPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-base font-bold">{pass.name}</p>
                         {pass.description ? (
-                          <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90">{pass.description}</p>
+                          <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
                         ) : null}
                       </div>
                     </div>

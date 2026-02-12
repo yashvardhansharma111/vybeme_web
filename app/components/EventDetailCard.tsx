@@ -111,7 +111,7 @@ export function EventDetailCard({
       {/* White content card – overlaps feel via no gap */}
       <div className="rounded-t-3xl bg-white px-4 pb-8 pt-6 shadow-lg md:px-6">
         <h1 className="text-xl font-extrabold text-neutral-900 md:text-2xl">{post.title}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 md:text-base">{post.description}</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 md:text-base whitespace-pre-line">{post.description}</p>
 
         {/* Location – light grey block */}
         {(post.location_text || post.date) && (
@@ -143,7 +143,7 @@ export function EventDetailCard({
           {displayDetails.map((d, i) => (
             <div key={i} className="rounded-xl bg-[#F2F2F7] p-3">
               <p className="text-xs font-medium text-neutral-500">{d.title}</p>
-              <p className="mt-1 text-sm font-semibold text-neutral-900">{d.description ?? '—'}</p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900 whitespace-pre-line">{d.description ?? '—'}</p>
             </div>
           ))}
         </div>

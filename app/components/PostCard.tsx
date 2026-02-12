@@ -181,7 +181,7 @@ export function PostCard({
               <h2 className="mb-2 text-[18px] font-extrabold leading-tight text-[#1C1C1E]">
                 {post.title}
               </h2>
-              <p className="mb-4 line-clamp-3 text-sm leading-5 text-[#444]">
+              <p className="mb-4 line-clamp-3 text-sm leading-5 text-[#444] whitespace-pre-line">
                 {post.description}
               </p>
               {/* Middle row: tags (flex-1 wrap) + image (96x96) — same as app */}
@@ -223,7 +223,7 @@ export function PostCard({
               <h2 className="mb-2 text-[18px] font-extrabold leading-tight text-[#1C1C1E]">
                 {post.title}
               </h2>
-              <p className="mb-4 line-clamp-3 text-sm leading-5 text-[#444]">
+              <p className="mb-4 line-clamp-3 text-sm leading-5 text-[#444] whitespace-pre-line">
                 {post.description}
               </p>
               <div className="flex items-start justify-between gap-3">

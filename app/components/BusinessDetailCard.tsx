@@ -184,7 +184,7 @@ export function BusinessDetailCard({
           }}
         >
           <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-          <p className="mt-2 text-sm leading-[21px] text-[#444]">
+          <p className="mt-2 text-sm leading-[21px] text-[#444] whitespace-pre-line">
           {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
             /^https?:\/\//.test(part) ? (
               <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
@@ -220,7 +220,7 @@ export function BusinessDetailCard({
               {addDetails.slice(0, 4).map((detail, i) => (
                 <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
                   <p className="text-xs font-semibold text-[#8E8E93]">{detail.title}</p>
-                  {detail.description ? <p className="mt-1 truncate text-sm font-semibold text-[#1C1C1E]">{detail.description}</p> : null}
+                  {detail.description ? <p className="mt-1 text-sm font-semibold text-[#1C1C1E] whitespace-pre-line">{detail.description}</p> : null}
                 </div>
               ))}
             </div>
