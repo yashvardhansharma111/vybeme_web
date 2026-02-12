@@ -84,17 +84,6 @@ function BusinessScanContent() {
     if (!profile.is_business) router.replace('/');
   }, [mounted, loading, profile, router]);
 
-  // Auto-start camera once when we have a plan from URL and are ready (no Start/Stop buttons)
-  useEffect(() => {
-    if (!planIdFromUrl || !selectedPlanId || loading || !user?.user_id || !profile?.is_business || autoStartedRef.current) return;
-    autoStartedRef.current = true;
-    const t = setTimeout(() => {
-      const el = document.getElementById('qr-reader');
-      if (el) startScanner();
-    }, 400);
-    return () => clearTimeout(t);
-  }, [planIdFromUrl, selectedPlanId, loading, user?.user_id, profile?.is_business, startScanner]);
-
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
       scannerRef.current.stop().catch(() => {});
@@ -174,6 +163,17 @@ function BusinessScanContent() {
         scannerRef.current = null;
       });
   }, [selectedPlanId, user?.user_id, stopScanner]);
+
+  // Auto-start camera once when we have a plan from URL and are ready (no Start/Stop buttons)
+  useEffect(() => {
+    if (!planIdFromUrl || !selectedPlanId || loading || !user?.user_id || !profile?.is_business || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    const t = setTimeout(() => {
+      const el = document.getElementById('qr-reader');
+      if (el) startScanner();
+    }, 400);
+    return () => clearTimeout(t);
+  }, [planIdFromUrl, selectedPlanId, loading, user?.user_id, profile?.is_business, startScanner]);
 
   useEffect(() => {
     return () => {
