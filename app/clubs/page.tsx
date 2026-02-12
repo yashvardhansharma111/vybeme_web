@@ -59,9 +59,9 @@ export default function BusinessPage() {
           (p?.type === 'business' || p?.plan_type === 'BusinessPlan') && p?.post_status !== 'deleted' && !p?.is_repost
       );
       setPlans(businessPlans);
-      // Fetch registration counts in parallel
+      // Fetch registration counts for all plans in parallel
       Promise.all(
-        businessPlans.slice(0, 30).map(async (p: Plan) => {
+        businessPlans.map(async (p: Plan) => {
           try {
             const reg = await getRegistrations(p.plan_id);
             return reg.success && reg.data ? reg.data.total_registrations : 0;
@@ -163,62 +163,61 @@ export default function BusinessPage() {
             <span className="text-neutral-400">→</span>
           </Link>
 
-          <Link
-            href="/clubs/attendees"
-            className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
-          >
-            <span className="font-medium">Attendee list</span>
-            <span className="text-neutral-400">→</span>
-          </Link>
-
           <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
-            <h2 className="text-sm font-medium text-neutral-800">My plans</h2>
+            <h2 className="text-sm font-medium text-neutral-800">Events</h2>
             {loading ? (
               <p className="mt-2 text-sm text-neutral-500">Loading…</p>
             ) : plans.length === 0 ? (
               <p className="mt-2 text-sm text-neutral-500">No events yet. Create a post above.</p>
             ) : (
-              <ul className="mt-2 space-y-2">
+              <ul className="mt-2 space-y-4">
                 {plans.map((p) => (
-                  <li key={p.plan_id} className="flex gap-3 rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
-                    {p.media?.[0]?.url ? (
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+                  <li key={p.plan_id} className="overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50/50">
+                    {/* Event image – full width on mobile and desktop */}
+                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-200 md:aspect-video">
+                      {p.media?.[0]?.url ? (
                         <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="truncate font-medium text-neutral-900">{p.title ?? 'Event'}</span>
-                      {typeof p.registrationCount === 'number' && (
-                        <span className="text-xs text-neutral-500">{p.registrationCount} registered</span>
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-neutral-400">
+                          <span className="text-sm">No image</span>
+                        </div>
                       )}
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Link
-                        href={`/post/${p.plan_id}`}
-                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                      >
-                        View
-                      </Link>
-                      <Link
-                        href={`/clubs/attendees/${p.plan_id}`}
-                        className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
-                      >
-                        Attendees
-                      </Link>
-                      <Link
-                        href={`/clubs/plan/${p.plan_id}/edit`}
-                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                      >
-                        Edit
-                      </Link>
-                      <Link
-                        href={`/clubs/scan?plan=${p.plan_id}`}
-                        className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                      >
-                        Scan
-                      </Link>
-                    </div>
+                    {/* Event title + registration count */}
+                    <div className="px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="min-w-0 flex-1 truncate font-medium text-neutral-900">{p.title ?? 'Event'}</h3>
+                        {typeof p.registrationCount === 'number' && (
+                          <span className="shrink-0 text-xs text-neutral-500">{p.registrationCount} registered</span>
+                        )}
+                      </div>
+                      {/* 4 actionable buttons */}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          href={`/post/${p.plan_id}`}
+                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                        >
+                          View event
+                        </Link>
+                        <Link
+                          href={`/clubs/attendees/${p.plan_id}`}
+                          className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
+                        >
+                          View registrations
+                        </Link>
+                        <Link
+                          href={`/clubs/plan/${p.plan_id}/edit`}
+                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                        >
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/clubs/scan?plan=${p.plan_id}`}
+                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                        >
+                          Scan Pass
+                        </Link>
+                      </div>
                     </div>
                   </li>
                 ))}
