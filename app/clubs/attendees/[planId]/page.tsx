@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getAttendeeList, manualCheckIn } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getAttendeeList } from '@/lib/api';
 
 interface Attendee {
   registration_id: string;
@@ -16,6 +16,10 @@ interface Attendee {
   checked_in_at: string | null;
   checked_in_via?: 'qr' | 'manual' | null;
   created_at: string;
+  age_range?: string | null;
+  gender?: string | null;
+  running_experience?: string | null;
+  what_brings_you?: string | null;
 }
 
 export default function BusinessAttendeesPage() {
@@ -28,7 +32,6 @@ export default function BusinessAttendeesPage() {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [stats, setStats] = useState<{ total: number; checked_in: number; pending: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [actionId, setActionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const load = useCallback(async () => {
@@ -78,21 +81,26 @@ export default function BusinessAttendeesPage() {
     if (!profile.is_business) router.replace('/');
   }, [mounted, loading, profile, router]);
 
-  const handleCheckIn = useCallback(
-    async (registration_id: string, action: 'checkin' | 'checkout') => {
-      if (!user?.user_id) return;
-      setActionId(registration_id);
-      try {
-        await manualCheckIn(registration_id, user.user_id, action);
-        await load();
-      } catch {
-        // keep list as is
-      } finally {
-        setActionId(null);
-      }
-    },
-    [user?.user_id, load]
-  );
+  const handleDownloadAll = useCallback(() => {
+    const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Registered at'];
+    const rows = attendees.map((a) => [
+      a.user?.name ?? 'Guest',
+      a.gender ?? '',
+      a.age_range ?? '',
+      a.running_experience ?? '',
+      a.what_brings_you ?? '',
+      a.ticket_number ?? '',
+      a.created_at ? new Date(a.created_at).toISOString() : '',
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendees-${planId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [attendees, planId]);
 
   const filteredAttendees = useMemo(() => {
     if (!searchQuery.trim()) return attendees;
@@ -100,6 +108,7 @@ export default function BusinessAttendeesPage() {
     return attendees.filter(
       (a) =>
         a.user?.name?.toLowerCase().includes(q) ||
+        a.gender?.toLowerCase().includes(q) ||
         a.ticket_number?.toLowerCase().includes(q)
     );
   }, [attendees, searchQuery]);
@@ -145,12 +154,23 @@ export default function BusinessAttendeesPage() {
           />
         </div>
 
-        {/* Stats */}
-        {stats != null && (
-          <p className="mb-4 text-sm font-semibold text-neutral-800">
-            Checked In: {stats.checked_in}/{stats.total}
-          </p>
-        )}
+        {/* Stats + Download */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          {stats != null && (
+            <p className="text-sm font-semibold text-neutral-800">
+              Total: {stats.total} attendee{stats.total !== 1 ? 's' : ''}
+            </p>
+          )}
+          {filteredAttendees.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownloadAll}
+              className="rounded-xl bg-[#1C1C1E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800"
+            >
+              Download all user data
+            </button>
+          )}
+        </div>
 
         {/* List */}
         {loading ? (
@@ -164,55 +184,24 @@ export default function BusinessAttendeesPage() {
             {filteredAttendees.map((a) => (
               <li
                 key={a.registration_id}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+                className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm"
               >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  {a.user?.profile_image ? (
-                    <Image
-                      src={a.user.profile_image}
-                      alt=""
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-500">
-                      {a.user?.name?.charAt(0) ?? '?'}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-neutral-900">{a.user?.name ?? 'Guest'}</p>
-                    {a.ticket_number && (
-                      <p className="text-xs text-neutral-500">Ticket: {a.ticket_number}</p>
-                    )}
-                    {a.checked_in && a.checked_in_via === 'manual' && (
-                      <p className="text-xs italic text-neutral-400">checked manually</p>
-                    )}
+                {a.user?.profile_image ? (
+                  <Image
+                    src={a.user.profile_image}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-500">
+                    {a.user?.name?.charAt(0) ?? '?'}
                   </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {a.checked_in ? (
-                    <>
-                      <span className="text-green-600">✓</span>
-                      <button
-                        type="button"
-                        disabled={actionId === a.registration_id}
-                        onClick={() => handleCheckIn(a.registration_id, 'checkout')}
-                        className="rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-200 disabled:opacity-50"
-                      >
-                        {actionId === a.registration_id ? '…' : 'Uncheck'}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={actionId === a.registration_id}
-                      onClick={() => handleCheckIn(a.registration_id, 'checkin')}
-                      className="rounded-full bg-neutral-800 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50"
-                    >
-                      {actionId === a.registration_id ? '…' : 'Check In'}
-                    </button>
-                  )}
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-neutral-900">{a.user?.name ?? 'Guest'}</p>
+                  <p className="text-sm text-neutral-500">{a.gender ?? '—'}</p>
                 </div>
               </li>
             ))}

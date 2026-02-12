@@ -240,16 +240,28 @@ export async function createJoinRequest(post_id: string, user_id: string, messag
   });
 }
 
-// Business event: register and get ticket
+// Business event: register and get ticket (with optional survey: age_range, gender, running_experience, what_brings_you)
 export async function registerForBusinessEvent(
   plan_id: string,
   user_id: string,
   pass_id?: string,
-  message?: string
+  message?: string,
+  survey?: { age_range?: string; gender?: string; running_experience?: string; what_brings_you?: string }
 ) {
   return request<{ registration: unknown; ticket: unknown }>('/ticket/register', {
     method: 'POST',
-    body: JSON.stringify({ plan_id, user_id, pass_id, message }),
+    body: JSON.stringify({
+      plan_id,
+      user_id,
+      pass_id,
+      message,
+      ...(survey && {
+        age_range: survey.age_range || undefined,
+        gender: survey.gender || undefined,
+        running_experience: survey.running_experience || undefined,
+        what_brings_you: survey.what_brings_you || undefined,
+      }),
+    }),
   });
 }
 
@@ -271,7 +283,7 @@ export async function getUserPlans(user_id: string, limit = 50, offset = 0) {
   return request<any[]>(`/user/plans?user_id=${encodeURIComponent(user_id)}&limit=${limit}&offset=${offset}`, { method: 'GET' });
 }
 
-/** Get attendee list for a plan (organizer only). */
+/** Get attendee list for a plan (organizer only). Includes survey fields for export. */
 export async function getAttendeeList(plan_id: string, user_id: string) {
   return request<{
     attendees: Array<{
@@ -286,6 +298,10 @@ export async function getAttendeeList(plan_id: string, user_id: string) {
       checked_in_via?: 'qr' | 'manual' | null;
       price_paid: number;
       created_at: string;
+      age_range?: string | null;
+      gender?: string | null;
+      running_experience?: string | null;
+      what_brings_you?: string | null;
     }>;
     statistics: { total: number; checked_in: number; pending: number };
   }>(`/ticket/attendees/${plan_id}?user_id=${encodeURIComponent(user_id)}`, { method: 'GET' });

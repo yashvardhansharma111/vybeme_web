@@ -43,12 +43,17 @@ export default function PostPage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [womenOnlyBlocked, setWomenOnlyBlocked] = useState(false);
-  // Business post flow: detail | tickets → after auth → detail with View ticket
-  const [businessStep, setBusinessStep] = useState<'detail' | 'tickets'>('detail');
+  // Business post flow: detail | tickets | survey → after submit → detail with View ticket
+  const [businessStep, setBusinessStep] = useState<'detail' | 'tickets' | 'survey'>('detail');
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
   const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
+  // Registration survey (replaces payment)
+  const [ageRange, setAgeRange] = useState('');
+  const [gender, setGender] = useState('');
+  const [runningExperience, setRunningExperience] = useState('');
+  const [whatBringsYou, setWhatBringsYou] = useState('');
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -129,21 +134,14 @@ export default function PostPage() {
     loadPost();
   }, [loadPost]);
 
-  // After login return: complete pending business registration
+  // After login return: show survey form for pending business registration (do not register until form submitted)
   useEffect(() => {
     if (!postId || !user?.user_id || !isBusiness) return;
     const pending = getPendingBusinessRegistration();
     if (!pending || pending.planId !== postId) return;
     clearPendingBusinessRegistration();
-    setBusinessRegistering(true);
-    setError(null);
-    registerForBusinessEvent(postId, user.user_id, pending.passId || undefined)
-      .then(() => {
-        setBusinessRegistered(true);
-        setBusinessStep('detail');
-      })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
-      .finally(() => setBusinessRegistering(false));
+    setSelectedPassId(pending.passId || null);
+    setBusinessStep('survey');
   }, [postId, user?.user_id, isBusiness]);
 
   const handleJoin = useCallback(async () => {
@@ -177,7 +175,7 @@ export default function PostPage() {
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
   const handleBookEvent = useCallback(() => setBusinessStep('tickets'), []);
-  const handleProceedToPayments = useCallback(() => {
+  const handleProceedToSurvey = useCallback(() => {
     const passId = passes.length > 0 ? selectedPassId : undefined;
     if (passes.length > 0 && !passId) return;
     if (!user?.user_id) {
@@ -185,17 +183,37 @@ export default function PostPage() {
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
       return;
     }
+    setBusinessStep('survey');
+    setError(null);
+  }, [postId, selectedPassId, passes.length, user?.user_id, router]);
+
+  const handleSubmitRegistration = useCallback(() => {
+    if (!ageRange || !gender || !runningExperience) {
+      setError('Please fill Age, Gender, and Running experience.');
+      return;
+    }
+    if (!user?.user_id) return;
     setBusinessRegistering(true);
     setError(null);
-    registerForBusinessEvent(postId, user.user_id, passId ?? undefined)
+    const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
+    registerForBusinessEvent(postId, user.user_id, passId, undefined, {
+      age_range: ageRange,
+      gender,
+      running_experience: runningExperience,
+      what_brings_you: whatBringsYou.trim() || undefined,
+    })
       .then(() => {
         setBusinessRegistered(true);
         setBusinessStep('detail');
         setSelectedPassId(null);
+        setAgeRange('');
+        setGender('');
+        setRunningExperience('');
+        setWhatBringsYou('');
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
       .finally(() => setBusinessRegistering(false));
-  }, [postId, selectedPassId, passes.length, user?.user_id, router]);
+  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou]);
 
   if (loading) {
     return (
@@ -232,7 +250,11 @@ export default function PostPage() {
       <main className={`mx-auto flex max-w-md flex-col gap-4 pb-8 md:max-w-4xl md:py-8 ${post && isBusiness && businessStep === 'detail' ? 'p-0' : 'p-4'}`}>
         <button
           type="button"
-          onClick={() => (isBusiness && businessStep === 'tickets' ? setBusinessStep('detail') : router.back())}
+          onClick={() => {
+            if (isBusiness && businessStep === 'tickets') setBusinessStep('detail');
+            else if (isBusiness && businessStep === 'survey') setBusinessStep('tickets');
+            else router.back();
+          }}
           className={`text-sm font-medium text-neutral-700 underline hover:text-neutral-900 ${post && isBusiness && businessStep === 'detail' ? 'absolute left-4 top-20 z-30' : 'self-start md:mb-2'}`}
         >
           ← Back
@@ -288,11 +310,94 @@ export default function PostPage() {
             )}
             <button
               type="button"
-              disabled={(passes.length > 0 && !selectedPassId) || businessRegistering}
-              onClick={handleProceedToPayments}
+              disabled={passes.length > 0 && !selectedPassId}
+              onClick={handleProceedToSurvey}
               className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60"
             >
-              {businessRegistering ? 'Processing…' : 'Proceed to payments'}
+              Continue
+            </button>
+          </div>
+        ) : post && isBusiness && businessStep === 'survey' ? (
+          <div className="rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
+            <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Age <span className="text-red-500">*</span></p>
+                <div className="flex flex-wrap gap-2">
+                  {['Under 18yrs', '18-24yrs', '25-34yrs', '35-44yrs', 'above 45yrs'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setAgeRange(opt)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium ${ageRange === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Gender <span className="text-red-500">*</span></p>
+                <div className="flex flex-wrap gap-2">
+                  {['Male', 'Female', 'Prefer not to say'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setGender(opt)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium ${gender === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Your running experience <span className="text-red-500">*</span></p>
+                <div className="flex flex-col gap-2">
+                  {[
+                    'This will be my first time.',
+                    'I run occasionally',
+                    'I run regularly',
+                    "I'm returning after a break",
+                  ].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setRunningExperience(opt)}
+                      className={`rounded-xl px-4 py-3 text-left text-sm font-medium ${runningExperience === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">What brings you to BREATHE?</p>
+                <textarea
+                  value={whatBringsYou}
+                  onChange={(e) => setWhatBringsYou(e.target.value)}
+                  placeholder="Optional"
+                  rows={3}
+                  className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-500"
+                />
+              </div>
+            </div>
+            {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+            <button
+              type="button"
+              disabled={businessRegistering}
+              onClick={handleSubmitRegistration}
+              className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60"
+            >
+              {businessRegistering ? 'Completing…' : 'Complete registration'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBusinessStep('tickets')}
+              className="mt-3 w-full py-2 text-sm font-medium text-neutral-500"
+            >
+              ← Back
             </button>
           </div>
         ) : post && isBusiness ? (
