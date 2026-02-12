@@ -85,7 +85,7 @@ export default function BusinessAttendeesIndexPage() {
       />
       <div className="relative -mt-24 mx-auto max-w-xl px-4 pb-8">
         <div className="mb-4 flex items-center gap-3">
-          <Link href="/business" className="flex items-center gap-1 text-white">
+          <Link href="/clubs" className="flex items-center gap-1 text-white">
             <span className="text-lg">←</span>
             <span className="font-medium">Back</span>
           </Link>
@@ -97,7 +97,7 @@ export default function BusinessAttendeesIndexPage() {
         ) : plans.length === 0 ? (
           <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
             <p className="text-neutral-500">No business events yet.</p>
-            <Link href="/business/create" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
+            <Link href="/clubs/create" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
               Create a post
             </Link>
           </div>
@@ -106,7 +106,7 @@ export default function BusinessAttendeesIndexPage() {
             {plans.map((p) => (
               <li key={p.plan_id}>
                 <Link
-                  href={`/business/attendees/${p.plan_id}`}
+                  href={`/clubs/attendees/${p.plan_id}`}
                   className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm transition active:bg-neutral-50"
                 >
                   <span className="font-medium text-neutral-900">{p.title ?? 'Event'}</span>

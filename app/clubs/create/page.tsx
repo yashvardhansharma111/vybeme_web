@@ -194,7 +194,7 @@ export default function BusinessCreatePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F7]">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E5EA] bg-[#F5F5F7] px-4 py-3 sm:px-6 md:px-8">
-        <Link href="/business" className="text-neutral-900 text-[15px] sm:text-base">← Back</Link>
+        <Link href="/clubs" className="text-neutral-900 text-[15px] sm:text-base">← Back</Link>
         <h1 className="text-[17px] font-semibold text-[#1C1C1E] sm:text-lg">Create Post</h1>
         <div className="w-10 sm:w-12" />
       </header>
@@ -521,7 +521,7 @@ export default function BusinessCreatePage() {
                     navigator.clipboard?.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/post/${planLivePostId}`);
                   }
                   setPlanLivePostId(null);
-                  router.push('/business');
+                  router.push('/clubs');
                 }}
                 className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
               >
@@ -536,7 +536,7 @@ export default function BusinessCreatePage() {
               </Link>
               <button
                 type="button"
-                onClick={() => { setPlanLivePostId(null); router.push('/business'); }}
+                onClick={() => { setPlanLivePostId(null); router.push('/clubs'); }}
                 className="w-full py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700"
               >
                 Done

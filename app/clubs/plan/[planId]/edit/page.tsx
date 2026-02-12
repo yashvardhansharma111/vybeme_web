@@ -81,7 +81,7 @@ export default function BusinessEditPlanPage() {
       return;
     }
     if (!planId) {
-      router.replace('/business');
+      router.replace('/clubs');
       return;
     }
   }, [mounted, user?.user_id, planId, router]);
@@ -131,7 +131,7 @@ export default function BusinessEditPlanPage() {
       }
       const res = await updateBusinessPlan(planId, body);
       if (res.success) {
-        router.push('/business');
+        router.push('/clubs');
         return;
       }
       setError((res as { message?: string }).message || 'Failed to update');
@@ -163,7 +163,7 @@ export default function BusinessEditPlanPage() {
     <div className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-xl px-4 py-6">
         <div className="flex items-center gap-3">
-          <Link href="/business" className="text-sm text-neutral-500 hover:text-neutral-700">
+          <Link href="/clubs" className="text-sm text-neutral-500 hover:text-neutral-700">
             ← Back
           </Link>
           <h1 className="text-lg font-semibold text-neutral-900">Edit plan</h1>

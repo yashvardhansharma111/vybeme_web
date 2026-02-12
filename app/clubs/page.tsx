@@ -148,7 +148,7 @@ export default function BusinessPage() {
         {(!showEnablePrompt || profile?.is_business === true) && (
         <div className="mt-6 flex flex-col gap-3">
           <Link
-            href="/business/scan"
+            href="/clubs/scan"
             className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
           >
             <span className="font-medium">Scan tickets</span>
@@ -156,7 +156,7 @@ export default function BusinessPage() {
           </Link>
 
           <Link
-            href="/business/create"
+            href="/clubs/create"
             className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
           >
             <span className="font-medium">Create post</span>
@@ -164,7 +164,7 @@ export default function BusinessPage() {
           </Link>
 
           <Link
-            href="/business/attendees"
+            href="/clubs/attendees"
             className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-neutral-900 transition hover:bg-neutral-50"
           >
             <span className="font-medium">Attendee list</span>
@@ -201,19 +201,19 @@ export default function BusinessPage() {
                         View
                       </Link>
                       <Link
-                        href={`/business/attendees/${p.plan_id}`}
+                        href={`/clubs/attendees/${p.plan_id}`}
                         className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
                       >
                         Attendees
                       </Link>
                       <Link
-                        href={`/business/plan/${p.plan_id}/edit`}
+                        href={`/clubs/plan/${p.plan_id}/edit`}
                         className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
                       >
                         Edit
                       </Link>
                       <Link
-                        href={`/business/scan?plan=${p.plan_id}`}
+                        href={`/clubs/scan?plan=${p.plan_id}`}
                         className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
                       >
                         Scan

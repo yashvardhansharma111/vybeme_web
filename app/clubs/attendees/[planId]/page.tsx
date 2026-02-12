@@ -67,7 +67,7 @@ export default function BusinessAttendeesPage() {
       return;
     }
     if (!planId) {
-      router.replace('/business');
+      router.replace('/clubs');
       return;
     }
     load();
@@ -125,7 +125,7 @@ export default function BusinessAttendeesPage() {
       />
       <div className="relative -mt-28 mx-auto max-w-xl px-4 pb-8">
         <div className="mb-4 flex items-center justify-between">
-          <Link href="/business" className="flex h-10 items-center gap-1 text-white">
+          <Link href="/clubs" className="flex h-10 items-center gap-1 text-white">
             <span className="text-lg">←</span>
             <span className="font-medium">Back</span>
           </Link>
@@ -220,10 +220,10 @@ export default function BusinessAttendeesPage() {
         )}
 
         <div className="mt-6 flex gap-4">
-          <Link href="/business/scan" className="text-sm font-medium text-blue-600 hover:underline">
+          <Link href="/clubs/scan" className="text-sm font-medium text-blue-600 hover:underline">
             Scan tickets
           </Link>
-          <Link href="/business" className="text-sm text-neutral-500 hover:underline">
+          <Link href="/clubs" className="text-sm text-neutral-500 hover:underline">
             All events
           </Link>
         </div>

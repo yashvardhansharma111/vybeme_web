@@ -195,12 +195,12 @@ export default function BusinessScanPage() {
     <div className="min-h-screen bg-[#1C1C1E]">
       {/* Nav – app style: close left, title center, Attendee list right */}
       <div className="flex items-center justify-between px-4 py-3">
-        <Link href="/business" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
+        <Link href="/clubs" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
           <span className="text-2xl">×</span>
         </Link>
         <h1 className="text-lg font-bold text-white">Scanner</h1>
         <Link
-          href={selectedPlanId ? `/business/attendees/${selectedPlanId}` : '/business/attendees'}
+          href={selectedPlanId ? `/clubs/attendees/${selectedPlanId}` : '/clubs/attendees'}
           className="flex items-center gap-1.5 rounded-full bg-white/20 px-3.5 py-2 text-sm font-semibold text-white"
         >
           <span aria-hidden>👤</span>

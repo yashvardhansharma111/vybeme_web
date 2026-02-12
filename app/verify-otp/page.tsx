@@ -98,7 +98,7 @@ function VerifyOTPContent() {
             console.log('[verify-otp] getCurrentUserProfile:', { is_business: profile?.is_business });
           }
           if (profile?.is_business) {
-            router.push('/business');
+            router.push('/clubs');
             return;
           }
         } catch (_) {

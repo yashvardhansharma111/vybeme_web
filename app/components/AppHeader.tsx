@@ -73,7 +73,7 @@ export function AppHeader() {
       {showLoggedIn ? (
         <div className="flex items-center gap-4">
           {profile?.is_business && (
-            <Link href="/business" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+            <Link href="/clubs" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
               Business
             </Link>
           )}
