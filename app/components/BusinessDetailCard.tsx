@@ -131,30 +131,6 @@ export function BusinessDetailCard({
             </svg>
           </div>
         )}
-        {/* User pill – below top bar, above scrollable div */}
-        <div className="absolute left-1/2 top-16 z-[25] flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
-          {profileHref ? (
-            <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-                <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
-              </div>
-            </Link>
-          ) : (
-            <>
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-                <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
-              </div>
-            </>
-          )}
-        </div>
         {/* Dots – when more than one image */}
         {images.length > 1 && (
           <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
@@ -168,6 +144,31 @@ export function BusinessDetailCard({
               />
             ))}
           </div>
+        )}
+      </div>
+
+      {/* User pill – fixed in its own layer above image and scrollable card (z-30) */}
+      <div className="fixed left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
+        {profileHref ? (
+          <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
+              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
+              <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+            </div>
+          </Link>
+        ) : (
+          <>
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
+              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
+              <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+            </div>
+          </>
         )}
       </div>
 
