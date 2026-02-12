@@ -82,24 +82,32 @@ export default function BusinessAttendeesPage() {
   }, [mounted, loading, profile, router]);
 
   const handleDownloadAll = useCallback(() => {
+    const escape = (v: string | null | undefined) => {
+      const s = String(v ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
+      return `"${s}"`;
+    };
     const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Registered at'];
     const rows = attendees.map((a) => [
-      a.user?.name ?? 'Guest',
-      a.gender ?? '',
-      a.age_range ?? '',
-      a.running_experience ?? '',
-      a.what_brings_you ?? '',
-      a.ticket_number ?? '',
-      a.created_at ? new Date(a.created_at).toISOString() : '',
+      escape(a.user?.name ?? 'Guest'),
+      escape(a.gender ?? null),
+      escape(a.age_range ?? null),
+      escape(a.running_experience ?? null),
+      escape(a.what_brings_you ?? null),
+      escape(a.ticket_number ?? null),
+      escape(a.created_at ? new Date(a.created_at).toISOString() : null),
     ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const csvBody = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvBody], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `attendees-${planId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.setAttribute('href', url);
+    a.setAttribute('download', `attendees-${planId}-${new Date().toISOString().slice(0, 10)}.csv`);
+    a.style.display = 'none';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }, [attendees, planId]);
 
   const filteredAttendees = useMemo(() => {
