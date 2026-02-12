@@ -91,7 +91,7 @@ function EventCard({
             href={`/clubs/attendees/${p.plan_id}`}
             className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
           >
-            Attendees
+            Registeration
           </Link>
           <Link
             href={`/clubs/plan/${p.plan_id}/edit`}
@@ -226,7 +226,7 @@ export default function BusinessPage() {
     <div className="min-h-screen bg-neutral-50">
       <AppHeader />
       <div className="mx-auto max-w-xl px-4 py-8">
-        <h1 className="text-xl font-semibold text-neutral-900">Business</h1>
+        <h1 className="text-xl font-semibold text-neutral-900">Vybeme.home</h1>
         <p className="mt-0.5 text-sm text-neutral-500">Scan tickets and manage attendees.</p>
 
         {showEnablePrompt && (
