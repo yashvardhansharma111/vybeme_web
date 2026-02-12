@@ -183,7 +183,7 @@ export default function BusinessCreatePage() {
         <div className="w-10 sm:w-12" />
       </header>
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-lg px-4 pb-28 pt-4 sm:px-6 sm:pb-32 sm:pt-6 md:px-8 md:pt-8">
+      <form onSubmit={handleSubmit} className="mx-auto min-w-0 max-w-lg px-4 pb-28 pt-4 sm:px-6 sm:pb-32 sm:pt-6 md:px-8 md:pt-8">
         {/* Title first (app order) */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <input
@@ -325,7 +325,7 @@ export default function BusinessCreatePage() {
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
           {additionalDetails.map((d, i) => (
-            <div key={i} className="mb-3 flex gap-2">
+            <div key={i} className="mb-3 flex min-w-0 gap-2">
               <input
                 type="text"
                 value={d.title}
@@ -335,7 +335,7 @@ export default function BusinessCreatePage() {
                   setAdditionalDetails(next);
                 }}
                 placeholder="Label (e.g. Distance)"
-                className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
+                className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
               />
               <input
                 type="text"
@@ -346,9 +346,9 @@ export default function BusinessCreatePage() {
                   setAdditionalDetails(next);
                 }}
                 placeholder="Value (e.g. 5k)"
-                className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
+                className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
               />
-              <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="text-black/70">×</button>
+              <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
             </div>
           ))}
           <button
