@@ -91,7 +91,29 @@ export function BusinessDetailCard({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
-      {/* Fixed: Hero image – full screen width, no padding */}
+      {/* Fixed top bar: vybeme (left) + profile (right) */}
+      <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent">
+        <Link href="/" className="text-lg font-bold text-white drop-shadow-md">
+          vybeme
+        </Link>
+        {profileHref ? (
+          <Link href={profileHref} className="flex items-center gap-2 rounded-full bg-white/20 p-1 pr-2 backdrop-blur-sm transition-opacity hover:bg-white/30">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/40">
+              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
+            </div>
+            <span className="max-w-[100px] truncate text-sm font-medium text-white drop-shadow-md">{authorName}</span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 rounded-full bg-white/20 px-2 py-1 backdrop-blur-sm">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/40">
+              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{authorName.charAt(0)}</span>}
+            </div>
+            <span className="max-w-[100px] truncate text-sm font-medium text-white drop-shadow-md">{authorName}</span>
+          </div>
+        )}
+      </header>
+
+      {/* Fixed: Hero image – full screen width, below top bar */}
       <div className="fixed left-1/2 top-0 z-10 h-[280px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
         {hasImage ? (
           <>
@@ -111,8 +133,8 @@ export function BusinessDetailCard({
             </svg>
           </div>
         )}
-        {/* User pill – upper center */}
-        <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
+        {/* User pill – below top bar */}
+        <div className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
           {profileHref ? (
             <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
@@ -151,13 +173,13 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Scrollable area sits ON TOP of the image; on scroll the card moves up over the image */}
+      {/* Scrollable area sits ON TOP of the image; starts lower so more image is visible */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[140px]"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[220px]"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
-          className="rounded-t-[24px] px-5 pb-24 pt-8 shadow-lg min-h-full"
+          className="rounded-t-[24px] px-5 pb-24 pt-8 shadow-lg min-h-[calc(100vh-120px)]"
           style={{
             background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
           }}
@@ -175,19 +197,19 @@ export function BusinessDetailCard({
           )}
           </p>
 
-          {/* Location + Date */}
+          {/* Address + Date & time in one div */}
           {(post.location_text || post.date) && (
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 rounded-[14px] bg-[#F2F2F7] p-3.5">
               {post.location_text && (
-                <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                <div className="flex gap-2">
                   <span className="text-[#666]" aria-hidden>📍</span>
-                  <p className="mt-2 text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
+                  <p className="text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
                 </div>
               )}
               {post.date && (
-                <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                <div className={`flex gap-2 ${post.location_text ? 'mt-3' : ''}`}>
                   <span className="text-[#666]" aria-hidden>📅</span>
-                  <p className="mt-2 text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
+                  <p className="text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
                 </div>
               )}
             </div>
@@ -234,9 +256,9 @@ export function BusinessDetailCard({
         </div>
       </div>
 
-      {/* Fixed: Book Event / View ticket at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5EA] bg-white py-3 pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto max-w-md px-4">
+      {/* Fixed: Book Event / View ticket at bottom – padding so not stuck to edge */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5EA] bg-white pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] px-4">
+        <div className="mx-auto max-w-md">
         {registered && viewTicketHref ? (
           <Link
             href={viewTicketHref}
