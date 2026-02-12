@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles } from '@/lib/api';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
@@ -43,6 +43,7 @@ export default function BusinessCreatePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [planLivePostId, setPlanLivePostId] = useState<string | null>(null);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Min date for event: today (local), so only future dates can be selected
   const todayMin = (() => {
@@ -228,10 +229,19 @@ export default function BusinessCreatePage() {
           />
         </section>
 
-        {/* Post media upload */}
+        {/* Post media upload — upload from device or paste URL */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
-          <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={onPostMediaChange}
+            className="sr-only"
+            aria-label="Choose images to upload"
+          />
+          <div className="flex flex-wrap items-center gap-2">
             {mediaFiles.map((file, i) => (
               <div key={i} className="relative">
                 <div className="h-20 w-20 overflow-hidden rounded-xl bg-neutral-200">
@@ -241,10 +251,22 @@ export default function BusinessCreatePage() {
               </div>
             ))}
             {mediaFiles.length < MAX_MEDIA && (
-              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-black/70">
-                <input type="file" accept="image/*" multiple className="hidden" onChange={onPostMediaChange} />
-                <span className="text-2xl">+</span>
-              </label>
+              <>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-black/70 hover:border-[#1C1C1E] hover:bg-black/5 hover:text-black"
+                >
+                  <span className="text-2xl">+</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg border border-[#1C1C1E] bg-white px-4 py-2 text-sm font-semibold text-[#1C1C1E] hover:bg-[#1C1C1E] hover:text-white"
+                >
+                  Upload images
+                </button>
+              </>
             )}
           </div>
           <p className="mt-2 text-xs text-black/70">Or paste image URL below</p>
