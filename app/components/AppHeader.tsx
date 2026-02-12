@@ -2,16 +2,24 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getTicketsByUser } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getTicketsByUser, setWebUser } from '@/lib/api';
 
 export function AppHeader() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ name?: string; profile_image?: string | null; is_business?: boolean } | null>(null);
   const [tickets, setTickets] = useState<Array<{ ticket_id: string; ticket_number: string; plan: { plan_id: string; title?: string } | null }>>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = useCallback(() => {
+    setDropdownOpen(false);
+    setWebUser(null);
+    router.replace('/login');
+  }, [router]);
 
   useEffect(() => {
     setMounted(true);
@@ -109,6 +117,24 @@ export function AppHeader() {
                     </Link>
                   ))
                 )}
+              </div>
+              <div className="border-t border-neutral-100 py-2">
+                {user?.user_id && (
+                  <Link
+                    href={`/profile/${user.user_id}`}
+                    onClick={() => setDropdownOpen(false)}
+                    className="block px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                  >
+                    Profile
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  Logout
+                </button>
               </div>
             </div>
           )}

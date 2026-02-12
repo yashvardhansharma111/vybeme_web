@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { AppHeader } from '@/app/components/AppHeader';
 import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations, updateProfile } from '@/lib/api';
 
 interface Plan {
@@ -123,6 +124,7 @@ export default function BusinessPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      <AppHeader />
       <div className="mx-auto max-w-xl px-4 py-8">
         <h1 className="text-xl font-semibold text-neutral-900">Business</h1>
         <p className="mt-0.5 text-sm text-neutral-500">Scan tickets and manage attendees.</p>

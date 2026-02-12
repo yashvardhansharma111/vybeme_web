@@ -209,7 +209,7 @@ export default function BusinessScanPage() {
       </div>
 
       <div className="mx-auto max-w-lg px-4 pb-8">
-        {/* Event selector */}
+        {/* Event selector – light dropdown so hover keeps text visible */}
         <div className="mb-3">
           <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
           <select
@@ -218,11 +218,12 @@ export default function BusinessScanPage() {
               stopScanner();
               setSelectedPlanId(e.target.value);
             }}
-            className="mt-1 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-[15px] text-white [color-scheme:dark]"
+            className="mt-1 w-full rounded-xl border border-white/20 bg-[#2C2C2E] px-3 py-2.5 text-[15px] text-white [color-scheme:light]"
+            style={{ colorScheme: 'light' }}
           >
             <option value="">Select event</option>
             {plans.map((p) => (
-              <option key={p.plan_id} value={p.plan_id} className="bg-[#1C1C1E] text-white">
+              <option key={p.plan_id} value={p.plan_id} className="bg-white text-[#1C1C1E]">
                 {p.title ?? 'Event'}
               </option>
             ))}

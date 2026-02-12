@@ -177,15 +177,15 @@ export default function BusinessCreatePage() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F7]">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E5EA] bg-[#F5F5F7] px-4 py-3">
-        <Link href="/business" className="text-neutral-900">← Back</Link>
-        <h1 className="text-[17px] font-semibold text-[#1C1C1E]">Create Post</h1>
-        <div className="w-10" />
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E5EA] bg-[#F5F5F7] px-4 py-3 sm:px-6 md:px-8">
+        <Link href="/business" className="text-neutral-900 text-[15px] sm:text-base">← Back</Link>
+        <h1 className="text-[17px] font-semibold text-[#1C1C1E] sm:text-lg">Create Post</h1>
+        <div className="w-10 sm:w-12" />
       </header>
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-lg px-4 pb-28 pt-4">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-lg px-4 pb-28 pt-4 sm:px-6 sm:pb-32 sm:pt-6 md:px-8 md:pt-8">
         {/* Title first (app order) */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <input
             type="text"
             value={title}
@@ -196,7 +196,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Description (no limit) */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -207,7 +207,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Post media upload */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
           <div className="flex flex-wrap gap-2">
             {mediaFiles.map((file, i) => (
@@ -236,7 +236,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Address */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <input
             type="text"
             value={location}
@@ -247,8 +247,8 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Date & Time — no past dates; time numeric (e.g. 8:00 AM) */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
-          <div className="grid grid-cols-2 gap-3">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <input
               type="date"
               value={date}
@@ -275,7 +275,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Category */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Category</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
@@ -292,7 +292,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Tickets */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <div className="flex items-center justify-between">
             <span className="text-[16px] font-semibold text-black">Tickets</span>
             <input type="checkbox" checked={ticketsEnabled} onChange={(e) => setTicketsEnabled(e.target.checked)} className="h-5 w-5 rounded" />
@@ -322,7 +322,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Additional Details */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
           {additionalDetails.map((d, i) => (
             <div key={i} className="mb-3 flex gap-2">
@@ -361,7 +361,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Toggles */}
-        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
           <div className="flex items-center justify-between py-2">
             <span className="text-[16px] font-semibold text-black">Women&apos;s only</span>
             <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} className="h-5 w-5 rounded" />
@@ -374,15 +374,15 @@ export default function BusinessCreatePage() {
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
-        <div className="fixed bottom-0 left-0 right-0 flex gap-3 border-t border-[#E5E5EA] bg-[#F5F5F7] p-4">
+        <div className="fixed bottom-0 left-0 right-0 flex flex-col gap-2 border-t border-[#E5E5EA] bg-[#F5F5F7] p-4 sm:flex-row sm:gap-3 sm:px-6 md:px-8">
           <button
             type="button"
             onClick={() => setShowPreview(true)}
-            className="rounded-full border-2 border-[#1C1C1E] bg-transparent py-3 px-6 font-bold text-[#1C1C1E]"
+            className="order-2 rounded-full border-2 border-[#1C1C1E] bg-transparent py-3 px-6 font-bold text-[#1C1C1E] sm:order-1 sm:flex-1"
           >
             Preview
           </button>
-          <button type="submit" disabled={submitting} className="flex-1 rounded-full bg-[#1C1C1E] py-3 font-bold text-white disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="order-1 rounded-full bg-[#1C1C1E] py-3 font-bold text-white disabled:opacity-50 sm:order-2 sm:flex-[2]">
             {submitting ? 'Creating…' : 'Post'}
           </button>
         </div>
