@@ -90,9 +90,9 @@ export function BusinessDetailCard({
   }, [images.length]);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
-      {/* Hero image with carousel, user pill upper-center, blur above curve */}
-      <div className="relative h-[280px] w-full overflow-hidden">
+    <div className="flex min-h-screen w-full flex-col bg-white">
+      {/* Fixed: Hero image – full screen width, no padding */}
+      <div className="fixed left-1/2 top-0 z-10 h-[280px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
         {hasImage ? (
           <>
             {images.map((url, i) => (
@@ -111,9 +111,7 @@ export function BusinessDetailCard({
             </svg>
           </div>
         )}
-        {/* Blur above the curve (bottom of image) */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/80 to-transparent z-[1]" aria-hidden />
-        {/* User pill – upper center, in between image */}
+        {/* User pill – upper center */}
         <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
           {profileHref ? (
             <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
@@ -153,10 +151,19 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* White content panel – overlaps image, scrollable; title & description above curve */}
-      <div className="-mt-6 rounded-t-[24px] bg-white px-5 pb-28 pt-6 shadow-lg">
-        <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-        <p className="mt-2 text-sm leading-[21px] text-[#444]">
+      {/* Only this part scrolls: white card with gradient blur (top→bottom) and curved top */}
+      <div
+        className="flex-1 overflow-y-auto pt-[240px] min-h-0"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        <div
+          className="rounded-t-[24px] px-5 pb-24 pt-8 shadow-lg min-h-full"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
+          }}
+        >
+          <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
+          <p className="mt-2 text-sm leading-[21px] text-[#444]">
           {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
             /^https?:\/\//.test(part) ? (
               <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
@@ -166,67 +173,68 @@ export function BusinessDetailCard({
               part
             )
           )}
-        </p>
+          </p>
 
-        {/* Location + Date */}
-        {(post.location_text || post.date) && (
-          <div className="mt-4 flex gap-3">
-            {post.location_text && (
-              <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
-                <span className="text-[#666]" aria-hidden>📍</span>
-                <p className="mt-2 text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
-              </div>
-            )}
-            {post.date && (
-              <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
-                <span className="text-[#666]" aria-hidden>📅</span>
-                <p className="mt-2 text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
-              </div>
-            )}
-          </div>
-        )}
+          {/* Location + Date */}
+          {(post.location_text || post.date) && (
+            <div className="mt-4 flex gap-3">
+              {post.location_text && (
+                <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                  <span className="text-[#666]" aria-hidden>📍</span>
+                  <p className="mt-2 text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
+                </div>
+              )}
+              {post.date && (
+                <div className="min-w-0 flex-1 rounded-[14px] bg-[#F2F2F7] p-3.5">
+                  <span className="text-[#666]" aria-hidden>📅</span>
+                  <p className="mt-2 text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Detail pills */}
-        {addDetails.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2.5">
-            {addDetails.slice(0, 4).map((detail, i) => (
-              <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
-                <p className="text-xs font-semibold text-[#8E8E93]">{detail.title}</p>
-                {detail.description ? <p className="mt-1 truncate text-sm font-semibold text-[#1C1C1E]">{detail.description}</p> : null}
-              </div>
-            ))}
-          </div>
-        )}
+          {/* Detail pills */}
+          {addDetails.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              {addDetails.slice(0, 4).map((detail, i) => (
+                <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
+                  <p className="text-xs font-semibold text-[#8E8E93]">{detail.title}</p>
+                  {detail.description ? <p className="mt-1 truncate text-sm font-semibold text-[#1C1C1E]">{detail.description}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
 
-        {/* See who's coming – no app CTA */}
-        <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl bg-[#1C1C1E] px-4 py-4">
-          <div>
-            <p className="text-base font-bold text-white">See who&apos;s coming</p>
-            <p className="text-[13px] text-white/70">
-              {attendees && attendees.length > 0 ? `${attendees.length} going` : 'Join event to view.'}
-            </p>
-          </div>
-          <div className="flex -space-x-2">
-            {attendees && attendees.length > 0
-              ? attendees.slice(0, 5).map((a, i) => (
-                  <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500">
-                    {a.profile_image ? (
-                      <Image src={a.profile_image} alt="" fill className="object-cover" sizes="32px" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-white">
-                        {(a.name ?? '?').charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                ))
-              : [1, 2, 3].map((i) => (
-                  <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500" />
-                ))}
+          {/* See who's coming – no app CTA */}
+          <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl bg-[#1C1C1E] px-4 py-4">
+            <div>
+              <p className="text-base font-bold text-white">See who&apos;s coming</p>
+              <p className="text-[13px] text-white/70">
+                {attendees && attendees.length > 0 ? `${attendees.length} going` : 'Join event to view.'}
+              </p>
+            </div>
+            <div className="flex -space-x-2">
+              {attendees && attendees.length > 0
+                ? attendees.slice(0, 5).map((a, i) => (
+                    <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500">
+                      {a.profile_image ? (
+                        <Image src={a.profile_image} alt="" fill className="object-cover" sizes="32px" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-white">
+                          {(a.name ?? '?').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                : [1, 2, 3].map((i) => (
+                    <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500" />
+                  ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Book Event / View ticket – fixed at bottom, always visible */}
+      {/* Fixed: Book Event / View ticket at bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#E5E5EA] bg-white py-3 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto max-w-md px-4">
         {registered && viewTicketHref ? (

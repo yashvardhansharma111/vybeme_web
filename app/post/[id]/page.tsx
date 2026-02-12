@@ -227,13 +227,13 @@ export default function PostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200">
+    <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${post && isBusiness && businessStep === 'detail' ? 'overflow-x-hidden' : ''}`}>
       <AppHeader />
-      <main className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-8 md:max-w-4xl md:py-8">
+      <main className={`mx-auto flex max-w-md flex-col gap-4 pb-8 md:max-w-4xl md:py-8 ${post && isBusiness && businessStep === 'detail' ? 'p-0' : 'p-4'}`}>
         <button
           type="button"
           onClick={() => (isBusiness && businessStep === 'tickets' ? setBusinessStep('detail') : router.back())}
-          className="self-start text-sm font-medium text-neutral-700 underline hover:text-neutral-900 md:mb-2"
+          className={`text-sm font-medium text-neutral-700 underline hover:text-neutral-900 ${post && isBusiness && businessStep === 'detail' ? 'absolute left-4 top-20 z-30' : 'self-start md:mb-2'}`}
         >
           ← Back
         </button>
