@@ -3,10 +3,10 @@
 import { useEffect, useId, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
-import { getUserProfile, getUserStats } from '@/lib/api';
+import { getUserProfile, getUserStats, getWebUser, setWebUser } from '@/lib/api';
 
 function InstagramIcon({ className = 'h-6 w-6' }: { className?: string }) {
   const id = useId().replace(/:/g, '');
@@ -39,11 +39,17 @@ function XIcon({ className = 'h-6 w-6' }: { className?: string }) {
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.userId as string;
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState<{ plans_count: number; interactions_count: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentUserId(getWebUser()?.user_id ?? null);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -93,6 +99,12 @@ export default function ProfilePage() {
   const igHandle = stripHandle(social.instagram ?? '');
   const xHandle = stripHandle(social.x ?? social.twitter ?? '');
   const verified = profile.verified ?? false;
+  const isOwnProfile = currentUserId && userId && currentUserId === userId;
+
+  const handleLogout = () => {
+    setWebUser(null);
+    router.replace('/login');
+  };
 
   const profileCard = (
     <div className="relative h-44 overflow-hidden rounded-2xl bg-white shadow-md md:h-72 md:min-h-[280px]">
@@ -208,6 +220,17 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-gradient-to-br md:from-sky-100/90 md:via-sky-50/80 md:to-blue-100/90">
       <AppHeader />
+      {isOwnProfile && (
+        <div className="mx-auto max-w-md px-4 pt-2 md:max-w-5xl md:px-6">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Logout
+          </button>
+        </div>
+      )}
       <main className="mx-auto max-w-md px-4 pb-8 pt-2 md:max-w-5xl md:grid md:grid-cols-2 md:gap-6 md:py-8 md:px-6">
         {/* Mobile: single column */}
         <div className="flex flex-col gap-3 md:hidden">

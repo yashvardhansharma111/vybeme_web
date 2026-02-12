@@ -61,6 +61,7 @@ export function BusinessDetailCard({
   viewTicketHref,
   selectedPassId = null,
   onSelectPass,
+  attendees,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -71,6 +72,8 @@ export function BusinessDetailCard({
   /** Highlight and optionally select a pass on the detail view */
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
+  /** Who's coming – from guest list API */
+  attendees?: Array<{ name?: string; profile_image?: string | null }>;
 }) {
   const planId = post.plan_id ?? (post as { id?: string }).id;
   const author = post.user;
@@ -125,7 +128,17 @@ export function BusinessDetailCard({
       {/* White content panel – overlaps bottom, same as app */}
       <div className="-mt-6 rounded-t-[24px] bg-white px-5 pb-10 pt-6 shadow-lg">
         <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-        <p className="mt-2 text-sm leading-[21px] text-[#444]">{post.description}</p>
+        <p className="mt-2 text-sm leading-[21px] text-[#444]">
+          {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+            /^https?:\/\//.test(part) ? (
+              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
+                {part}
+              </a>
+            ) : (
+              part
+            )
+          )}
+        </p>
 
         {/* Location + Date side by side – same as app keyInfoRow */}
         {(post.location_text || post.date) && (
@@ -161,12 +174,26 @@ export function BusinessDetailCard({
         <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl bg-[#1C1C1E] px-4 py-4">
           <div>
             <p className="text-base font-bold text-white">See who&apos;s coming</p>
-            <p className="text-[13px] text-white/70">Join event to view.</p>
+            <p className="text-[13px] text-white/70">
+              {attendees && attendees.length > 0 ? `${attendees.length} going` : 'Join event to view.'}
+            </p>
           </div>
           <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500" />
-            ))}
+            {attendees && attendees.length > 0
+              ? attendees.slice(0, 5).map((a, i) => (
+                  <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500">
+                    {a.profile_image ? (
+                      <Image src={a.profile_image} alt="" fill className="object-cover" sizes="32px" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-white">
+                        {(a.name ?? '?').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                ))
+              : [1, 2, 3].map((i) => (
+                  <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500" />
+                ))}
           </div>
         </div>
 

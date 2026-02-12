@@ -28,6 +28,8 @@ export default function BusinessCreatePage() {
   const [allowGuestList, setAllowGuestList] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -125,6 +127,15 @@ export default function BusinessCreatePage() {
         }));
         body.is_paid_plan = true;
         body.registration_required = true;
+      }
+      if (additionalDetails.filter((d) => d.title.trim() || d.description.trim()).length > 0) {
+        body.add_details = additionalDetails
+          .filter((d) => d.title.trim() || d.description.trim())
+          .map((d) => ({
+            detail_type: d.detail_type || d.title.trim().toLowerCase().replace(/\s+/g, '_') || 'info',
+            title: d.title.trim(),
+            description: d.description.trim(),
+          }));
       }
 
       const hasFiles = mediaFiles.length > 0 || ticketImageFile !== null;
@@ -235,19 +246,28 @@ export default function BusinessCreatePage() {
           />
         </section>
 
-        {/* Date & Time */}
+        {/* Date & Time — no past dates; time numeric (e.g. 8:00 AM) */}
         <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               value={date}
+              min={new Date().toISOString().slice(0, 10)}
               onChange={(e) => setDate(e.target.value)}
               className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60 [color-scheme:light]"
             />
             <input
               type="text"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                const cleaned = v
+                  .split('')
+                  .filter((c) => /[\d: AaPpMm]/.test(c))
+                  .join('')
+                  .slice(0, 12);
+                setTime(cleaned);
+              }}
               placeholder="8:00 AM"
               className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-black/60"
             />
@@ -282,7 +302,10 @@ export default function BusinessCreatePage() {
               {passes.map((p, i) => (
                 <div key={i} className="flex gap-2">
                   <input type="text" value={p.name} onChange={(e) => updatePass(i, 'name', e.target.value)} placeholder="Ticket name" className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60" />
-                  <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-24 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60" />
+                  <div className="flex w-28 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+                    <input type="number" min={0} value={p.price || ''} onChange={(e) => updatePass(i, 'price', e.target.value)} placeholder="Price" className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-black/60" />
+                    {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
+                  </div>
                   <button type="button" onClick={() => removePass(i)} className="text-black/70">×</button>
                 </div>
               ))}
@@ -296,6 +319,45 @@ export default function BusinessCreatePage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Additional Details */}
+        <section className="mb-4 rounded-2xl bg-[#EBEBED] p-4">
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
+          {additionalDetails.map((d, i) => (
+            <div key={i} className="mb-3 flex gap-2">
+              <input
+                type="text"
+                value={d.title}
+                onChange={(e) => {
+                  const next = [...additionalDetails];
+                  next[i] = { ...next[i], title: e.target.value };
+                  setAdditionalDetails(next);
+                }}
+                placeholder="Label (e.g. Distance)"
+                className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
+              />
+              <input
+                type="text"
+                value={d.description}
+                onChange={(e) => {
+                  const next = [...additionalDetails];
+                  next[i] = { ...next[i], description: e.target.value };
+                  setAdditionalDetails(next);
+                }}
+                placeholder="Value (e.g. 5k)"
+                className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black/60"
+              />
+              <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="text-black/70">×</button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setAdditionalDetails((prev) => [...prev, { detail_type: '', title: '', description: '' }])}
+            className="text-sm font-semibold text-black"
+          >
+            + Add row
+          </button>
         </section>
 
         {/* Toggles */}
@@ -313,11 +375,52 @@ export default function BusinessCreatePage() {
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
         <div className="fixed bottom-0 left-0 right-0 flex gap-3 border-t border-[#E5E5EA] bg-[#F5F5F7] p-4">
+          <button
+            type="button"
+            onClick={() => setShowPreview(true)}
+            className="rounded-full border-2 border-[#1C1C1E] bg-transparent py-3 px-6 font-bold text-[#1C1C1E]"
+          >
+            Preview
+          </button>
           <button type="submit" disabled={submitting} className="flex-1 rounded-full bg-[#1C1C1E] py-3 font-bold text-white disabled:opacity-50">
             {submitting ? 'Creating…' : 'Post'}
           </button>
         </div>
       </form>
+
+      {/* Preview modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowPreview(false)}>
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-[#1C1C1E]">Preview</h2>
+            <p className="mt-1 text-[20px] font-bold text-[#1C1C1E]">{title || 'Title'}</p>
+            <p className="mt-2 text-sm text-[#444] whitespace-pre-wrap">{description || 'Description'}</p>
+            {(mediaFiles[0] || mediaUrl) && (
+              <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-xl bg-neutral-200">
+                {mediaFiles[0] ? (
+                  <img src={URL.createObjectURL(mediaFiles[0])} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
+                )}
+              </div>
+            )}
+            {location && <p className="mt-3 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">Location:</span> {location}</p>}
+            {(date || time) && <p className="mt-1 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">When:</span> {date && new Date(date).toLocaleDateString()} {time && time}</p>}
+            {category && <p className="mt-1 text-sm text-[#1C1C1E]"><span className="text-[#8E8E93]">Category:</span> {category}</p>}
+            {ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-[#8E8E93]">Tickets</p>
+                {passes.filter((p) => p.name.trim()).map((p, i) => (
+                  <p key={i} className="mt-1 text-sm text-[#1C1C1E]">{p.name} — {p.price === 0 ? 'Free' : `₹${p.price}`}</p>
+                ))}
+              </div>
+            )}
+            <button type="button" onClick={() => setShowPreview(false)} className="mt-6 w-full rounded-full bg-[#1C1C1E] py-3 font-bold text-white">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

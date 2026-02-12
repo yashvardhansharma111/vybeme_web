@@ -15,6 +15,8 @@ interface Plan {
   plan_type?: string;
   post_status?: string;
   is_repost?: boolean;
+  date?: string;
+  time?: string;
 }
 
 export default function BusinessScanPage() {
@@ -78,12 +80,18 @@ export default function BusinessScanPage() {
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
       scannerRef.current.stop().catch(() => {});
+      try {
+        scannerRef.current.clear();
+      } catch {
+        // ignore when DOM or state already gone
+      }
+      scannerRef.current = null;
     }
     setScanning(false);
   }, []);
 
   const startScanner = useCallback(() => {
-    if (!selectedPlanId || !user?.user_id || scanning) return;
+    if (!selectedPlanId || !user?.user_id) return;
     const el = document.getElementById('qr-reader');
     if (!el) return;
 
@@ -145,22 +153,24 @@ export default function BusinessScanPage() {
       .then(() => setScanning(true))
       .catch((err: Error) => {
         setError(err?.message ?? 'Could not start camera.');
+        scannerRef.current = null;
       });
-  }, [selectedPlanId, user?.user_id, scanning, stopScanner]);
+  }, [selectedPlanId, user?.user_id, stopScanner]);
 
   useEffect(() => {
     return () => {
-      stopScanner();
       if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
         try {
           scannerRef.current.clear();
         } catch {
-          // ignore
+          // ignore on unmount (e.g. navigating back)
         }
         scannerRef.current = null;
       }
+      setScanning(false);
     };
-  }, [stopScanner]);
+  }, []);
 
   if (!mounted) {
     return (
@@ -172,55 +182,69 @@ export default function BusinessScanPage() {
   if (!user?.user_id) return null;
   if (!loading && profile && !profile.is_business) return null;
 
-  return (
-    <div className="min-h-screen bg-[#F2F2F7]">
-      <div
-        className="h-36 w-full shrink-0 rounded-b-3xl"
-        style={{ background: 'linear-gradient(180deg, #4A3B69 0%, #6B5B8E 50%, #F2F2F7 100%)' }}
-      />
-      <div className="relative -mt-28 mx-auto max-w-lg px-4 pb-8">
-        <div className="mb-4 flex items-center justify-between">
-          <Link href="/business" className="flex items-center gap-1 text-white">
-            <span className="text-lg">←</span>
-            <span className="font-medium">Back</span>
-          </Link>
-          <h1 className="text-lg font-bold text-white">Scan ticket</h1>
-          <div className="w-14" />
-        </div>
+  const selectedPlan = plans.find((p) => p.plan_id === selectedPlanId);
+  const formatPlanDate = (d: string | Date | undefined) => {
+    if (!d) return '';
+    const date = typeof d === 'string' ? new Date(d) : d;
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const checkedIn = stats?.checked_in ?? 0;
+  const total = stats?.total ?? 0;
 
-        <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm">
-          <label className="block text-sm font-semibold text-neutral-600">Event</label>
+  return (
+    <div className="min-h-screen bg-[#1C1C1E]">
+      {/* Nav – app style: close left, title center, Attendee list right */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <Link href="/business" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
+          <span className="text-2xl">×</span>
+        </Link>
+        <h1 className="text-lg font-bold text-white">Scanner</h1>
+        <Link
+          href={selectedPlanId ? `/business/attendees/${selectedPlanId}` : '/business/attendees'}
+          className="flex items-center gap-1.5 rounded-full bg-white/20 px-3.5 py-2 text-sm font-semibold text-white"
+        >
+          <span aria-hidden>👤</span>
+          Attendee List
+        </Link>
+      </div>
+
+      <div className="mx-auto max-w-lg px-4 pb-8">
+        {/* Event selector */}
+        <div className="mb-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
           <select
             value={selectedPlanId}
             onChange={(e) => {
               stopScanner();
               setSelectedPlanId(e.target.value);
             }}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-[15px] text-neutral-900"
+            className="mt-1 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-[15px] text-white [color-scheme:dark]"
           >
             <option value="">Select event</option>
             {plans.map((p) => (
-              <option key={p.plan_id} value={p.plan_id}>
+              <option key={p.plan_id} value={p.plan_id} className="bg-[#1C1C1E] text-white">
                 {p.title ?? 'Event'}
               </option>
             ))}
           </select>
         </div>
 
-        {stats != null && (
-          <p className="mb-3 text-[16px] font-semibold text-[#1C1C1E]">
-            Checked in: {stats.checked_in} / {stats.total}
+        {total > 0 && (
+          <p className="mb-3 text-center text-base font-semibold text-white">
+            Checked In: {checkedIn}/{total}
           </p>
         )}
 
-        <div className="overflow-hidden rounded-2xl border-2 border-neutral-200 bg-black shadow-lg">
-          <div id="qr-reader" className="min-h-[240px]" />
+        {/* Camera – square, rounded, app-like */}
+        <div className="overflow-hidden rounded-2xl bg-black">
+          <div id="qr-reader" className="min-h-[280px] w-full" />
         </div>
+
         {!scanning && selectedPlanId && (
           <button
             type="button"
             onClick={startScanner}
-            className="mt-4 w-full rounded-full bg-[#1C1C1E] py-3 text-[16px] font-bold text-white"
+            className="mt-4 w-full rounded-full bg-[#1C1C1E] py-3 text-base font-bold text-white"
           >
             Start camera
           </button>
@@ -229,42 +253,53 @@ export default function BusinessScanPage() {
           <button
             type="button"
             onClick={stopScanner}
-            className="mt-4 w-full rounded-full border-2 border-neutral-300 bg-white py-3 text-[16px] font-semibold text-neutral-800"
+            className="mt-4 w-full rounded-full border-2 border-white/30 bg-white/10 py-3 text-base font-semibold text-white"
           >
             Stop camera
           </button>
         )}
 
-        {scanResult && (
-          <div
-            className={`mt-4 rounded-2xl p-4 ${
-              scanResult.already
-                ? 'border-2 border-amber-300 bg-amber-50 text-amber-900'
-                : 'border-2 border-green-300 bg-green-50 text-green-900'
-            }`}
-          >
-            <p className="font-semibold">
-              {scanResult.already ? 'Already checked in' : 'Checked in'}
-            </p>
+        {/* Selected plan card – app style */}
+        <div className="mt-5 rounded-2xl bg-white/10 py-4 px-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Selected plan</p>
+          {selectedPlan ? (
+            <>
+              <p className="mt-1.5 text-[17px] font-bold text-white">{selectedPlan.title ?? 'Untitled Plan'}</p>
+              <p className="mt-1 text-sm text-[#E5E5EA]">
+                {formatPlanDate(selectedPlan.date)}
+                {selectedPlan.time ? ` · ${selectedPlan.time}` : ''}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1.5 text-[15px] text-[#8E8E93]">No plan selected</p>
+          )}
+        </div>
+
+        {/* Last check-in card – app style */}
+        <div className="mt-4 rounded-2xl bg-white/10 py-4 px-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Last check-in</p>
+          {scanResult ? (
+            <>
+              <p className="mt-1.5 text-[17px] font-bold text-white">{scanResult.name ?? 'Guest'}</p>
+              {scanResult.already && (
+                <p className="mt-1 text-sm text-amber-300">This ticket was already scanned.</p>
+              )}
+            </>
+          ) : (
+            <p className="mt-1.5 text-[15px] text-[#8E8E93]">Scan a ticket to see check-in details</p>
+          )}
+        </div>
+
+        {scanResult && !scanResult.already && (
+          <div className="mt-4 rounded-2xl border-2 border-green-400/50 bg-green-500/20 p-4 text-green-100">
+            <p className="font-semibold">Checked in</p>
             <p className="mt-1 text-[15px]">{scanResult.name}</p>
-            {scanResult.already && (
-              <p className="mt-2 text-sm opacity-90">This ticket was already scanned. No action taken.</p>
-            )}
           </div>
         )}
         {error && (
-          <div className="mt-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">
+          <div className="mt-4 rounded-2xl border-2 border-red-400/50 bg-red-500/20 p-4 text-sm font-medium text-red-100">
             {error}
           </div>
-        )}
-
-        {selectedPlanId && (
-          <Link
-            href={`/business/attendees/${selectedPlanId}`}
-            className="mt-6 flex w-full items-center justify-center rounded-full bg-[#E5E5EA] py-3 text-[16px] font-semibold text-[#1C1C1E]"
-          >
-            Attendee list (manual check-in)
-          </Link>
         )}
       </div>
     </div>

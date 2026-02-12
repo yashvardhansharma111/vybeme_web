@@ -13,6 +13,7 @@ interface Plan {
   post_status?: string;
   date?: string;
   is_repost?: boolean;
+  media?: Array<{ url: string; type?: string }>;
 }
 
 interface PlanWithCount extends Plan {
@@ -177,7 +178,13 @@ export default function BusinessPage() {
             ) : (
               <ul className="mt-2 space-y-2">
                 {plans.map((p) => (
-                  <li key={p.plan_id} className="rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
+                  <li key={p.plan_id} className="flex gap-3 rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
+                    {p.media?.[0]?.url ? (
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+                        <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
+                      </div>
+                    ) : null}
+                    <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <span className="truncate font-medium text-neutral-900">{p.title ?? 'Event'}</span>
                       {typeof p.registrationCount === 'number' && (
@@ -203,6 +210,7 @@ export default function BusinessPage() {
                       >
                         Scan
                       </Link>
+                    </div>
                     </div>
                   </li>
                 ))}

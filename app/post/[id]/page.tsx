@@ -7,7 +7,7 @@ import { EventDetailCard, type EventDetailPost } from '../../components/EventDet
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 
@@ -48,6 +48,7 @@ export default function PostPage() {
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
+  const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -99,6 +100,20 @@ export default function PostPage() {
           user: author ? { ...author, id: author.id ?? author.user_id ?? authorId, user_id: author.user_id ?? author.id ?? authorId } : undefined,
           user_id: authorId,
         } as PostData);
+        if (type === 'business') {
+          getGuestList(postIdFromApi)
+            .then((r) => {
+              if (r.success && r.data?.guests) {
+                setGuestList(
+                  (r.data.guests as Array<{ name?: string; profile_image?: string | null }>).map((g) => ({
+                    name: g.name,
+                    profile_image: g.profile_image ?? null,
+                  }))
+                );
+              }
+            })
+            .catch(() => {});
+        }
       } else {
         setError('Post not found');
       }
@@ -302,6 +317,7 @@ export default function PostPage() {
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
             selectedPassId={selectedPassId}
             onSelectPass={!businessRegistered ? (passId) => setSelectedPassId(passId) : undefined}
+            attendees={guestList}
           />
         ) : post ? (
           <EventDetailCard

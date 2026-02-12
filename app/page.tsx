@@ -17,7 +17,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getFeed(user?.user_id ?? null, 30, 0);
+      const res = await getFeed(user?.user_id ?? null, 5, 0);
       const raw = Array.isArray(res) ? res : (res as { data?: unknown[] })?.data ?? [];
       const list = Array.isArray(raw) ? raw : [];
       const formatted = await formatFeedData(list);
