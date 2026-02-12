@@ -13,12 +13,109 @@ interface Plan {
   plan_type?: string;
   post_status?: string;
   date?: string;
+  time?: string;
   is_repost?: boolean;
   media?: Array<{ url: string; type?: string }>;
 }
 
+function formatEventDate(date: string | undefined): string {
+  if (!date) return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatEventTime(time: string | undefined): string {
+  if (!time?.trim()) return '—';
+  return time.trim();
+}
+
 interface PlanWithCount extends Plan {
   registrationCount?: number;
+}
+
+function EventCard({
+  plan: p,
+  formatEventDate,
+  formatEventTime,
+}: {
+  plan: PlanWithCount;
+  formatEventDate: (date: string | undefined) => string;
+  formatEventTime: (time: string | undefined) => string;
+}) {
+  const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${p.plan_id}` : '';
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof navigator !== 'undefined' && navigator.share && postUrl) {
+      navigator.share({ url: postUrl, title: p.title ?? 'Event' }).catch(() => copyLink());
+    } else {
+      copyLink();
+    }
+  };
+  function copyLink() {
+    if (!postUrl) return;
+    navigator.clipboard?.writeText(postUrl).then(() => {
+      // Could add a tiny toast; for now copy is done
+    });
+  }
+
+  return (
+    <li className="flex gap-3 rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
+      {/* Left: event image */}
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200 md:h-24 md:w-24">
+        {p.media?.[0]?.url ? (
+          <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-neutral-400 text-xs">No image</div>
+        )}
+      </div>
+      {/* Right: title, date/time, buttons, registration count */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 flex-1 truncate font-medium text-neutral-900">{p.title ?? 'Event'}</h3>
+          <span className="shrink-0 text-xs text-neutral-500">
+            {typeof p.registrationCount === 'number' ? `${p.registrationCount} registered` : '…'}
+          </span>
+        </div>
+        <div className="mt-1 flex gap-3 text-xs text-neutral-500">
+          <span>{formatEventDate(p.date)}</span>
+          <span>{formatEventTime(p.time)}</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link
+            href={`/post/${p.plan_id}`}
+            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            View
+          </Link>
+          <Link
+            href={`/clubs/attendees/${p.plan_id}`}
+            className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
+          >
+            Attendees
+          </Link>
+          <Link
+            href={`/clubs/plan/${p.plan_id}/edit`}
+            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/clubs/scan?plan=${p.plan_id}`}
+            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Scan
+          </Link>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Share
+          </button>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 export default function BusinessPage() {
@@ -59,19 +156,22 @@ export default function BusinessPage() {
           (p?.type === 'business' || p?.plan_type === 'BusinessPlan') && p?.post_status !== 'deleted' && !p?.is_repost
       );
       setPlans(businessPlans);
-      // Fetch registration counts for all plans in parallel
+      // Fetch registration counts by plan_id so merge is reliable
       Promise.all(
         businessPlans.map(async (p: Plan) => {
           try {
             const reg = await getRegistrations(p.plan_id);
-            return reg.success && reg.data ? reg.data.total_registrations : 0;
+            const count = reg?.data?.total_registrations;
+            return { plan_id: p.plan_id, count: typeof count === 'number' ? count : 0 };
           } catch {
-            return 0;
+            return { plan_id: p.plan_id, count: 0 };
           }
         })
-      ).then((counts) => {
+      ).then((results) => {
+        const countByPlanId: Record<string, number> = {};
+        results.forEach((r) => { countByPlanId[r.plan_id] = r.count; });
         setPlans((prev) =>
-          prev.map((p, i) => ({ ...p, registrationCount: counts[i] ?? 0 }))
+          prev.map((p) => ({ ...p, registrationCount: countByPlanId[p.plan_id] ?? 0 }))
         );
       });
     } catch (err) {
@@ -170,56 +270,14 @@ export default function BusinessPage() {
             ) : plans.length === 0 ? (
               <p className="mt-2 text-sm text-neutral-500">No events yet. Create a post above.</p>
             ) : (
-              <ul className="mt-2 space-y-4">
+              <ul className="mt-2 space-y-2">
                 {plans.map((p) => (
-                  <li key={p.plan_id} className="overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50/50">
-                    {/* Event image – full width on mobile and desktop */}
-                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-200 md:aspect-video">
-                      {p.media?.[0]?.url ? (
-                        <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-neutral-400">
-                          <span className="text-sm">No image</span>
-                        </div>
-                      )}
-                    </div>
-                    {/* Event title + registration count */}
-                    <div className="px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="min-w-0 flex-1 truncate font-medium text-neutral-900">{p.title ?? 'Event'}</h3>
-                        {typeof p.registrationCount === 'number' && (
-                          <span className="shrink-0 text-xs text-neutral-500">{p.registrationCount} registered</span>
-                        )}
-                      </div>
-                      {/* 4 actionable buttons */}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Link
-                          href={`/post/${p.plan_id}`}
-                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                        >
-                          View event
-                        </Link>
-                        <Link
-                          href={`/clubs/attendees/${p.plan_id}`}
-                          className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
-                        >
-                          View registrations
-                        </Link>
-                        <Link
-                          href={`/clubs/plan/${p.plan_id}/edit`}
-                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                        >
-                          Edit
-                        </Link>
-                        <Link
-                          href={`/clubs/scan?plan=${p.plan_id}`}
-                          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                        >
-                          Scan Pass
-                        </Link>
-                      </div>
-                    </div>
-                  </li>
+                  <EventCard
+                    key={p.plan_id}
+                    plan={p}
+                    formatEventDate={formatEventDate}
+                    formatEventTime={formatEventTime}
+                  />
                 ))}
               </ul>
             )}
