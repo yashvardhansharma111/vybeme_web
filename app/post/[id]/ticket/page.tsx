@@ -147,7 +147,6 @@ export default function TicketPage() {
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
     const passes = plan.passes ?? [];
-    const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
     const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
       (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
 
@@ -160,19 +159,19 @@ export default function TicketPage() {
 
     const labels: string[] = [];
     labels.push(priceLabel);
-    const distance = getLabel(detailBy('distance'), plan.location_text || '');
-    if (distance) labels.push(distance);
-    const fb = getLabel(detailBy('f&b'), '');
-    if (fb) labels.push(fb);
+
+    // Additional details: add each add_detail that has a value (description or title), in order
     addDetails.forEach((d: any) => {
       if (!d || labels.length >= 4) return;
-      const t = (d.detail_type || '').toLowerCase();
-      if (t === 'distance' || t === 'f&b') return;
       const label = getLabel(d, '');
       if (label && !labels.includes(label)) labels.push(label);
     });
+
     const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
     if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
+
+    const locationLabel = plan.location_text?.trim();
+    if (locationLabel && labels.length < 4 && !labels.includes(locationLabel)) labels.push(locationLabel);
 
     return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
   }, [ticket]);
