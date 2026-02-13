@@ -30,7 +30,13 @@ export async function GET(
           <div style={{ fontSize: 24, color: '#57534e', marginTop: 12 }}>Find people for your plans</div>
         </div>
       ),
-      { width: W, height: H }
+      {
+        width: W,
+        height: H,
+        headers: {
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      }
     );
   }
 
@@ -175,6 +181,12 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: W, height: H }
+    {
+      width: W,
+      height: H,
+      headers: {
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
+    }
   );
 }
