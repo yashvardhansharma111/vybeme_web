@@ -114,6 +114,13 @@ export default function BusinessCreatePage() {
       setError('All ticket types need a name');
       return;
     }
+    const additionalWithTypeButEmpty = additionalDetails.some(
+      (d) => (d.detail_type || d.title.trim()) && !d.description?.trim()
+    );
+    if (additionalWithTypeButEmpty) {
+      setError('Fill in the value for each additional detail (e.g. 5k for Distance).');
+      return;
+    }
     if (!user?.user_id || !profile?.is_business) {
       setError('Business account required');
       return;
@@ -312,19 +319,10 @@ export default function BusinessCreatePage() {
             <div>
               <p className="mb-1 text-xs font-semibold text-black">Time</p>
               <input
-                type="text"
+                type="time"
                 value={time}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  const cleaned = v
-                    .split('')
-                    .filter((c) => /[\d: AaPpMm]/.test(c))
-                    .join('')
-                    .slice(0, 12);
-                  setTime(cleaned);
-                }}
-                placeholder="8:00 AM"
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
               />
             </div>
           </div>

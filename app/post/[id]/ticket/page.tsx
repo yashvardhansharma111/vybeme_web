@@ -200,8 +200,8 @@ export default function TicketPage() {
   const overlapAmount = 56;
   const imageHeightPx = 280;
 
-  const InnerTicket = () => (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+  const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => (
+    <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
       {/* Gradient background - exact app colors */}
       <div
         className="absolute inset-0 -z-10"
@@ -210,8 +210,8 @@ export default function TicketPage() {
         }}
       />
 
-      {/* Header: X + Booking Confirmed (no blue bar) */}
-      <header className="flex items-center justify-between px-5 pt-4 pb-2">
+      {/* Header: X + Booking Confirmed + Download (desktop: download in header) */}
+      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
         <button
           type="button"
           onClick={() => router.push(`/post/${planId}`)}
@@ -223,12 +223,30 @@ export default function TicketPage() {
           </svg>
         </button>
         <h1 className="text-[22px] font-semibold text-white/98">Booking Confirmed</h1>
-        <div className="w-11" />
+        {isDesktopLayout ? (
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={downloading}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
+            aria-label="Download ticket"
+          >
+            {downloading ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+            ) : (
+              <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            )}
+          </button>
+        ) : (
+          <div className="w-11" />
+        )}
       </header>
 
-      {/* Centered ticket block - no scroll */}
-      <div className="flex min-h-0 flex-1 flex-col items-center px-5 pb-8">
-        <div className="relative w-full max-w-[420px] flex-shrink-0">
+      {/* Centered ticket block */}
+      <div className={isDesktopLayout ? 'flex flex-1 flex-col items-center px-5 pb-10 pt-2' : 'flex min-h-0 flex-1 flex-col items-center px-5 pb-8'}>
+        <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
           {/* Wrapper for download capture: full ticket (image + info), no button inside */}
           <div ref={ticketCardRef} className="relative z-[2]">
             {/* Main ticket card - image */}
@@ -280,62 +298,64 @@ export default function TicketPage() {
               className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
               style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
             >
-            <div className="flex flex-1 flex-col justify-center gap-3">
-              {pillItems.map((item, idx) => {
-                const Icon = PILL_ICONS[item.icon];
-                return (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
-                  >
-                    {Icon && <span className="flex text-[#1C1C1E]"><Icon /></span>}
-                    <span className="max-w-[140px] truncate text-[14px] font-medium text-[#1C1C1E]">
-                      {item.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex min-w-[130px] flex-col items-center justify-center">
-              <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
-                {ticket?.qr_code_hash ? (
-                  <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
-                ) : (
-                  <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
-                    <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                  </div>
-                )}
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+                {pillItems.map((item, idx) => {
+                  const Icon = PILL_ICONS[item.icon];
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
+                    >
+                      {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
+                      <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">
+                        {item.label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{passName}</p>
-              <p className="text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+              <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
+                <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                  {ticket?.qr_code_hash ? (
+                    <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
+                  ) : (
+                    <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                      <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{passName}</p>
+                <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+              </div>
             </div>
-          </div>
           </div>
 
-          {/* Download button - outside capture ref so it doesn't appear in saved image */}
-          <button
-            type="button"
-            onClick={handleDownloadImage}
-            disabled={downloading}
-            className="absolute right-0 top-0 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-md disabled:opacity-60"
-            aria-label="Download ticket"
-          >
-            {downloading ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
-            ) : (
-              <svg className="h-[22px] w-[22px] text-[#1C1C1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            )}
-          </button>
+          {/* Download button - mobile only (floating); desktop has it in header */}
+          {!isDesktopLayout && (
+            <button
+              type="button"
+              onClick={handleDownloadImage}
+              disabled={downloading}
+              className="absolute right-0 top-0 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-md disabled:opacity-60"
+              aria-label="Download ticket"
+            >
+              {downloading ? (
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+              ) : (
+                <svg className="h-[22px] w-[22px] text-[#1C1C1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 
-  // Desktop: mobile frame (fixed width, centered). Mobile: full width, no frame.
+  // Mobile: full-screen, no scroll
   if (isMobile) {
     return (
       <div className="fixed inset-0 h-screen w-full overflow-hidden bg-[#8B7AB8]">
@@ -344,13 +364,11 @@ export default function TicketPage() {
     );
   }
 
+  // Desktop: full-page scrollable layout, no phone frame — prevents overflow and cut-off
   return (
-    <div className="min-h-screen bg-neutral-800 flex items-center justify-center p-6">
-      {/* Mobile-type frame */}
-      <div className="h-[700px] w-[390px] overflow-hidden rounded-[40px] border-[14px] border-neutral-800 bg-neutral-900 shadow-2xl">
-        <div className="h-full w-full overflow-hidden rounded-[26px] bg-[#8B7AB8]">
-          <InnerTicket />
-        </div>
+    <div className="min-h-screen overflow-y-auto bg-[#8B7AB8]">
+      <div className="mx-auto flex min-h-screen max-w-[480px] flex-col">
+        <InnerTicket isDesktopLayout />
       </div>
     </div>
   );
