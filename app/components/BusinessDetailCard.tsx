@@ -195,10 +195,10 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Mobile: Sticky bar – organiser pill + share */}
-      <div className={`fixed left-4 right-4 z-30 flex items-center justify-between gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
-        <div className="flex flex-1 justify-center min-w-0">
-          <div className="rounded-full border border-white/30 bg-white/95 pl-2 pr-3 py-1.5 shadow-xl flex items-center gap-2 min-w-0 max-w-[200px]">
+      {/* Mobile: Sticky bar – organiser pill on right, share; pill higher opacity + stronger shadow */}
+      <div className={`fixed left-4 right-4 z-30 flex items-center justify-end gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
+        <div className="flex items-center justify-center min-w-0">
+          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 min-w-0 max-w-[200px]">
             {profileHref ? (
               <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
@@ -290,19 +290,19 @@ export function BusinessDetailCard({
         </div>
       </div>
 
-      {/* Mobile: Floating bottom – Register / View ticket */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none md:hidden">
-        <div className="pointer-events-auto">
+      {/* Mobile: Full-width Register / View ticket – white strip behind button */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 md:hidden">
+        <div className="w-full max-w-md mx-auto">
           {registered && viewTicketHref ? (
-            <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white no-underline shadow-xl">
+            <Link href={viewTicketHref} className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
               View ticket
             </Link>
           ) : onBookEvent ? (
-            <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white shadow-xl">
+            <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
             </button>
           ) : (
-            <a href="/login" className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white no-underline shadow-xl">
+            <a href="/login" className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
               Register
             </a>
           )}
@@ -313,8 +313,8 @@ export function BusinessDetailCard({
       <div className="hidden md:flex min-h-screen flex-col pt-14">
         <div className="flex flex-1 min-h-0">
           <div className="flex w-[40%] flex-col gap-4 p-6 overflow-y-auto bg-white">
-            <div className="flex justify-center">
-              <div className="rounded-full border border-neutral-200 bg-neutral-50 pl-2 pr-4 py-2 shadow-xl inline-flex items-center gap-3 w-fit">
+            <div className="flex justify-end">
+              <div className="rounded-full border border-neutral-200 bg-white pl-2 pr-4 py-2 shadow-2xl inline-flex items-center gap-3 w-fit">
                 {profileHref ? (
                   <Link href={profileHref} className="flex min-w-0 items-center gap-3 transition-opacity hover:opacity-90">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">

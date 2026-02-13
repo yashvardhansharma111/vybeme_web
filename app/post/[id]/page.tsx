@@ -266,7 +266,7 @@ export default function PostPage() {
   const showAppHeader = !isBusinessDetailView && !isTicketsStep && !isSurveyStep;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
+    <div className={`min-h-screen ${isTicketsStep || isBusinessDetailView ? 'bg-white' : 'bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200'} ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
       {showAppHeader && <AppHeader />}
       {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : null}
       <main className={`mx-auto flex flex-col gap-4 pb-8 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 md:max-w-none' : 'max-w-md p-4 md:max-w-4xl'}`}>
@@ -294,68 +294,73 @@ export default function PostPage() {
             )}
           </div>
         )}
-        {/* Ticket selection: only back button at top */}
-        {isTicketsStep && (
-          <button
-            type="button"
-            onClick={() => setBusinessStep('detail')}
-            className="self-start text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
-          >
-            ← Back
-          </button>
-        )}
-
         {post && isBusiness && businessStep === 'tickets' ? (
-          <div className="rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="mb-4 text-xl font-bold text-neutral-900">Select Tickets</h2>
-            {passes.length === 0 ? (
-              <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
-            ) : (
-            <div className="space-y-3">
-              {passes.map((pass) => {
-                const isSelected = selectedPassId === pass.pass_id;
-                const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
-                return (
-                  <button
-                    key={pass.pass_id}
-                    type="button"
-                    onClick={() => setSelectedPassId(pass.pass_id)}
-                    className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
-                      isSelected
-                        ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
-                        : 'opacity-95 hover:opacity-100'
-                    }`}
-                    style={{ background: ticketGradient }}
-                  >
-                    <div className="flex flex-1 items-center gap-3 pr-3">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
-                        {isSelected ? (
-                          <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-base font-bold">{pass.name}</p>
-                        {pass.description ? (
-                          <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
-                  </button>
-                );
-              })}
+          <div className="relative h-[100dvh] overflow-hidden flex flex-col bg-white">
+            {/* Back button top left */}
+            <div className="absolute left-4 top-4 z-10">
+              <button
+                type="button"
+                onClick={() => setBusinessStep('detail')}
+                className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
             </div>
-            )}
-            <button
-              type="button"
-              disabled={passes.length > 0 && !selectedPassId}
-              onClick={handleProceedToSurvey}
-              className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
-            >
-              Continue
-            </button>
+            {/* Tickets only, centered in viewport — no scroll */}
+            <div className="flex flex-1 flex-col items-center justify-center px-4">
+              <h2 className="mb-6 text-xl font-bold text-neutral-900">Select Tickets</h2>
+              {passes.length === 0 ? (
+                <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
+              ) : (
+                <div className="w-full max-w-md space-y-3">
+                  {passes.map((pass) => {
+                    const isSelected = selectedPassId === pass.pass_id;
+                    const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
+                    return (
+                      <button
+                        key={pass.pass_id}
+                        type="button"
+                        onClick={() => setSelectedPassId(pass.pass_id)}
+                        className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
+                          isSelected
+                            ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
+                            : 'opacity-95 hover:opacity-100'
+                        }`}
+                        style={{ background: ticketGradient }}
+                      >
+                        <div className="flex flex-1 items-center gap-3 pr-3">
+                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
+                            {isSelected ? (
+                              <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-base font-bold">{pass.name}</p>
+                            {pass.description ? (
+                              <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={passes.length > 0 && !selectedPassId}
+                onClick={handleProceedToSurvey}
+                className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
           <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
