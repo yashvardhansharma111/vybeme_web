@@ -512,9 +512,9 @@ export default function YashvardhanPage() {
                       {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-4">
-                            {Icon && <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                            <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E]">{item.label}</span>
+                          <div key={idx} className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-2">
+                            {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                            <span className="min-w-0 text-sm font-medium leading-none text-[#1C1C1E]">{item.label}</span>
                           </div>
                         );
                       })}
@@ -640,16 +640,16 @@ export default function YashvardhanPage() {
                       className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
-                      <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-3">
+                      <div className="flex flex-1 flex-col items-start justify-start gap-3">
                         {pillItems.map((item, idx) => {
                           const Icon = PILL_ICONS[item.icon];
                           return (
                             <div
                               key={idx}
-                              className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-4"
+                              className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-2"
                             >
-                              {Icon && <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                              <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E]">
+                              {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                              <span className="min-w-0 text-sm font-medium leading-none text-[#1C1C1E]">
                                 {item.label}
                               </span>
                             </div>
