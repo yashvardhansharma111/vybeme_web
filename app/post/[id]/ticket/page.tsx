@@ -205,7 +205,6 @@ export default function TicketPage() {
 
   const plan = ticket?.plan ?? {};
   const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
-  const mainImageSrc = mainImage ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}` : null;
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
@@ -276,9 +275,9 @@ export default function TicketPage() {
             {/* Main ticket card - image: dynamic height, no cropping */}
             <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
               <div className="relative w-full overflow-hidden rounded-t-[24px]">
-                {mainImageSrc ? (
+                {mainImage ? (
                   <img
-                    src={mainImageSrc}
+                    src={mainImage}
                     alt=""
                     className="block w-full h-auto object-contain"
                   />
@@ -289,7 +288,7 @@ export default function TicketPage() {
                     </svg>
                   </div>
                 )}
-                {mainImageSrc && (
+                {mainImage && (
                   <>
                     {/* Bottom blur strip (CSS blur) */}
                     <div
