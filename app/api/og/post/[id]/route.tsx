@@ -1,9 +1,11 @@
 import { ImageResponse } from 'next/og';
 import { getPostOgData } from '@/lib/og-post';
 
-// 800x418 keeps PNG under WhatsApp’s ~300KB limit while preserving 1.91:1 large-preview ratio
+// Upper part = image only (2x height). Lower part = grey box with title + 15-char description.
 const W = 800;
-const H = 418;
+const IMAGE_HEIGHT = 560; // twice the grey box height
+const GREY_BOX_HEIGHT = 120;
+const H = IMAGE_HEIGHT + GREY_BOX_HEIGHT; // 680
 
 export async function GET(
   _request: Request,
@@ -33,7 +35,7 @@ export async function GET(
       ),
       {
         width: W,
-        height: H,
+        height: 680,
         headers: {
           'Cache-Control': 'public, max-age=3600, s-maxage=3600',
         },
@@ -41,7 +43,8 @@ export async function GET(
     );
   }
 
-  const { title, imageUrl, authorName, tags } = post;
+  const { title, imageUrl, description } = post;
+  const shortDesc = (description || '').replace(/\s+/g, ' ').trim().slice(0, 15);
 
   return new ImageResponse(
     (
@@ -51,54 +54,17 @@ export async function GET(
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background: '#ffffff',
-          borderRadius: 24,
           overflow: 'hidden',
           fontFamily: 'system-ui, sans-serif',
         }}
       >
+        {/* Upper: image only, no title/tags */}
         <div
           style={{
+            width: '100%',
+            height: IMAGE_HEIGHT,
             display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 18px 8px',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#1c1917' }}>vybeme.</span>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                backgroundColor: '#f4f4f5',
-                padding: '6px 10px',
-                borderRadius: 10,
-              }}
-            >
-              <div style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: '#22d3ee' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#3f3f46' }}>{authorName}</span>
-              <span style={{ fontSize: 10, color: '#71717a' }}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 320,
-            position: 'relative',
+            overflow: 'hidden',
           }}
         >
           {imageUrl ? (
@@ -107,7 +73,7 @@ export async function GET(
               alt=""
               style={{
                 width: '100%',
-                height: 320,
+                height: '100%',
                 objectFit: 'cover',
               }}
             />
@@ -115,63 +81,36 @@ export async function GET(
             <div
               style={{
                 width: '100%',
-                height: 320,
+                height: '100%',
                 background: 'linear-gradient(135deg, #e4e4e7 0%, #a1a1aa 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <span style={{ fontSize: 22, color: '#71717a', fontWeight: 600 }}>{title}</span>
+              <span style={{ fontSize: 28, color: '#71717a', fontWeight: 600 }}>{title}</span>
             </div>
           )}
         </div>
 
+        {/* Lower: grey box with title + description (15 chars) */}
         <div
           style={{
+            width: '100%',
+            height: GREY_BOX_HEIGHT,
             display: 'flex',
             flexDirection: 'column',
-            padding: '12px 20px 14px',
-            gap: 6,
+            justifyContent: 'center',
+            padding: '14px 20px',
+            gap: 4,
+            backgroundColor: '#2C2C2E',
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#18181b' }}>{title}</div>
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              {tags.slice(0, 4).map((tag) => (
-                <div
-                  key={tag}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    backgroundColor: '#f4f4f5',
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: '#52525b',
-                    fontWeight: 500,
-                  }}
-                >
-                  {tag}
-                </div>
-              ))}
-            </div>
-          )}
-          <div
-            style={{
-              alignSelf: 'center',
-              marginTop: 4,
-              backgroundColor: '#27272a',
-              color: '#ffffff',
-              padding: '10px 24px',
-              borderRadius: 20,
-              fontSize: 14,
-              fontWeight: 700,
-            }}
-          >
-            Register Now
-          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#ffffff' }}>{title}</div>
+          {shortDesc ? (
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)' }}>{shortDesc}</div>
+          ) : null}
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>app.vybeme.in</div>
         </div>
       </div>
     ),

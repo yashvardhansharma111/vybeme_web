@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     url,
     siteName: 'vybeme.',
   };
-  // 800x418 OG image stays under WhatsApp ~300KB limit so they show large preview (1.91:1). ?v=2 busts cache.
-  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=2`;
-  openGraph.images = [{ url: shareImageUrl, width: 800, height: 418, alt: post.title }];
+  // Upper = image only (2x height), lower = grey box title + 15-char description. ?v=3 busts cache.
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=3`;
+  openGraph.images = [{ url: shareImageUrl, width: 800, height: 680, alt: post.title }];
   return {
     title: post.title,
     description: shortDescription,
