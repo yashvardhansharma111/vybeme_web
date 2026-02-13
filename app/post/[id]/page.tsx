@@ -54,6 +54,7 @@ export default function PostPage() {
   const [gender, setGender] = useState('');
   const [runningExperience, setRunningExperience] = useState('');
   const [whatBringsYou, setWhatBringsYou] = useState('');
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null } | null>(null);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -133,6 +134,20 @@ export default function PostPage() {
   useEffect(() => {
     loadPost();
   }, [loadPost]);
+
+  // Load current user profile for business card header (profile button when logged in)
+  useEffect(() => {
+    if (!user?.session_id || !user?.user_id) {
+      setCurrentUserProfile(null);
+      return;
+    }
+    getCurrentUserProfile(user.session_id)
+      .then((profile) => {
+        if (profile) setCurrentUserProfile({ name: profile.name, profile_image: profile.profile_image ?? null });
+        else setCurrentUserProfile(null);
+      })
+      .catch(() => setCurrentUserProfile(null));
+  }, [user?.session_id, user?.user_id]);
 
   // After login return: show survey form for pending business registration (do not register until form submitted)
   useEffect(() => {
@@ -248,17 +263,19 @@ export default function PostPage() {
     <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${post && isBusiness && businessStep === 'detail' ? 'overflow-x-hidden' : ''}`}>
       <AppHeader />
       <main className={`mx-auto flex max-w-md flex-col gap-4 pb-8 md:max-w-4xl md:py-8 ${post && isBusiness && businessStep === 'detail' ? 'p-0' : 'p-4'}`}>
-        <button
-          type="button"
-          onClick={() => {
-            if (isBusiness && businessStep === 'tickets') setBusinessStep('detail');
-            else if (isBusiness && businessStep === 'survey') setBusinessStep('tickets');
-            else router.back();
-          }}
-          className={`text-sm font-medium text-neutral-700 underline hover:text-neutral-900 ${post && isBusiness && businessStep === 'detail' ? 'absolute left-4 top-20 z-30' : 'self-start md:mb-2'}`}
-        >
-          ← Back
-        </button>
+        {!(post && isBusiness && businessStep === 'detail') && (
+          <button
+            type="button"
+            onClick={() => {
+              if (isBusiness && businessStep === 'tickets') setBusinessStep('detail');
+              else if (isBusiness && businessStep === 'survey') setBusinessStep('tickets');
+              else router.back();
+            }}
+            className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900 self-start md:mb-2"
+          >
+            ← Back
+          </button>
+        )}
 
         {post && isBusiness && businessStep === 'tickets' ? (
           <div className="rounded-2xl bg-white p-6 shadow-xl">
@@ -421,6 +438,9 @@ export default function PostPage() {
             registered={businessRegistered}
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
             attendees={guestList}
+            currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
+            currentUserAvatar={currentUserProfile?.profile_image}
+            currentUserName={currentUserProfile?.name}
           />
         ) : post ? (
           <EventDetailCard
