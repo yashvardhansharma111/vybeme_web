@@ -277,7 +277,7 @@ export default function TicketPage() {
                     src={mainImage}
                     alt=""
                     fill
-                    className="object-cover"
+                    className="object-object-contain"
                     sizes="420px"
                     unoptimized
                   />
