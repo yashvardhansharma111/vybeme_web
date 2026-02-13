@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
@@ -198,6 +197,8 @@ export default function TicketPage() {
 
   const plan = ticket?.plan ?? {};
   const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  // Same-origin URL so html2canvas can draw the image without CORS / tainted canvas (no backend change)
+  const mainImageSrc = mainImage ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}` : null;
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
@@ -269,14 +270,11 @@ export default function TicketPage() {
                 className="relative w-full overflow-hidden rounded-t-[24px]"
                 style={{ height: imageHeightPx }}
               >
-                {mainImage ? (
-                  <Image
-                    src={mainImage}
+                {mainImageSrc ? (
+                  <img
+                    src={mainImageSrc}
                     alt=""
-                    fill
-                    className="object-cover"
-                    sizes="420px"
-                    unoptimized
+                    className="h-full w-full object-cover"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#94A3B8]">
