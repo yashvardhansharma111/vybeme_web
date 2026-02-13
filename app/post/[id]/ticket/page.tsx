@@ -72,7 +72,8 @@ export default function TicketPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const ticketCardRef = useRef<HTMLDivElement>(null);
+  /** Ref for download: viewport except top (header). Captures gradient + full ticket card. */
+  const ticketContentRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   const user = getWebUser();
@@ -112,21 +113,26 @@ export default function TicketPage() {
   }, [loadTicket]);
 
   const handleDownloadImage = useCallback(async () => {
-    const el = ticketCardRef.current;
+    const el = ticketContentRef.current;
     if (!el) return;
     setDownloading(true);
     try {
       const canvas = await html2canvas(el, {
         useCORS: true,
         scale: 2,
-        backgroundColor: '#ffffff',
+        backgroundColor: null,
         logging: false,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
       });
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = `vybeme-ticket-${planId}.png`;
+      a.setAttribute('download', a.download);
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
     } catch (e) {
       console.error(e);
     } finally {
@@ -200,7 +206,8 @@ export default function TicketPage() {
   const overlapAmount = 56;
   const imageHeightPx = 280;
 
-  const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => (
+  const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
+    return (
     <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
       {/* Gradient background - exact app colors */}
       <div
@@ -244,11 +251,18 @@ export default function TicketPage() {
         )}
       </header>
 
-      {/* Centered ticket block */}
-      <div className={isDesktopLayout ? 'flex flex-1 flex-col items-center px-5 pb-10 pt-2' : 'flex min-h-0 flex-1 flex-col items-center px-5 pb-8'}>
-        <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
-          {/* Wrapper for download capture: full ticket (image + info), no button inside */}
-          <div ref={ticketCardRef} className="relative z-[2]">
+      {/* Wrapper: content (captured for download) + download button outside ref so not in image */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={ticketContentRef}
+          className={`flex flex-1 flex-col items-center px-5 ${isDesktopLayout ? 'pb-10 pt-2' : 'pb-8 pt-2'}`}
+          style={{
+            background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+          }}
+        >
+          <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
+            {/* Ticket card (image + info) */}
+            <div className="relative z-[2]">
             {/* Main ticket card - image */}
             <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
               <div
@@ -330,30 +344,32 @@ export default function TicketPage() {
                 <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
               </div>
             </div>
+            </div>
           </div>
-
-          {/* Download button - mobile only (floating); desktop has it in header */}
-          {!isDesktopLayout && (
-            <button
-              type="button"
-              onClick={handleDownloadImage}
-              disabled={downloading}
-              className="absolute right-0 top-0 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-md disabled:opacity-60"
-              aria-label="Download ticket"
-            >
-              {downloading ? (
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
-              ) : (
-                <svg className="h-[22px] w-[22px] text-[#1C1C1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-            </button>
-          )}
         </div>
+
+        {/* Download button - mobile only; outside ref so not in downloaded image */}
+        {!isDesktopLayout && (
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={downloading}
+            className="absolute right-5 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-md disabled:opacity-60"
+            aria-label="Download ticket"
+          >
+            {downloading ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+            ) : (
+              <svg className="h-[22px] w-[22px] text-[#1C1C1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
     </div>
-  );
+    );
+  };
 
   // Mobile: full-screen, no scroll
   if (isMobile) {
