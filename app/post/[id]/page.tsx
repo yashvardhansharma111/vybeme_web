@@ -354,33 +354,29 @@ export default function PostPage() {
             <div className="space-y-5">
               <div>
                 <p className="mb-2 text-sm font-semibold text-neutral-800">Age <span className="text-red-500">*</span></p>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  value={ageRange}
+                  onChange={(e) => setAgeRange(e.target.value)}
+                  className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20"
+                >
+                  <option value="">Select age</option>
                   {['Under 18yrs', '18-24yrs', '25-34yrs', '35-44yrs', 'above 45yrs'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setAgeRange(opt)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${ageRange === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}
-                    >
-                      {opt}
-                    </button>
+                    <option key={opt} value={opt}>{opt}</option>
                   ))}
-                </div>
+                </select>
               </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-neutral-800">Gender <span className="text-red-500">*</span></p>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20"
+                >
+                  <option value="">Select gender</option>
                   {['Male', 'Female', 'Prefer not to say'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setGender(opt)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${gender === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}
-                    >
-                      {opt}
-                    </button>
+                    <option key={opt} value={opt}>{opt}</option>
                   ))}
-                </div>
+                </select>
               </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-neutral-800">Your running experience <span className="text-red-500">*</span></p>
@@ -407,9 +403,9 @@ export default function PostPage() {
                 <textarea
                   value={whatBringsYou}
                   onChange={(e) => setWhatBringsYou(e.target.value)}
-                  placeholder="Optional"
-                  rows={3}
-                  className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-500"
+                  placeholder="I want to connect with other runners"
+                  rows={2}
+                  className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-500 resize-none"
                 />
               </div>
             </div>
