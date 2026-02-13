@@ -210,7 +210,7 @@ export default function TicketPage() {
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
   const passName = selectedPass?.name ?? 'Ticket';
 
-  const overlapAmount = 56;
+  const overlapAmount = 40;
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
