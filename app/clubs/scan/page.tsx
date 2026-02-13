@@ -111,7 +111,14 @@ function BusinessScanContent() {
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 8, qrbox: { width: 240, height: 240 } },
+        {
+          fps: 10,
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const size = Math.floor(Math.min(minEdge * 0.8, 320));
+            return { width: size, height: size };
+          },
+        },
         (decodedText) => {
           const hash = decodedText?.trim();
           if (!hash) return;
@@ -243,9 +250,9 @@ function BusinessScanContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1C1C1E]">
-      {/* Nav – app style */}
-      <div className="flex items-center justify-between px-4 py-3">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#1C1C1E]">
+      {/* Nav – fixed */}
+      <div className="flex shrink-0 items-center justify-between px-4 py-3">
         <Link href="/clubs" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
           <span className="text-2xl">×</span>
         </Link>
@@ -259,14 +266,16 @@ function BusinessScanContent() {
         </Link>
       </div>
 
-      {/* Result banner at top – no scrolling needed */}
+      {/* Result popup – fixed at top below nav, doesn’t cover scanner center; auto-dismiss */}
       {scanResult && (
         <div
-          className={`mx-4 mb-3 rounded-xl px-4 py-3 text-center text-base font-semibold ${
-            scanResult.already
-              ? 'bg-amber-500/30 text-amber-100'
-              : 'bg-green-500/30 text-green-100'
-          }`}
+          className="absolute left-4 right-4 top-16 z-20 mx-auto max-w-sm rounded-xl px-4 py-2.5 text-center text-sm font-semibold shadow-lg"
+          style={{
+            backgroundColor: scanResult.already ? 'rgba(217, 119, 6, 0.95)' : 'rgba(22, 163, 74, 0.95)',
+            color: '#fff',
+          }}
+          role="status"
+          aria-live="polite"
         >
           {scanResult.already ? (
             <>Already scanned: {scanResult.name ?? 'Guest'}</>
@@ -276,63 +285,50 @@ function BusinessScanContent() {
         </div>
       )}
       {error && (
-        <div className="mx-4 mb-3 rounded-xl bg-red-500/30 px-4 py-3 text-center text-sm font-medium text-red-100">
+        <div
+          className="absolute left-4 right-4 top-16 z-20 mx-auto max-w-sm rounded-xl bg-red-600/95 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg"
+          role="alert"
+        >
           {error}
         </div>
       )}
 
-      <div className="mx-auto max-w-lg px-4 pb-8">
+      {/* Scanner area – fills space, not scrollable */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Checked-in count – one line above scanner */}
         {total > 0 && (
-          <p className="mb-3 text-center text-base font-semibold text-white">
+          <p className="shrink-0 py-1.5 text-center text-sm font-semibold text-white">
             Checked In: {checkedIn}/{total}
           </p>
         )}
 
-        {/* Camera – user taps Start camera to begin */}
-        <div className="overflow-hidden rounded-2xl bg-black">
-          <div id="qr-reader" className="min-h-[280px] w-full" />
+        {/* Camera – takes remaining height so QR is large, no zoom needed */}
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+          <div id="qr-reader" className="absolute inset-0 h-full w-full" />
         </div>
 
-        {!scanning && selectedPlanId && (
-          <button
-            type="button"
-            onClick={startScanner}
-            className="mt-4 w-full rounded-full bg-white py-3.5 text-base font-bold text-[#1C1C1E]"
-          >
-            Start camera
-          </button>
-        )}
-        {scanning && (
-          <button
-            type="button"
-            onClick={stopScanner}
-            className="mt-4 w-full rounded-full border-2 border-white/30 bg-white/10 py-3 text-base font-semibold text-white"
-          >
-            Stop camera
-          </button>
-        )}
-
-        {/* Selected plan card */}
-        <div className="mt-5 rounded-2xl bg-white/10 py-4 px-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Selected plan</p>
-          {selectedPlan ? (
-            <>
-              <p className="mt-1.5 text-[17px] font-bold text-white">{selectedPlan.title ?? 'Untitled Plan'}</p>
-              <p className="mt-1 text-sm text-[#E5E5EA]">
-                {formatPlanDate(selectedPlan.date)}
-                {selectedPlan.time ? ` · ${selectedPlan.time}` : ''}
-              </p>
-            </>
-          ) : (
-            <p className="mt-1.5 text-[15px] text-[#8E8E93]">No plan selected</p>
+        {/* Bottom strip – compact, no scroll */}
+        <div className="shrink-0 px-4 py-3">
+          {!scanning && selectedPlanId && (
+            <button
+              type="button"
+              onClick={startScanner}
+              className="w-full rounded-full bg-white py-3 text-base font-bold text-[#1C1C1E]"
+            >
+              Start camera
+            </button>
           )}
-        </div>
-
-        {/* Last check-in – summary only; main result is in banner above */}
-        <div className="mt-4 rounded-2xl bg-white/10 py-4 px-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Last check-in</p>
-          <p className="mt-1.5 text-[15px] text-[#E5E5EA]">
-            {scanResult ? (scanResult.already ? 'Already scanned' : scanResult.name ?? 'Guest') : 'Scan a ticket to see check-in details'}
+          {scanning && (
+            <button
+              type="button"
+              onClick={stopScanner}
+              className="w-full rounded-full border-2 border-white/30 bg-white/10 py-2.5 text-base font-semibold text-white"
+            >
+              Stop camera
+            </button>
+          )}
+          <p className="mt-2 truncate text-center text-xs text-[#8E8E93]">
+            {selectedPlan ? selectedPlan.title ?? 'Event' : 'No event selected'}
           </p>
         </div>
       </div>
