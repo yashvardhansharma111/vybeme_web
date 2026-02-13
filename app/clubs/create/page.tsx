@@ -209,7 +209,7 @@ export default function BusinessCreatePage() {
 
       <form onSubmit={handleSubmit} className="mx-auto min-w-0 max-w-lg px-4 pb-28 pt-4 sm:px-6 sm:pb-32 sm:pt-6 md:px-8 md:pt-8">
         {/* Title first (app order) */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <input
             type="text"
             value={title}
@@ -220,18 +220,18 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Description (no limit) */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={4}
+            rows={3}
             className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Join the run club for another 5k..."
           />
         </section>
 
         {/* Post media upload — upload from device or paste URL */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
           <input
             ref={fileInputRef}
@@ -257,8 +257,8 @@ export default function BusinessCreatePage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-black/70 hover:border-[#1C1C1E] hover:bg-black/5 hover:text-black"
+                  aria-label="Add image"
                 >
-                  <span className="text-2xl">+</span>
                 </button>
                 <button
                   type="button"
@@ -281,51 +281,57 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Address */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
+          <p className="mb-1.5 text-[14px] font-semibold text-black">Address</p>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full rounded-full bg-transparent px-4 py-3 text-[15px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
-            placeholder="Bohemians Indiranagar, 1st Main"
+            className="w-full rounded-xl border border-[#E5E5EA] bg-white px-3 py-2.5 text-[15px] text-black placeholder:text-black"
+            placeholder="Enter event address (e.g. venue name, street)"
           />
         </section>
 
-        {/* Date & Time — only future dates; time placeholder visible on mobile */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        {/* Date & Time — date picker only; time placeholder black */}
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <input
-              type="date"
-              value={date}
-              min={todayMin}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val && val < todayMin) return;
-                setDate(val);
-              }}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100 [color-scheme:light]"
-              placeholder="Date"
-            />
-            <input
-              type="text"
-              value={time}
-              onChange={(e) => {
-                const v = e.target.value;
-                const cleaned = v
-                  .split('')
-                  .filter((c) => /[\d: AaPpMm]/.test(c))
-                  .join('')
-                  .slice(0, 12);
-                setTime(cleaned);
-              }}
-              placeholder="8:00 AM"
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
-            />
+            <div>
+              <p className="mb-1 text-xs font-semibold text-black">Date</p>
+              <input
+                type="date"
+                value={date}
+                min={todayMin}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && val < todayMin) return;
+                  setDate(val);
+                }}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-black">Time</p>
+              <input
+                type="text"
+                value={time}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  const cleaned = v
+                    .split('')
+                    .filter((c) => /[\d: AaPpMm]/.test(c))
+                    .join('')
+                    .slice(0, 12);
+                  setTime(cleaned);
+                }}
+                placeholder="8:00 AM"
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
+              />
+            </div>
           </div>
         </section>
 
         {/* Category */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Category</p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
@@ -342,7 +348,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Tickets */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <div className="flex items-center justify-between">
             <span className="text-[16px] font-semibold text-black">Tickets</span>
             <input type="checkbox" checked={ticketsEnabled} onChange={(e) => setTicketsEnabled(e.target.checked)} className="h-5 w-5 rounded" />
@@ -371,15 +377,15 @@ export default function BusinessCreatePage() {
           )}
         </section>
 
-        {/* Additional Details — options like app */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        {/* Additional Details — distance default; no label dropdown text */}
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
           {additionalDetails.map((d, i) => {
-            const option = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === (d.detail_type || d.title));
+            const option = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === (d.detail_type || 'distance'));
             return (
               <div key={i} className="mb-3 flex min-w-0 flex-wrap gap-2 sm:flex-nowrap">
                 <select
-                  value={d.detail_type || ADDITIONAL_DETAIL_OPTIONS.find((o) => o.label === d.title)?.id || ''}
+                  value={d.detail_type || 'distance'}
                   onChange={(e) => {
                     const id = e.target.value;
                     const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
@@ -389,7 +395,6 @@ export default function BusinessCreatePage() {
                   }}
                   className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
                 >
-                  <option value="">Label (e.g. Distance)</option>
                   {ADDITIONAL_DETAIL_OPTIONS.map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
@@ -402,8 +407,8 @@ export default function BusinessCreatePage() {
                     next[i] = { ...next[i], description: e.target.value };
                     setAdditionalDetails(next);
                   }}
-                  placeholder={option?.placeholder ?? 'Value (e.g. 5k)'}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
+                  placeholder={option?.placeholder ?? 'e.g. 5k'}
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
                 />
                 <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
               </div>
@@ -411,7 +416,7 @@ export default function BusinessCreatePage() {
           })}
           <button
             type="button"
-            onClick={() => setAdditionalDetails((prev) => [...prev, { detail_type: '', title: '', description: '' }])}
+            onClick={() => setAdditionalDetails((prev) => [...prev, { detail_type: 'distance', title: 'Distance', description: '' }])}
             className="text-sm font-semibold text-black"
           >
             + Add row
@@ -419,7 +424,7 @@ export default function BusinessCreatePage() {
         </section>
 
         {/* Toggles */}
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-4 sm:mb-4 sm:p-5">
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <div className="py-2">
             <div className="flex items-center justify-between">
               <span className="text-[16px] font-semibold text-black">Women&apos;s only</span>
