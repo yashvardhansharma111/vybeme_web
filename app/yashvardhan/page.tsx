@@ -513,9 +513,9 @@ export default function YashvardhanPage() {
                         const Icon = PILL_ICONS[item.icon];
                         return (
                           <div key={idx} className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 h-[36px]">
-                            {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px] translate-y-[1px]" /></span>}
-                            <span className="text-sm font-medium leading-none flex items-center text-[#1C1C1E]">{item.label}</span>
-                          </div>
+                         {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                         <span className="text-sm font-medium flex items-center text-[#1C1C1E]">{item.label}</span>
+                       </div>
                         );
                       })}
                     </div>
