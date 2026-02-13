@@ -66,9 +66,9 @@ export function AppHeader() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-neutral-100 bg-white px-4 md:px-6">
-      <Link href="/" className="text-lg font-semibold text-neutral-900">
+      <a href="https://www.vybeme.in" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-neutral-900">
         vybeme.
-      </Link>
+      </a>
 
       {showLoggedIn ? (
         <div className="flex items-center gap-4">
