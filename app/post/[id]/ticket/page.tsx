@@ -222,41 +222,25 @@ export default function TicketPage() {
         }}
       />
 
-      {/* Header: X + Booking Confirmed + Download (desktop: download in header) */}
-      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
-        <button
-          type="button"
-          onClick={() => router.push(`/post/${planId}`)}
-          className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
-          aria-label="Close"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
-        {/* Download button - commented out as of now
-        {isDesktopLayout ? (
+      {/* Header: X + Booking Confirmed + spacer; then WhatsApp line below */}
+      <header className="shrink-0 px-5 pt-4 pb-1">
+        <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={handleDownloadImage}
-            disabled={downloading}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
-            aria-label="Download ticket"
+            onClick={() => router.push(`/post/${planId}`)}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
+            aria-label="Close"
           >
-            {downloading ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
-            ) : (
-              <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            )}
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-        ) : (
+          <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
           <div className="w-11" />
-        )}
-        */}
-        <div className="w-11" />
+        </div>
+        <p className="mt-1 truncate text-center text-[11px] font-medium text-[#1C1C1E]">
+          Your pass will be sent to you via Whatsapp shortly
+        </p>
       </header>
 
       {/* Wrapper: content (captured for download) + message in vacant space below; scrollable so visible on mobile and desktop */}
@@ -353,10 +337,7 @@ export default function TicketPage() {
           </div>
         </div>
 
-        <p className="mt-2 mb-6 text-center text-[13px] font-medium text-[#1C1C1E] px-4">
-          Your pass will be sent to you via Whatsapp shortly
-        </p>
-        <div className="min-h-[40px] shrink-0" aria-hidden />
+        <div className="min-h-[20px] shrink-0" aria-hidden />
 
         {/* Download button - commented out as of now
         {!isDesktopLayout && (
