@@ -348,6 +348,10 @@ export default function TicketPage() {
           </div>
         </div>
 
+        <p className="mt-4 text-center text-sm text-white/90 px-4">
+          Your pass will be sent to you via Whatsapp shortly
+        </p>
+
         {/* Download button - mobile only; outside ref so not in downloaded image */}
         {!isDesktopLayout && (
           <button
