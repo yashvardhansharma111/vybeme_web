@@ -204,6 +204,7 @@ export default function TicketPage() {
 
   const plan = ticket?.plan ?? {};
   const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const mainImageSrc = mainImage ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}` : null;
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
@@ -270,13 +271,13 @@ export default function TicketPage() {
         >
           <div className="flex h-full max-h-full w-full max-w-[400px] flex-1 flex-col min-h-0">
             {/* Ticket card (image + info) */}
-            <div className="relative z-[2] flex min-h-0 flex-1 flex-col">
-            {/* Main ticket card - image fills available space, object-contain so image fits div */}
-            <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-[20px] bg-white shadow-[0_6px_16px_rgba(0,0,0,0.1)]">
-              <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-t-[20px]">
-                {mainImage ? (
+            <div className="relative z-[2]">
+            {/* Main ticket card - image: dynamic height, no cropping */}
+            <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+              <div className="relative w-full overflow-hidden rounded-t-[24px]">
+                {mainImageSrc ? (
                   <img
-                    src={mainImage}
+                    src={mainImageSrc}
                     alt=""
                     className="h-full w-full object-contain"
                   />
@@ -287,7 +288,7 @@ export default function TicketPage() {
                     </svg>
                   </div>
                 )}
-                {mainImage && (
+                {mainImageSrc && (
                   <>
                     {/* Bottom blur strip (CSS blur) */}
                     <div
