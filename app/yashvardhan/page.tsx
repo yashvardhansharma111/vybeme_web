@@ -87,6 +87,13 @@ function formatPhone(phone: string | null | undefined): string {
   return phone;
 }
 
+/** Safe filename from username; unique suffix from user_id. */
+function ticketFileName(name: string | null | undefined, userId: string): string {
+  const base = (name || 'ticket').replace(/[^a-zA-Z0-9_\-\s]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim().slice(0, 40) || 'ticket';
+  const suffix = userId.replace(/[^a-zA-Z0-9_-]/g, '-').slice(-8);
+  return `${base}-${suffix}.png`;
+}
+
 /** Build pill items from ticket (shared for visible + hidden card) */
 function getPillItemsFromTicket(t: any): Array<{ icon: string; label: string }> {
   const icons = ['pricetag-outline', 'navigate-outline', 'restaurant-outline', 'musical-notes-outline'] as const;
@@ -142,6 +149,11 @@ export default function YashvardhanPage() {
   const downloadCardRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrDataUrlForDownload, setQrDataUrlForDownload] = useState<string | null>(null);
+  const [downloadAllFilename, setDownloadAllFilename] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const downloadQueueRef = useRef<Array<{ user_id: string; name: string }>>([]);
+  const processNextInQueueRef = useRef<() => void>(() => {});
+  const downloadAllModeRef = useRef(false);
 
   useEffect(() => {
     if (!ticket?.qr_code_hash) {
@@ -223,6 +235,18 @@ export default function YashvardhanPage() {
     }
   }, [selectedPlanId]);
 
+  const onDownloadAllTickets = useCallback(() => {
+    if (!selectedPlanId || attendees.length === 0) return;
+    downloadQueueRef.current = attendees.map((a) => ({
+      user_id: a.user_id,
+      name: a.user?.name ?? 'Unknown',
+    }));
+    setDownloadingAll(true);
+    setError(null);
+    downloadAllModeRef.current = true;
+    processNextInQueue();
+  }, [selectedPlanId, attendees, processNextInQueue]);
+
   const onDownloadAttendeeTicket = useCallback(async (userId: string) => {
     if (!selectedPlanId) return;
     setDownloadingUserId(userId);
@@ -241,11 +265,37 @@ export default function YashvardhanPage() {
     }
   }, [selectedPlanId]);
 
+  const processNextInQueue = useCallback(() => {
+    if (downloadQueueRef.current.length === 0) {
+      setDownloadingAll(false);
+      downloadAllModeRef.current = false;
+      return;
+    }
+    const next = downloadQueueRef.current.shift()!;
+    getYashvardhanTicket(selectedPlanId!, next.user_id)
+      .then((res) => {
+        if (res.success && res.data?.ticket) {
+          setTicketForDownload(res.data.ticket);
+          setDownloadAllFilename(ticketFileName(next.name, next.user_id));
+        } else {
+          processNextInQueueRef.current();
+        }
+      })
+      .catch(() => {
+        processNextInQueueRef.current();
+      });
+  }, [selectedPlanId]);
+
+  useEffect(() => {
+    processNextInQueueRef.current = processNextInQueue;
+  }, [processNextInQueue]);
+
   const runDownloadCapture = useCallback(() => {
     const el = downloadCardRef.current;
     const t = ticketForDownload;
     if (!el || !t) return;
     const planId = t.plan?.plan_id ?? selectedPlanId ?? 'ticket';
+    const filename = downloadAllFilename ?? `vybeme-ticket-${(planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40)}-${(t?.ticket_number || t?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30)}.png`;
     html2canvas(el, {
       useCORS: true,
       scale: 2,
@@ -259,9 +309,7 @@ export default function YashvardhanPage() {
         const dataUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = dataUrl;
-        const planPart = (planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-        const uniquePart = (t?.ticket_number || t?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
-        a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
+        a.download = filename.endsWith('.png') ? filename : `${filename}.png`;
         a.setAttribute('download', a.download);
         document.body.appendChild(a);
         a.click();
@@ -271,8 +319,12 @@ export default function YashvardhanPage() {
       .finally(() => {
         setTicketForDownload(null);
         setDownloadingUserId(null);
+        if (downloadAllModeRef.current) {
+          setDownloadAllFilename(null);
+          processNextInQueueRef.current();
+        }
       });
-  }, [ticketForDownload, selectedPlanId]);
+  }, [ticketForDownload, selectedPlanId, downloadAllFilename]);
 
   useEffect(() => {
     if (!ticketForDownload) return;
@@ -382,6 +434,16 @@ export default function YashvardhanPage() {
         <h1 className="mb-4 text-xl font-semibold text-white">Attendees</h1>
         {error && <p className="mb-4 text-red-400">{error}</p>}
         {loading && plans.length > 0 && <p className="mb-4 text-white/70">Loading…</p>}
+        {attendees.length > 0 && (
+          <button
+            type="button"
+            onClick={onDownloadAllTickets}
+            disabled={loading || downloadingAll}
+            className="mb-4 w-full rounded-xl bg-[#8B7AB8] px-4 py-3 text-sm font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-50"
+          >
+            {downloadingAll ? 'Downloading…' : 'Download all tickets'}
+          </button>
+        )}
         <ul className="space-y-2">
           {attendees.map((a) => (
             <li key={a.user_id} className="rounded-xl bg-[#2C2C2E] px-4 py-3">
@@ -399,7 +461,7 @@ export default function YashvardhanPage() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onDownloadAttendeeTicket(a.user_id); }}
-                  disabled={loading || downloadingUserId !== null}
+                  disabled={loading || downloadingUserId !== null || downloadingAll}
                   className="shrink-0 rounded-lg bg-[#8B7AB8] px-3 py-2 text-sm font-medium text-white hover:bg-[#9B8AC8] disabled:opacity-50"
                 >
                   {downloadingUserId === a.user_id ? '…' : 'Download'}
