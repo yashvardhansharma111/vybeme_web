@@ -509,12 +509,12 @@ export default function YashvardhanPage() {
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
                     <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-3">
-                      {dPillItems.map((item, idx) => {
+                        {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
                           <div key={idx} className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 h-[36px]">
                             {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                            <span className="text-sm font-medium text-[#1C1C1E] flex items-center pb-0.5">{item.label}</span>
+                            <span className="text-sm font-medium text-[#1C1C1E]">{item.label}</span>
                           </div>
                         );
                       })}
@@ -649,7 +649,7 @@ export default function YashvardhanPage() {
                               className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 h-[36px]"
                             >
                               {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                              <span className="text-sm font-medium text-[#1C1C1E] flex items-center pb-0.5">
+                              <span className="text-sm font-medium text-[#1C1C1E]">
                                 {item.label}
                               </span>
                             </div>
