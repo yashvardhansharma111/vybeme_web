@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
@@ -141,33 +140,41 @@ export default function TicketPage() {
   }, [planId]);
 
   const pillItems = useMemo(() => {
+    const icons = ['pricetag-outline', 'navigate-outline', 'restaurant-outline', 'musical-notes-outline'] as const;
     if (!ticket?.plan) {
-      return [
-        { icon: 'pricetag-outline' as const, label: 'Free' },
-        { icon: 'navigate-outline' as const, label: '—' },
-        { icon: 'restaurant-outline' as const, label: '—' },
-        { icon: 'musical-notes-outline' as const, label: 'Event' },
-      ];
+      return [{ icon: icons[0], label: 'Free' }];
     }
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
     const passes = plan.passes ?? [];
     const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
+    const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
+      (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
+
     const priceLabel =
       ticket.price_paid > 0
         ? `₹${ticket.price_paid}`
         : passes[0]?.price != null && passes[0].price > 0
           ? `₹${passes[0].price}`
           : 'Free';
-    const distanceLabel = detailBy('distance')?.title || detailBy('distance')?.description || plan.location_text || '—';
-    const fbLabel = detailBy('f&b')?.title || detailBy('f&b')?.description || '—';
-    const musicLabel = plan.category_main || (plan.category_sub && plan.category_sub[0]) || 'Event';
-    return [
-      { icon: 'pricetag-outline' as const, label: priceLabel },
-      { icon: 'navigate-outline' as const, label: distanceLabel },
-      { icon: 'restaurant-outline' as const, label: fbLabel },
-      { icon: 'musical-notes-outline' as const, label: musicLabel },
-    ];
+
+    const labels: string[] = [];
+    labels.push(priceLabel);
+    const distance = getLabel(detailBy('distance'), plan.location_text || '');
+    if (distance) labels.push(distance);
+    const fb = getLabel(detailBy('f&b'), '');
+    if (fb) labels.push(fb);
+    addDetails.forEach((d: any) => {
+      if (!d || labels.length >= 4) return;
+      const t = (d.detail_type || '').toLowerCase();
+      if (t === 'distance' || t === 'f&b') return;
+      const label = getLabel(d, '');
+      if (label && !labels.includes(label)) labels.push(label);
+    });
+    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
+    if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
+
+    return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
   }, [ticket]);
 
   if (loading) {
@@ -198,13 +205,13 @@ export default function TicketPage() {
 
   const plan = ticket?.plan ?? {};
   const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const mainImageSrc = mainImage ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}` : null;
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
   const passName = selectedPass?.name ?? 'Ticket';
 
   const overlapAmount = 56;
-  const imageHeightPx = 280;
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
@@ -266,47 +273,45 @@ export default function TicketPage() {
           <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
             {/* Ticket card (image + info) */}
             <div className="relative z-[2]">
-            {/* Main ticket card - image */}
+            {/* Main ticket card - image: dynamic height, no cropping */}
             <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
-              <div
-                className="relative w-full overflow-hidden rounded-t-[24px]"
-                style={{ height: imageHeightPx }}
-              >
-                {mainImage ? (
-                  <Image
-                    src={mainImage}
+              <div className="relative w-full overflow-hidden rounded-t-[24px]">
+                {mainImageSrc ? (
+                  <img
+                    src={mainImageSrc}
                     alt=""
-                    fill
-                    className="object-object-contain"
-                    sizes="420px"
-                    unoptimized
+                    className="block w-full h-auto object-contain"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#94A3B8]">
+                  <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8]">
                     <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
                     </svg>
                   </div>
                 )}
-                {/* Bottom blur strip (CSS blur) */}
-                <div
-                  className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-md"
-                  style={{ background: 'rgba(0,0,0,0.2)' }}
-                />
-                {/* Gradient overlay + text */}
-                <div
-                  className="absolute inset-x-0 bottom-0 pt-[80px] pb-5 px-5"
-                  style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
-                >
-                  <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                  <div className="mt-2 flex justify-between text-[14px] font-semibold text-white/95">
-                    <span>{formatDate(plan.date)}</span>
-                    <span>{formatTime(plan.time)}</span>
-                  </div>
-                  {plan.location_text && (
-                    <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
-                  )}
-                </div>
+                {mainImageSrc && (
+                  <>
+                    {/* Bottom blur strip (CSS blur) */}
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-md"
+                      style={{ background: 'rgba(0,0,0,0.2)' }}
+                    />
+                    {/* Gradient overlay + text */}
+                    <div
+                      className="absolute inset-x-0 bottom-0 pt-[80px] pb-5 px-5"
+                      style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
+                    >
+                      <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
+                      <div className="mt-2 flex justify-between text-[14px] font-semibold text-white/95">
+                        <span>{formatDate(plan.date)}</span>
+                        <span>{formatTime(plan.time)}</span>
+                      </div>
+                      {plan.location_text && (
+                        <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
