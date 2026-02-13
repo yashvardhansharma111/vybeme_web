@@ -508,7 +508,7 @@ export default function YashvardhanPage() {
                     className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-3">
                       {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
