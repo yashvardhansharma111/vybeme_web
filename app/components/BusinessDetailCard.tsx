@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { HiOutlineLocationMarker, HiOutlineCalendar, HiOutlineShare, HiOutlinePhotograph } from 'react-icons/hi';
 
 export interface BusinessDetailPost {
   plan_id?: string;
@@ -41,24 +42,6 @@ function formatOrganizerTime(date: string | Date | undefined): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function formatTimeOnly(time: string | undefined): string {
-  return time?.trim() ?? '';
-}
-
-type TagItem = { type: 'distance' | 'location' | 'fb' | 'category'; label: string };
-function getCardTags(post: BusinessDetailPost): TagItem[] {
-  const addDetails = post.add_details ?? [];
-  const detailByType = (type: string) => addDetails.find((d) => d.detail_type === type);
-  const tags: TagItem[] = [];
-  const distanceLabel = detailByType('distance')?.title || detailByType('distance')?.description;
-  const fbLabel = detailByType('f&b')?.title || detailByType('f&b')?.description;
-  const locationLabel = post.location_text?.trim();
-  if (distanceLabel) tags.push({ type: 'distance', label: distanceLabel });
-  if (locationLabel) tags.push({ type: 'location', label: locationLabel });
-  if (fbLabel) tags.push({ type: 'fb', label: fbLabel });
-  return tags.slice(0, 6);
-}
-
 function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
   if (post.media?.length) {
@@ -92,7 +75,6 @@ export function BusinessDetailCard({
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
   attendees?: Array<{ name?: string; profile_image?: string | null }>;
-  /** When set (logged in), show profile button top-left; otherwise only organiser pill in middle */
   currentUserProfileHref?: string;
   currentUserAvatar?: string | null;
   currentUserName?: string;
@@ -103,9 +85,13 @@ export function BusinessDetailCard({
   const profileHref = authorId ? `/profile/${authorId}` : undefined;
   const images = getAllImages(post);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [shareSnackbar, setShareSnackbar] = useState(false);
+  const [comingSoon, setComingSoon] = useState(false);
   const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
-  const cardTags = getCardTags(post);
+  const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
+  const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
+  const planTitle = (post.title as string) || 'Event on vybeme';
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -115,42 +101,69 @@ export function BusinessDetailCard({
     return () => clearInterval(t);
   }, [images.length]);
 
+  const copyAndSnackbar = useCallback(() => {
+    if (!planUrl) return;
+    navigator.clipboard?.writeText(planUrl).then(() => {
+      setShareSnackbar(true);
+      setTimeout(() => setShareSnackbar(false), 1000);
+    });
+  }, [planUrl]);
+
+  const onShare = useCallback(() => {
+    if (!planUrl) return;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ url: planUrl, title: planTitle }).catch(() => copyAndSnackbar());
+    } else {
+      copyAndSnackbar();
+    }
+  }, [planUrl, planTitle, copyAndSnackbar]);
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
-      {/* Top bar: user pill (top-left), vybeme. (top-right), profile when logged in */}
-      <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-2">
-        <div className="flex min-w-0 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#22d3ee]">
-            <span className="text-white font-bold text-sm" style={{ fontFamily: 'system-ui' }}>;</span>
-          </div>
-          {profileHref ? (
-            <Link href={profileHref} className="flex min-w-0 flex-col transition-opacity hover:opacity-90">
-              <span className="truncate text-sm font-bold text-[#1C1C1E] max-w-[140px]">{authorName}</span>
-              <span className="text-[11px] text-[#71717a]">{formatOrganizerTime(post.date)}</span>
-            </Link>
-          ) : (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-              <p className="text-[11px] text-[#71717a]">{formatOrganizerTime(post.date)}</p>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Desktop: top bar – vybeme. left; Download app + profile right */}
+      <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
+        <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
+          vybeme.
+        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              setComingSoon(true);
+              setTimeout(() => setComingSoon(false), 2000);
+            }}
+            className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+          >
+            Download app
+          </button>
           {currentUserProfileHref ? (
-            <Link href={currentUserProfileHref} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-sm" aria-label={currentUserName ?? 'Your profile'}>
-              {currentUserAvatar ? (
-                <Image src={currentUserAvatar} alt="" width={36} height={36} className="rounded-full object-cover" />
-              ) : (
-                <span className="text-sm font-semibold text-[#1C1C1E]">{(currentUserName ?? 'You').charAt(0)}</span>
-              )}
+            <Link href={currentUserProfileHref} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={currentUserName ?? 'Your profile'}>
+              <div className="relative h-9 w-9 overflow-hidden rounded-full bg-neutral-200">
+                {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">{(currentUserName ?? 'You').charAt(0)}</span>}
+              </div>
             </Link>
           ) : null}
-          <span className="text-lg font-bold text-[#1C1C1E]">vybeme.</span>
         </div>
       </header>
+      {comingSoon && (
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-lg hidden md:block" role="status">
+          Coming soon
+        </div>
+      )}
 
-      {/* Fixed: Hero image with overlay (title, location, time) bottom-right */}
-      <div className="fixed left-1/2 top-0 z-10 h-[340px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
+      {/* Mobile: profile top right when logged in */}
+      {currentUserProfileHref ? (
+        <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent md:hidden">
+          <Link href={currentUserProfileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={currentUserName ?? 'Your profile'}>
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
+              {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
+            </div>
+          </Link>
+        </header>
+      ) : null}
+
+      {/* Mobile: Hero image – ~60% viewport */}
+      <div className="fixed left-1/2 top-0 z-10 h-[60vh] min-h-[280px] w-screen max-w-none -translate-x-1/2 overflow-hidden md:hidden">
         {hasImage ? (
           <>
             {images.map((url, i) => (
@@ -159,19 +172,12 @@ export function BusinessDetailCard({
                 className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'}`}
               >
                 <Image src={url} alt="" fill className="object-cover" sizes="100vw" />
-                <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-0.5 text-white drop-shadow-md">
-                  <span className="text-lg font-extrabold">{post.title}</span>
-                  {post.location_text && <span className="text-sm font-medium opacity-95">{post.location_text}</span>}
-                  {post.time && <span className="text-sm font-medium opacity-95">{formatTimeOnly(post.time)}</span>}
-                </div>
               </div>
             ))}
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#E5E5EA]">
-            <svg className="h-14 w-14 text-[#8E8E93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-            </svg>
+          <div className="absolute inset-0 flex items-center justify-center bg-neutral-200">
+            <HiOutlinePhotograph className="h-14 w-14 text-neutral-500" aria-hidden />
           </div>
         )}
         {images.length > 1 && (
@@ -189,73 +195,88 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Scrollable area: 5px inset from edges; starts lower so more image visible */}
+      {/* Mobile: Sticky bar – organiser pill + share */}
+      <div className={`fixed left-4 right-4 z-30 flex items-center justify-between gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
+        <div className="flex flex-1 justify-center min-w-0">
+          <div className="rounded-full border border-white/30 bg-white/95 pl-2 pr-3 py-1.5 shadow-xl flex items-center gap-2 min-w-0 max-w-[200px]">
+            {profileHref ? (
+              <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
+                  {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
+                  <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+                </div>
+              </Link>
+            ) : (
+              <>
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
+                  {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
+                  <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onShare}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
+          aria-label="Share plan"
+        >
+          <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
+        </button>
+      </div>
+
+      {shareSnackbar && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#1C1C1E] px-4 py-2.5 text-sm font-medium text-white shadow-xl" role="status">
+          Copied plan link
+        </div>
+      )}
+
+      {/* Mobile: Scrollable area */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[300px] mx-[5px]"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[58vh] mx-[5px] md:hidden"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
-          className="rounded-t-[24px] px-5 pb-24 pt-8 shadow-lg min-h-[calc(100vh-120px)]"
+          className="rounded-t-[24px] px-5 pb-24 pt-2 shadow-lg min-h-[calc(100vh-120px)]"
           style={{
             background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
           }}
         >
           <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-          {cardTags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {cardTags.map((tag, i) => (
-                <span
-                  key={`${tag.type}-${i}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f4f5] px-3 py-1.5 text-sm font-medium text-[#52525b]"
-                >
-                  {tag.type === 'distance' && (
-                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  )}
-                  {tag.type === 'location' && (
-                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  )}
-                  {tag.type === 'fb' && (
-                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14s1.5 2 4 2 4-2 4-2V9s-1.5-2-4-2-4 2-4 2v5zm0 0V9m0 5s1.5 2 4 2 4-2 4-2V9" /></svg>
-                  )}
-                  {tag.type === 'category' && (
-                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                  )}
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="mt-3 text-sm leading-[21px] text-[#444] whitespace-pre-line">
-          {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-            /^https?:\/\//.test(part) ? (
-              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
-                {part}
-              </a>
-            ) : (
-              part
-            )
-          )}
+          <p className="mt-2 text-sm leading-[21px] text-[#444] whitespace-pre-line">
+            {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+              /^https?:\/\//.test(part) ? (
+                <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
+                  {part}
+                </a>
+              ) : (
+                part
+              )
+            )}
           </p>
-
-          {/* Address + Date & time in one div */}
           {(post.location_text || post.date) && (
             <div className="mt-4 rounded-[14px] bg-[#F2F2F7] p-3.5">
               {post.location_text && (
                 <div className="flex gap-2">
-                  <span className="text-[#666]" aria-hidden>📍</span>
+                  <HiOutlineLocationMarker className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
                   <p className="text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
                 </div>
               )}
               {post.date && (
                 <div className={`flex gap-2 ${post.location_text ? 'mt-3' : ''}`}>
-                  <span className="text-[#666]" aria-hidden>📅</span>
+                  <HiOutlineCalendar className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
                   <p className="text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
                 </div>
               )}
             </div>
           )}
-
-          {/* Detail pills */}
           {addDetails.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2.5">
               {addDetails.slice(0, 4).map((detail, i) => (
@@ -266,62 +287,126 @@ export function BusinessDetailCard({
               ))}
             </div>
           )}
-
-          {/* See who's coming – no app CTA */}
-          <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl bg-[#1C1C1E] px-4 py-4">
-            <div>
-              <p className="text-base font-bold text-white">See who&apos;s coming</p>
-              <p className="text-[13px] text-white/70">
-                {attendees && attendees.length > 0 ? `${attendees.length} going` : 'Join event to view.'}
-              </p>
-            </div>
-            <div className="flex -space-x-2">
-              {attendees && attendees.length > 0
-                ? attendees.slice(0, 5).map((a, i) => (
-                    <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500">
-                      {a.profile_image ? (
-                        <Image src={a.profile_image} alt="" fill className="object-cover" sizes="32px" />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-white">
-                          {(a.name ?? '?').charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  ))
-                : [1, 2, 3].map((i) => (
-                    <div key={i} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-500" />
-                  ))}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Fixed: Book Event / View ticket at bottom – padding so not stuck to edge */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5E5EA] bg-white pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] px-4">
-        <div className="mx-auto max-w-md">
-        {registered && viewTicketHref ? (
-          <Link
-            href={viewTicketHref}
-            className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
-          >
-            View ticket
-          </Link>
-        ) : onBookEvent ? (
-          <button
-            type="button"
-            onClick={onBookEvent}
-            className="w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white"
-          >
-            Book Event
-          </button>
-        ) : (
-          <a
-            href="/login"
-            className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white no-underline"
-          >
-            Book Event
-          </a>
-        )}
+      {/* Mobile: Floating bottom – Register / View ticket */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none md:hidden">
+        <div className="pointer-events-auto">
+          {registered && viewTicketHref ? (
+            <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white no-underline shadow-xl">
+              View ticket
+            </Link>
+          ) : onBookEvent ? (
+            <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white shadow-xl">
+              Register
+            </button>
+          ) : (
+            <a href="/login" className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-2.5 text-sm font-bold text-white no-underline shadow-xl">
+              Register
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop: two-column – left 40% pill + image, right 60% content */}
+      <div className="hidden md:flex min-h-screen flex-col pt-14">
+        <div className="flex flex-1 min-h-0">
+          <div className="flex w-[40%] flex-col gap-4 p-6 overflow-y-auto bg-white">
+            <div className="flex justify-center">
+              <div className="rounded-full border border-neutral-200 bg-neutral-50 pl-2 pr-4 py-2 shadow-xl inline-flex items-center gap-3 w-fit">
+                {profileHref ? (
+                  <Link href={profileHref} className="flex min-w-0 items-center gap-3 transition-opacity hover:opacity-90">
+                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                      {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-500">{authorName.charAt(0)}</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-neutral-900">{authorName}</p>
+                      <p className="text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
+                    </div>
+                  </Link>
+                ) : (
+                  <>
+                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                      {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-500">{authorName.charAt(0)}</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-neutral-900">{authorName}</p>
+                      <p className="text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-neutral-200">
+              {hasImage ? (
+                <Image src={images[carouselIndex] ?? images[0]} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 40vw" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <HiOutlinePhotograph className="h-16 w-16 text-neutral-400" aria-hidden />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex w-[60%] flex-col overflow-y-auto bg-white px-8 py-8">
+            <h1 className="text-2xl font-extrabold text-neutral-900">{post.title}</h1>
+            {post.date && (
+              <div className="mt-4 flex gap-3 flex-wrap">
+                <div className="rounded-xl bg-neutral-100 p-4 flex gap-2 items-start">
+                  <HiOutlineCalendar className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
+                  <p className="text-sm font-semibold text-neutral-800 leading-tight">{formatDayAndTime(post.date, post.time)}</p>
+                </div>
+                {post.location_text && (
+                  <div className="rounded-xl bg-neutral-100 p-4 flex gap-2 items-start">
+                    <HiOutlineLocationMarker className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
+                    <p className="text-sm font-semibold text-neutral-800">{post.location_text}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {!post.date && post.location_text && (
+              <div className="mt-4 rounded-xl bg-neutral-100 p-4 flex gap-2 items-start">
+                <HiOutlineLocationMarker className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
+                <p className="text-sm font-semibold text-neutral-800">{post.location_text}</p>
+              </div>
+            )}
+            {addDetails.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-3">
+                {addDetails.slice(0, 4).map((detail, i) => (
+                  <div key={i} className="min-w-[200px] rounded-xl bg-neutral-100 px-4 py-3">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{detail.title}</p>
+                    {detail.description ? <p className="mt-1 text-sm font-semibold text-neutral-800 whitespace-pre-line">{detail.description}</p> : null}
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="mt-5 text-sm leading-relaxed text-neutral-700 whitespace-pre-line">
+              {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                /^https?:\/\//.test(part) ? (
+                  <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-neutral-900 underline">
+                    {part}
+                  </a>
+                ) : (
+                  part
+                )
+              )}
+            </p>
+            <div className="mt-8">
+              {registered && viewTicketHref ? (
+                <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white no-underline shadow-xl hover:bg-neutral-800">
+                  View ticket
+                </Link>
+              ) : onBookEvent ? (
+                <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
+                  Register
+                </button>
+              ) : (
+                <a href="/login" className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white no-underline shadow-xl hover:bg-neutral-800">
+                  Register
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
