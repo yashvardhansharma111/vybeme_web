@@ -12,6 +12,7 @@ import { MdFastfood } from 'react-icons/md';
 import { PiLinkSimpleBold } from 'react-icons/pi';
 import { HiOutlineTag } from 'react-icons/hi';
 import { getWebUser, getUserTicket } from '@/lib/api';
+import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
@@ -140,6 +141,7 @@ export default function TicketPage() {
         logging: false,
         windowWidth: el.scrollWidth,
         windowHeight: el.scrollHeight,
+        onclone: sanitizeOklabForHtml2Canvas,
       });
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');

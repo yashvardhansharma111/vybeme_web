@@ -8,6 +8,7 @@ import {
   getYashvardhanAttendees,
   getYashvardhanTicket,
 } from '@/lib/api';
+import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
@@ -229,6 +230,7 @@ export default function YashvardhanPage() {
       logging: false,
       windowWidth: el.scrollWidth,
       windowHeight: el.scrollHeight,
+      onclone: sanitizeOklabForHtml2Canvas,
     })
       .then((canvas) => {
         const dataUrl = canvas.toDataURL('image/png');
@@ -269,6 +271,7 @@ export default function YashvardhanPage() {
         logging: false,
         windowWidth: el.scrollWidth,
         windowHeight: el.scrollHeight,
+        onclone: sanitizeOklabForHtml2Canvas,
       });
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
