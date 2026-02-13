@@ -348,7 +348,7 @@ export default function TicketPage() {
           </div>
         </div>
 
-        <p className="mt-6 mb-8 text-center text-[15px] font-medium text-white px-4">
+        <p className="mt-2 mb-6 text-center text-[13px] font-medium text-[#1C1C1E] px-4">
           Your pass will be sent to you via Whatsapp shortly
         </p>
         <div className="min-h-[40px] shrink-0" aria-hidden />
