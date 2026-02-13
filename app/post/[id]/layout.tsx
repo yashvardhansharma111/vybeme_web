@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     url,
     siteName: 'vybeme.',
   };
-  // Use the post's actual image so the shared link shows the event photo large
-  const shareImageUrl = post.imageUrl || `${WEB_BASE}/api/og/post/${id}`;
+  // Use our 1200x630 OG image so WhatsApp shows a large preview (not small thumbnail)
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}`;
   openGraph.images = [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
   return {
     title: post.title,
