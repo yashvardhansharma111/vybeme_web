@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     url,
     siteName: 'vybeme.',
   };
-  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}`;
-  openGraph.images = [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=3`;
+  openGraph.images = [{ url: shareImageUrl, width: 800, height: 680, alt: post.title }];
   return {
     title: post.title,
     description: shortDescription,

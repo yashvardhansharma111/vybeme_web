@@ -134,16 +134,7 @@ export function BusinessDetailCard({
             vybeme.
           </Link>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setComingSoon(true);
-            setTimeout(() => setComingSoon(false), 2000);
-          }}
-          className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
-        >
-          Download app
-        </button>
+       
       </header>
       {comingSoon && (
         <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-lg hidden md:block" role="status">
@@ -195,11 +186,10 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Mobile: Sticky bar – organiser pill at center of viewport, share on right */}
-      <div className={`fixed left-4 right-4 z-30 flex items-center pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
-        <div className="flex flex-1 min-w-0" aria-hidden />
-        <div className="flex flex-1 justify-center min-w-0">
-          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 w-full max-w-[200px] min-w-0">
+      {/* Mobile: Sticky bar – organiser pill on left, share on right */}
+      <div className={`fixed left-4 right-4 z-30 flex items-center gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
+        <div className="flex min-w-0 flex-1 justify-start">
+          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 max-w-[200px] min-w-0">
             {profileHref ? (
               <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-2 transition-opacity hover:opacity-90 overflow-hidden">
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
@@ -223,16 +213,14 @@ export function BusinessDetailCard({
             )}
           </div>
         </div>
-        <div className="flex flex-1 justify-end">
-          <button
-            type="button"
-            onClick={onShare}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
-            aria-label="Share plan"
-          >
-            <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onShare}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
+          aria-label="Share plan"
+        >
+          <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
+        </button>
       </div>
 
       {shareSnackbar && (
