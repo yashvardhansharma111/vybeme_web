@@ -452,21 +452,21 @@ export default function YashvardhanPage() {
                     </div>
                   </div>
                   <div
-                    className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
                   >
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                       {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5">
+                          <div key={idx} className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]">
                             {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                            <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">{item.label}</span>
+                            <span className="min-w-0 max-w-[180px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">{item.label}</span>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
+                    <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                         <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                           {qrDataUrlForDownload ? (
                             <img src={qrDataUrlForDownload} width={112} height={112} alt="" className="block size-[112px]" />
@@ -480,8 +480,8 @@ export default function YashvardhanPage() {
                           </div>
                         )}
                       </div>
-                      <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{dPassName}</p>
-                      <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{dTicket.ticket_number ?? '—'}</p>
+                      <p className="text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{dPassName}</p>
+                      <p className="mt-1 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{dTicket.ticket_number ?? '—'}</p>
                     </div>
                   </div>
                 </div>
@@ -584,7 +584,7 @@ export default function YashvardhanPage() {
                       </div>
                     </div>
                     <div
-                      className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                      className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
                     >
                       <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
@@ -593,17 +593,17 @@ export default function YashvardhanPage() {
                           return (
                             <div
                               key={idx}
-                              className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
+                              className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
                             >
                               {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                              <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">
+                              <span className="min-w-0 max-w-[180px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">
                                 {item.label}
                               </span>
                             </div>
                           );
                         })}
                       </div>
-                      <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
+                      <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                         <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                           {qrDataUrl ? (
                             <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
@@ -617,8 +617,8 @@ export default function YashvardhanPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{passName}</p>
-                        <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+                        <p className="text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
+                        <p className="mt-1 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{ticket?.ticket_number ?? '—'}</p>
                       </div>
                     </div>
                   </div>
