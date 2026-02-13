@@ -14,9 +14,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       openGraph: { title: 'vybeme.', description: '', url },
     };
   }
+  const shortDescription = post.description
+    ? post.description.split(/\n/).slice(0, 2).join(' ').trim().slice(0, 120) || ''
+    : '';
   const openGraph: Metadata['openGraph'] = {
     title: post.title,
-    description: '',
+    description: shortDescription,
     url,
     siteName: 'vybeme.',
   };
@@ -25,12 +28,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
   return {
     title: post.title,
-    description: '',
+    description: shortDescription,
     openGraph,
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: '',
+      description: shortDescription,
       images: post.imageUrl ? [post.imageUrl] : undefined,
     },
   };
