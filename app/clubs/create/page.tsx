@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ShareMenu } from '@/app/components/ShareMenu';
 import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles } from '@/lib/api';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
@@ -531,25 +532,20 @@ export default function BusinessCreatePage() {
               <p className="mt-2 text-sm text-neutral-600">Your event is published. Share it or view as a user would see it.</p>
             </div>
             <div className="mt-6 flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.share) {
-                    navigator.share({
-                      title: title || 'Event',
-                      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${planLivePostId}`,
-                      text: title ? `Join ${title} on vybeme` : 'Join this event on vybeme',
-                    }).catch(() => {});
-                  } else {
-                    navigator.clipboard?.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/post/${planLivePostId}`);
-                  }
-                  setPlanLivePostId(null);
-                  router.push('/clubs');
-                }}
-                className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
-              >
-                Share
-              </button>
+              <div className="w-full">
+                <ShareMenu
+                  postId={planLivePostId}
+                  title={title || 'Event'}
+                  className="block w-full"
+                >
+                  <button
+                    type="button"
+                    className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
+                  >
+                    Share
+                  </button>
+                </ShareMenu>
+              </div>
               <Link
                 href={`/post/${planLivePostId}`}
                 className="flex w-full items-center justify-center rounded-full bg-[#1C1C1E] py-3 font-bold text-white no-underline"

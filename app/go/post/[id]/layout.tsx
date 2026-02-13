@@ -11,25 +11,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!post) {
     return {
       title: 'vybeme. — Find people for your plans',
-      description: 'Check out this plan on vybeme.',
-      openGraph: { title: 'vybeme.', description: 'Check out this plan on vybeme.', url },
+      description: 'Join on vybeme.',
+      openGraph: { title: 'vybeme.', description: 'Join on vybeme.', url },
     };
   }
+  const metaDescription = 'Join on vybeme.';
+  const imageUrl = post.imageUrl || ogImageUrl;
   return {
     title: post.title,
-    description: post.description,
+    description: metaDescription,
     openGraph: {
       title: post.title,
-      description: post.description,
+      description: metaDescription,
       url,
       siteName: 'vybeme.',
-      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: post.title }],
+      images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: post.description,
-      images: [ogImageUrl],
+      description: metaDescription,
+      images: [imageUrl],
     },
   };
 }

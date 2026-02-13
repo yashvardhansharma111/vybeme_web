@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from '@/app/components/AppHeader';
+import { ShareMenu } from '@/app/components/ShareMenu';
 import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations, updateProfile } from '@/lib/api';
 
 interface Plan {
@@ -42,22 +43,6 @@ function EventCard({
   formatEventDate: (date: string | undefined) => string;
   formatEventTime: (time: string | undefined) => string;
 }) {
-  const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${p.plan_id}` : '';
-  const handleShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (typeof navigator !== 'undefined' && navigator.share && postUrl) {
-      navigator.share({ url: postUrl, title: p.title ?? 'Event' }).catch(() => copyLink());
-    } else {
-      copyLink();
-    }
-  };
-  function copyLink() {
-    if (!postUrl) return;
-    navigator.clipboard?.writeText(postUrl).then(() => {
-      // Could add a tiny toast; for now copy is done
-    });
-  }
-
   return (
     <li className="flex gap-3 rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
       {/* Left: event image */}
@@ -105,13 +90,7 @@ function EventCard({
           >
             Scan
           </Link>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Share
-          </button>
+          <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
         </div>
       </div>
     </li>

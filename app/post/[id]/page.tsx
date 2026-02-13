@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
+import { ShareMenu } from '../../components/ShareMenu';
 import { EventDetailCard, type EventDetailPost } from '../../components/EventDetailCard';
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
@@ -263,19 +264,31 @@ export default function PostPage() {
     <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${post && isBusiness && businessStep === 'detail' ? 'overflow-x-hidden' : ''}`}>
       <AppHeader />
       <main className={`mx-auto flex max-w-md flex-col gap-4 pb-8 md:max-w-4xl md:py-8 ${post && isBusiness && businessStep === 'detail' ? 'p-0' : 'p-4'}`}>
-        {!(post && isBusiness && businessStep === 'detail') && (
-          <button
-            type="button"
-            onClick={() => {
-              if (isBusiness && businessStep === 'tickets') setBusinessStep('detail');
-              else if (isBusiness && businessStep === 'survey') setBusinessStep('tickets');
-              else router.back();
-            }}
-            className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900 self-start md:mb-2"
-          >
-            ← Back
-          </button>
-        )}
+        <div className={`flex items-center justify-between gap-2 ${post && isBusiness && businessStep === 'detail' ? 'absolute left-4 right-4 top-20 z-30' : ''}`}>
+          {!(post && isBusiness && businessStep === 'detail') ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (isBusiness && businessStep === 'tickets') setBusinessStep('detail');
+                else if (isBusiness && businessStep === 'survey') setBusinessStep('tickets');
+                else router.back();
+              }}
+              className="text-sm font-medium text-neutral-700 underline hover:text-neutral-900 md:mb-2"
+            >
+              ← Back
+            </button>
+          ) : (
+            <span />
+          )}
+          {post && (
+            <ShareMenu
+              postId={postId}
+              title={post.title ?? 'Event'}
+              useGoPostUrl
+              className="shrink-0"
+            />
+          )}
+        </div>
 
         {post && isBusiness && businessStep === 'tickets' ? (
           <div className="rounded-2xl bg-white p-6 shadow-xl">
