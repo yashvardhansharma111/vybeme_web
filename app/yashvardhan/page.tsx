@@ -9,6 +9,9 @@ import {
 } from '@/lib/api';
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 import QRCode from 'qrcode';
+import dynamic from 'next/dynamic';
+
+const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
 function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '—';
@@ -468,9 +471,7 @@ export default function YashvardhanPage() {
                           {qrDataUrlForDownload ? (
                             <img src={qrDataUrlForDownload} width={112} height={112} alt="" className="block size-[112px]" />
                           ) : dTicket.qr_code_hash ? (
-                            <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6]">
-                              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#8E8E93] border-t-transparent" />
-                            </div>
+                            <QRCodeSVG value={dTicket.qr_code_hash} size={112} level="M" />
                           ) : (
                           <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
                             <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -607,9 +608,7 @@ export default function YashvardhanPage() {
                           {qrDataUrl ? (
                             <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
                           ) : ticket?.qr_code_hash ? (
-                            <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6]">
-                              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#8E8E93] border-t-transparent" />
-                            </div>
+                            <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
                           ) : (
                             <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
                               <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
