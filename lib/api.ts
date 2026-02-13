@@ -298,7 +298,7 @@ export async function getYashvardhanAttendees(plan_id: string) {
     attendees: Array<{
       registration_id: string;
       user_id: string;
-      user: { user_id: string; name: string; profile_image?: string | null } | null;
+      user: { user_id: string; name: string; profile_image?: string | null; phone_number?: string | null } | null;
       ticket_id: string | null;
       ticket_number: string | null;
       status: string;

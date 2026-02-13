@@ -15,6 +15,19 @@ import { getWebUser, getUserTicket } from '@/lib/api';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
+function getProxiedImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith('r2.dev') || u.hostname.includes('r2.dev')) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 function formatDate(date: string | Date | null | undefined): string {
   if (!date) return 'Jan 29, 2022';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -296,7 +309,7 @@ export default function TicketPage() {
               <div className="relative w-full overflow-hidden rounded-t-[24px]">
                 {mainImage ? (
                   <img
-                    src={mainImage}
+                    src={getProxiedImageUrl(mainImage) ?? mainImage}
                     alt=""
                     className="block w-full h-auto object-contain"
                   />
