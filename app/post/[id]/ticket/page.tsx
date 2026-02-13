@@ -5,6 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
+import { FaCalendarCheck, FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
+import { IoLocationSharp, IoShirt } from 'react-icons/io5';
+import { GiRunningShoe } from 'react-icons/gi';
+import { MdFastfood } from 'react-icons/md';
+import { PiLinkSimpleBold } from 'react-icons/pi';
+import { HiOutlineTag } from 'react-icons/hi';
 import { getWebUser, getUserTicket } from '@/lib/api';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
@@ -20,47 +26,45 @@ function formatTime(time: string | null | undefined): string {
   return time;
 }
 
-// Icons matching app (Ionicons outline): pricetag, navigate, restaurant, musical-notes
-function IconPricetag() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M403.29 304H208a16 16 0 01-16-16V96a16 16 0 0116-16h195.29a8 8 0 015.65 2.34l80 80a8 8 0 010 11.32l-80 80a8 8 0 01-5.65 2.34z" />
-      <path d="M112 80H80a32 32 0 00-32 32v320a32 32 0 0032 32h320a32 32 0 0032-32v-32" />
-    </svg>
-  );
-}
-function IconNavigate() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M448 64L64 240.14h200a8 8 0 018 8v171.72L448 64z" />
-    </svg>
-  );
-}
-function IconRestaurant() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M57.49 47.74l368.43 368.43a37.28 37.28 0 010 52.72L405 477.49a37.28 37.28 0 01-52.72 0L98.27 128.21a37.28 37.28 0 010-52.72l20.22-20.22a37.28 37.28 0 0152.72 0z" />
-      <path d="M400 32l-77.25 77.25A64 64 0 00304 154.51v14.86a16 16 0 004.69 11.32L480 256M16 400l80-80M64 432l48-48" />
-    </svg>
-  );
-}
-function IconMusicalNotes() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M192 218v-6c0-14.84 10.87-23.63 32.29-27.8S256 172 256 172s48 3 31.71 12.2C266.13 188.37 256 197.16 256 212v82" />
-      <path d="M256 294v78" />
-      <path d="M256 372c-17.67 0-32 12.5-32 28s14.33 28 32 28 32-12.5 32-28-14.33-28-32-28z" />
-      <path d="M256 78v42" />
-      <path d="M256 78c-17.67 0-32 12.5-32 28s14.33 28 32 28 32-12.5 32-28-14.33-28-32-28z" />
-    </svg>
-  );
+/** Map category/label to pill icon key. */
+function getCategoryIconKey(category: string): string {
+  const c = (category || '').toLowerCase();
+  if (c.includes('sport')) return 'sports';
+  if (c.includes('run')) return 'running';
+  if (c.includes('fitness') || c.includes('train')) return 'fitness';
+  if (c.includes('social') || c.includes('communit')) return 'social';
+  return 'music';
 }
 
-const PILL_ICONS: Record<string, () => React.ReactElement> = {
-  'pricetag-outline': IconPricetag,
-  'navigate-outline': IconNavigate,
-  'restaurant-outline': IconRestaurant,
-  'musical-notes-outline': IconMusicalNotes,
+/** Map detail_type to icon key for add_details pills. */
+function getDetailIconKey(detailType: string): string {
+  const t = (detailType || '').toLowerCase();
+  if (t === 'distance' || t.includes('distance')) return 'location';
+  if (t === 'f&b' || t.includes('f&b')) return 'fb';
+  if (t.includes('starting') || t.includes('point')) return 'starting-point';
+  if (t.includes('dress')) return 'dress-code';
+  if (t.includes('link')) return 'links';
+  return 'music';
+}
+
+const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  price: HiOutlineTag,
+  location: IoLocationSharp,
+  fb: MdFastfood,
+  music: FaMusic,
+  sports: FaBasketballBall,
+  running: GiRunningShoe,
+  fitness: FaDumbbell,
+  social: FaGlassCheers,
+  'starting-point': FaFlagCheckered,
+  'dress-code': IoShirt,
+  links: PiLinkSimpleBold,
+  calendar: FaCalendarCheck,
+  // legacy keys for backward compatibility with existing pill order
+  'pricetag-outline': HiOutlineTag,
+  'navigate-outline': IoLocationSharp,
+  'restaurant-outline': MdFastfood,
+  'musical-notes-outline': FaMusic,
 };
 
 export default function TicketPage() {
@@ -140,9 +144,9 @@ export default function TicketPage() {
   }, [planId]);
 
   const pillItems = useMemo(() => {
-    const icons = ['pricetag-outline', 'navigate-outline', 'restaurant-outline', 'musical-notes-outline'] as const;
+    const iconKeys: string[] = ['price', 'location', 'fb', 'music'];
     if (!ticket?.plan) {
-      return [{ icon: icons[0], label: 'Free' }];
+      return [{ icon: 'price', label: 'Free' }];
     }
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
@@ -158,23 +162,34 @@ export default function TicketPage() {
           ? `₹${passes[0].price}`
           : 'Free';
 
-    const labels: string[] = [];
-    labels.push(priceLabel);
+    const items: { icon: string; label: string }[] = [];
+    items.push({ icon: 'price', label: priceLabel });
+
     const distance = getLabel(detailBy('distance'), plan.location_text || '');
-    if (distance) labels.push(distance);
+    if (distance) items.push({ icon: 'location', label: distance });
+
     const fb = getLabel(detailBy('f&b'), '');
-    if (fb) labels.push(fb);
+    if (fb) items.push({ icon: 'fb', label: fb });
+
     addDetails.forEach((d: any) => {
-      if (!d || labels.length >= 4) return;
+      if (!d || items.length >= 4) return;
       const t = (d.detail_type || '').toLowerCase();
       if (t === 'distance' || t === 'f&b') return;
       const label = getLabel(d, '');
-      if (label && !labels.includes(label)) labels.push(label);
+      if (label && !items.some((x) => x.label === label)) {
+        items.push({ icon: getDetailIconKey(d.detail_type || ''), label });
+      }
     });
-    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
-    if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
 
-    return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
+    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
+    if (category && items.length < 4 && !items.some((x) => x.label === category)) {
+      items.push({ icon: getCategoryIconKey(category), label: category });
+    }
+
+    return items.slice(0, 4).map((item, i) => ({
+      ...item,
+      icon: item.icon || iconKeys[i],
+    }));
   }, [ticket]);
 
   if (loading) {
@@ -305,12 +320,17 @@ export default function TicketPage() {
                       style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
                     >
                       <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                      <div className="mt-2 flex justify-between text-[14px] font-semibold text-white/95">
-                        <span>{formatDate(plan.date)}</span>
-                        <span>{formatTime(plan.time)}</span>
+                      <div className="mt-2 flex items-center justify-between gap-2 text-[14px] font-semibold text-white/95">
+                        <span className="flex items-center gap-1.5">
+                          <FaCalendarCheck className="h-4 w-4 shrink-0 opacity-90" />
+                          {formatDate(plan.date)} · {formatTime(plan.time)}
+                        </span>
                       </div>
                       {plan.location_text && (
-                        <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
+                        <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-white/85">
+                          <IoLocationSharp className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                          {plan.location_text}
+                        </p>
                       )}
                     </div>
                   </>
@@ -325,13 +345,15 @@ export default function TicketPage() {
             >
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                 {pillItems.map((item, idx) => {
-                  const Icon = PILL_ICONS[item.icon];
+                  const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
                   return (
                     <div
                       key={idx}
                       className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
                     >
-                      {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
+                      <span className="flex shrink-0 text-[#1C1C1E]">
+                        <Icon className="h-[18px] w-[18px]" />
+                      </span>
                       <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">
                         {item.label}
                       </span>
