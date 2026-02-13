@@ -230,6 +230,7 @@ export default function TicketPage() {
           </svg>
         </button>
         <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
+        {/* Download button - commented out as of now
         {isDesktopLayout ? (
           <button
             type="button"
@@ -249,6 +250,8 @@ export default function TicketPage() {
         ) : (
           <div className="w-11" />
         )}
+        */}
+        <div className="w-11" />
       </header>
 
       {/* Wrapper: content (captured for download) + message in vacant space below; scrollable so visible on mobile and desktop */}
@@ -353,7 +356,7 @@ export default function TicketPage() {
         </p>
         <div className="min-h-[40px] shrink-0" aria-hidden />
 
-        {/* Download button - mobile only; outside ref so not in downloaded image */}
+        {/* Download button - commented out as of now
         {!isDesktopLayout && (
           <button
             type="button"
@@ -371,6 +374,7 @@ export default function TicketPage() {
             )}
           </button>
         )}
+        */}
       </div>
     </div>
     );
