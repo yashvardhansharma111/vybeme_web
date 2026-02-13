@@ -7,31 +7,31 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const post = await getPostOgData(id);
   const url = `${WEB_BASE}/post/${id}`;
-  const ogImageUrl = `${WEB_BASE}/api/og/post/${id}`;
   if (!post) {
     return {
       title: 'vybeme. — Find people for your plans',
-      description: 'Join on vybeme.',
-      openGraph: { title: 'vybeme.', description: 'Join on vybeme.', url },
+      description: '',
+      openGraph: { title: 'vybeme.', description: '', url },
     };
   }
-  const metaDescription = 'Join on vybeme.';
-  const imageUrl = post.imageUrl || ogImageUrl;
+  const openGraph: Metadata['openGraph'] = {
+    title: post.title,
+    description: '',
+    url,
+    siteName: 'vybeme.',
+  };
+  if (post.imageUrl) {
+    openGraph.images = [{ url: post.imageUrl, width: 1200, height: 630, alt: post.title }];
+  }
   return {
     title: post.title,
-    description: metaDescription,
-    openGraph: {
-      title: post.title,
-      description: metaDescription,
-      url,
-      siteName: 'vybeme.',
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }],
-    },
+    description: '',
+    openGraph,
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: metaDescription,
-      images: [imageUrl],
+      description: '',
+      images: post.imageUrl ? [post.imageUrl] : undefined,
     },
   };
 }
