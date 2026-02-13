@@ -3,6 +3,15 @@
  */
 const BASE_API = process.env.NEXT_PUBLIC_API_URL || 'https://api.vybeme.in';
 
+function toAbsoluteImageUrl(raw: string | null | undefined): string | null {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  const base = BASE_API.replace(/\/api\/?$/, '');
+  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${base}${path}`;
+}
+
 export type PostOgData = {
   title: string;
   description: string;
@@ -21,8 +30,8 @@ export async function getPostOgData(id: string): Promise<PostOgData | null> {
 
     const title = data.title || 'Event on Vybeme';
     const description = (data.description || 'Check out this event on Vybeme.').slice(0, 200);
-    const image = data.media?.[0]?.url ?? data.image ?? null;
-    const imageUrl = image && !image.startsWith('http') ? `${BASE_API.replace(/\/api$/, '')}${image}` : image;
+    const rawImage = data.media?.[0]?.url ?? data.image ?? null;
+    const imageUrl = toAbsoluteImageUrl(rawImage);
 
     let authorName = 'Vybeme';
     const userId = data.user_id ?? data.business_id;
