@@ -6,7 +6,7 @@ const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const post = await getPostOgData(id);
-  const url = `${WEB_BASE}/go/post/${id}`;
+  const url = `${WEB_BASE}/post/${id}`;
   const ogImageUrl = `${WEB_BASE}/api/og/post/${id}`;
   if (!post) {
     return {
@@ -34,6 +34,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-export default function GoPostLayout({ children }: { children: React.ReactNode }) {
+export default function PostLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
