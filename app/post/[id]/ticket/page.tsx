@@ -301,7 +301,7 @@ export default function TicketPage() {
                     />
                     {/* Gradient overlay + text */}
                     <div
-                      className="absolute inset-x-0 bottom-0 pt-[80px] pb-5 px-5"
+                      className="absolute inset-x-0 bottom-0 pt-[36px] pb-5 px-5"
                       style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
                     >
                       <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
