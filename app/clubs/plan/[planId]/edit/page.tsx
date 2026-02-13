@@ -106,7 +106,7 @@ export default function BusinessEditPlanPage() {
           if (d.date) setDate(new Date(d.date).toISOString().slice(0, 10));
           setTime(d.time ? timeTo24h(d.time) : '');
           if (d.media?.length && d.media[0].url) setMediaUrl(d.media[0].url);
-          const hasPasses = d.passes && d.passes.length > 0;
+          const hasPasses = !!(d.passes && d.passes.length > 0);
           setTicketsEnabled(hasPasses);
           setPasses(hasPasses
             ? d.passes!.map((p) => ({ pass_id: p.pass_id, name: p.name ?? '', price: p.price ?? 0 }))
