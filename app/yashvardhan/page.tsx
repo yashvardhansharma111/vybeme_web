@@ -235,6 +235,31 @@ export default function YashvardhanPage() {
     }
   }, [selectedPlanId]);
 
+  const processNextInQueue = useCallback(() => {
+    if (downloadQueueRef.current.length === 0) {
+      setDownloadingAll(false);
+      downloadAllModeRef.current = false;
+      return;
+    }
+    const next = downloadQueueRef.current.shift()!;
+    getYashvardhanTicket(selectedPlanId!, next.user_id)
+      .then((res) => {
+        if (res.success && res.data?.ticket) {
+          setTicketForDownload(res.data.ticket);
+          setDownloadAllFilename(ticketFileName(next.name, next.user_id));
+        } else {
+          processNextInQueueRef.current();
+        }
+      })
+      .catch(() => {
+        processNextInQueueRef.current();
+      });
+  }, [selectedPlanId]);
+
+  useEffect(() => {
+    processNextInQueueRef.current = processNextInQueue;
+  }, [processNextInQueue]);
+
   const onDownloadAllTickets = useCallback(() => {
     if (!selectedPlanId || attendees.length === 0) return;
     downloadQueueRef.current = attendees.map((a) => ({
@@ -264,31 +289,6 @@ export default function YashvardhanPage() {
       setDownloadingUserId(null);
     }
   }, [selectedPlanId]);
-
-  const processNextInQueue = useCallback(() => {
-    if (downloadQueueRef.current.length === 0) {
-      setDownloadingAll(false);
-      downloadAllModeRef.current = false;
-      return;
-    }
-    const next = downloadQueueRef.current.shift()!;
-    getYashvardhanTicket(selectedPlanId!, next.user_id)
-      .then((res) => {
-        if (res.success && res.data?.ticket) {
-          setTicketForDownload(res.data.ticket);
-          setDownloadAllFilename(ticketFileName(next.name, next.user_id));
-        } else {
-          processNextInQueueRef.current();
-        }
-      })
-      .catch(() => {
-        processNextInQueueRef.current();
-      });
-  }, [selectedPlanId]);
-
-  useEffect(() => {
-    processNextInQueueRef.current = processNextInQueue;
-  }, [processNextInQueue]);
 
   const runDownloadCapture = useCallback(() => {
     const el = downloadCardRef.current;
