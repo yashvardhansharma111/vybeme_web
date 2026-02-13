@@ -158,7 +158,9 @@ export default function TicketPage() {
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `vybeme-ticket-${planId}.png`;
+      const planPart = (planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
+      const uniquePart = (ticket?.ticket_number || ticket?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
+      a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
       a.setAttribute('download', a.download);
       document.body.appendChild(a);
       a.click();
@@ -168,7 +170,7 @@ export default function TicketPage() {
     } finally {
       setDownloading(false);
     }
-  }, [planId]);
+  }, [planId, ticket?.ticket_number, ticket?.user_id]);
 
   const pillItems = useMemo(() => {
     const iconKeys: string[] = ['price', 'location', 'fb', 'music'];

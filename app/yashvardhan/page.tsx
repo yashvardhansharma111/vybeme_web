@@ -259,7 +259,9 @@ export default function YashvardhanPage() {
         const dataUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = `vybeme-ticket-${planId}.png`;
+        const planPart = (planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
+        const uniquePart = (t?.ticket_number || t?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
+        a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
         a.setAttribute('download', a.download);
         document.body.appendChild(a);
         a.click();
@@ -299,7 +301,9 @@ export default function YashvardhanPage() {
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `vybeme-ticket-${selectedPlanId}.png`;
+      const planPart = (selectedPlanId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
+      const uniquePart = (ticket?.ticket_number || ticket?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
+      a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
       a.setAttribute('download', a.download);
       document.body.appendChild(a);
       a.click();
@@ -309,7 +313,7 @@ export default function YashvardhanPage() {
     } finally {
       setDownloading(false);
     }
-  }, [selectedPlanId]);
+  }, [selectedPlanId, ticket?.ticket_number, ticket?.user_id]);
 
   const pillItems = useMemo(() => getPillItemsFromTicket(ticket), [ticket]);
 
