@@ -23,9 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     url,
     siteName: 'vybeme.',
   };
-  if (post.imageUrl) {
-    openGraph.images = [{ url: post.imageUrl, width: 1200, height: 630, alt: post.title }];
-  }
+  const ogImageUrl = `${WEB_BASE}/api/og/post/${id}`;
+  openGraph.images = [{ url: ogImageUrl, width: 1200, height: 630, alt: post.title }];
   return {
     title: post.title,
     description: shortDescription,
@@ -34,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       card: 'summary_large_image',
       title: post.title,
       description: shortDescription,
-      images: post.imageUrl ? [post.imageUrl] : undefined,
+      images: [ogImageUrl],
     },
   };
 }
