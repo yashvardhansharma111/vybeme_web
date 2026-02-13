@@ -101,30 +101,34 @@ export function AppHeader() {
 
           {dropdownOpen && (
             <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
-              <div className="border-b border-neutral-100 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">My Tickets</p>
-                <p className="mt-0.5 text-sm text-neutral-600">
-                  {tickets.length === 0 ? 'No tickets yet' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}
-                </p>
-              </div>
-              <div className="max-h-64 overflow-y-auto py-2">
-                {tickets.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
-                ) : (
-                  tickets.map((t) => (
-                    <Link
-                      key={t.ticket_id}
-                      href={`/post/${t.plan?.plan_id ?? ''}/ticket`}
-                      onClick={() => setDropdownOpen(false)}
-                      className="block border-b border-neutral-50 px-4 py-3 last:border-0 hover:bg-neutral-50"
-                    >
-                      <p className="truncate text-sm font-medium text-neutral-900">{t.plan?.title ?? 'Event'}</p>
-                      <p className="text-xs text-neutral-500">Ticket #{t.ticket_number}</p>
-                    </Link>
-                  ))
-                )}
-              </div>
-              <div className="border-t border-neutral-100 py-2">
+              {!profile?.is_business && (
+                <>
+                  <div className="border-b border-neutral-100 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">My Tickets</p>
+                    <p className="mt-0.5 text-sm text-neutral-600">
+                      {tickets.length === 0 ? 'No tickets yet' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}
+                    </p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto py-2">
+                    {tickets.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
+                    ) : (
+                      tickets.map((t) => (
+                        <Link
+                          key={t.ticket_id}
+                          href={`/post/${t.plan?.plan_id ?? ''}/ticket`}
+                          onClick={() => setDropdownOpen(false)}
+                          className="block border-b border-neutral-50 px-4 py-3 last:border-0 hover:bg-neutral-50"
+                        >
+                          <p className="truncate text-sm font-medium text-neutral-900">{t.plan?.title ?? 'Event'}</p>
+                          <p className="text-xs text-neutral-500">Ticket #{t.ticket_number}</p>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+              <div className={profile?.is_business ? '' : 'border-t border-neutral-100'} py-2>
                 {user?.user_id && (
                   <Link
                     href={`/profile/${user.user_id}`}

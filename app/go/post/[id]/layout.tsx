@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
   }
   const shortDescription = post.description
-    ? post.description.split(/\n/).slice(0, 2).join(' ').trim().slice(0, 120) || ''
+    ? post.description.split(/\n/).slice(0, 3).join(' ').trim().slice(0, 160) || ''
     : '';
   const openGraph: Metadata['openGraph'] = {
     title: post.title,
