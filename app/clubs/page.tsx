@@ -44,49 +44,53 @@ function EventCard({
   formatEventTime: (time: string | undefined) => string;
 }) {
   return (
-    <li className="overflow-hidden rounded-lg border border-neutral-100 bg-neutral-50/50">
-      {/* Clickable image — opens view */}
-      <Link href={`/post/${p.plan_id}`} className="block aspect-square w-full overflow-hidden rounded-t-lg bg-neutral-200 md:aspect-[2/1]">
-        {p.media?.[0]?.url ? (
-          <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-400 text-sm">No image</div>
-        )}
-      </Link>
-      {/* Title, date/time, registration count */}
-      <div className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 flex-1 truncate font-medium text-neutral-900">{p.title ?? 'Event'}</h3>
-          <span className="shrink-0 text-xs text-neutral-500">
-            {typeof p.registrationCount === 'number' ? `${p.registrationCount} registered` : '…'}
-          </span>
+    <li className="rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
+      {/* Row: small image left, details right */}
+      <div className="flex gap-3">
+        <Link
+          href={`/post/${p.plan_id}`}
+          className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200 md:h-24 md:w-24"
+        >
+          {p.media?.[0]?.url ? (
+            <img src={p.media[0].url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-neutral-400 text-xs">No image</div>
+          )}
+        </Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 flex-1 truncate font-medium text-neutral-900">{p.title ?? 'Event'}</h3>
+            <span className="shrink-0 text-xs text-neutral-500">
+              {typeof p.registrationCount === 'number' ? `${p.registrationCount} registered` : '…'}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">
+            {formatEventDate(p.date)}
+            {p.time?.trim() ? ` ${formatEventTime(p.time)}` : ''}
+          </p>
         </div>
-        <div className="mt-1 flex gap-3 text-xs text-neutral-500">
-          <span>{formatEventDate(p.date)}</span>
-          <span>{formatEventTime(p.time)}</span>
-        </div>
-        {/* Action buttons below image */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href={`/clubs/registration/${p.plan_id}`}
-            className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
-          >
-            Registration
-          </Link>
-          <Link
-            href={`/clubs/plan/${p.plan_id}/edit`}
-            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Edit
-          </Link>
-          <Link
-            href={`/clubs/scan?plan=${p.plan_id}`}
-            className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-          >
-            Scan
-          </Link>
-          <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
-        </div>
+      </div>
+      {/* Buttons below image + details */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href={`/clubs/registration/${p.plan_id}`}
+          className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
+        >
+          Registration
+        </Link>
+        <Link
+          href={`/clubs/plan/${p.plan_id}/edit`}
+          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Edit
+        </Link>
+        <Link
+          href={`/clubs/scan?plan=${p.plan_id}`}
+          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Scan
+        </Link>
+        <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
       </div>
     </li>
   );
