@@ -149,7 +149,7 @@ export async function GET(
           )}
         </div>
 
-        {/* Bottom section: title, tags, CTA */}
+        {/* Bottom section: title + tags only (no registration button for story) */}
         <div
           style={{
             display: 'flex',
@@ -181,20 +181,6 @@ export async function GET(
               ))}
             </div>
           )}
-          <div
-            style={{
-              alignSelf: 'center',
-              marginTop: 12,
-              backgroundColor: '#27272a',
-              color: '#ffffff',
-              padding: '20px 48px',
-              borderRadius: 28,
-              fontSize: 22,
-              fontWeight: 700,
-            }}
-          >
-            Register Now
-          </div>
         </div>
       </div>
     ),

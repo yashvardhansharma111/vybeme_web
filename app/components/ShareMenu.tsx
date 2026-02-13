@@ -75,13 +75,13 @@ export function ShareMenu({ postId, title, useGoPostUrl = false, children, class
             <button
               type="button"
               role="menuitem"
-              onClick={copyLink}
+              onClick={shareToInstagramStory}
               className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-neutral-800 hover:bg-neutral-50 md:px-5 md:py-3.5 md:text-base"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-600">
-                <LinkIcon />
+                <InstagramIcon />
               </span>
-              Copy link
+              Share to Instagram Story
             </button>
             <button
               type="button"
@@ -97,13 +97,13 @@ export function ShareMenu({ postId, title, useGoPostUrl = false, children, class
             <button
               type="button"
               role="menuitem"
-              onClick={shareToInstagramStory}
+              onClick={copyLink}
               className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-neutral-800 hover:bg-neutral-50 md:px-5 md:py-3.5 md:text-base"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-600">
-                <InstagramIcon />
+                <LinkIcon />
               </span>
-              Share to Instagram Story
+              Copy link
             </button>
           </div>
         </>
