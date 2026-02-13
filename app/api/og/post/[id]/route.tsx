@@ -30,7 +30,13 @@ export async function GET(
           <div style={{ fontSize: 24, color: '#57534e', marginTop: 12 }}>Find people for your plans</div>
         </div>
       ),
-      { width: W, height: H }
+      {
+        width: W,
+        height: H,
+        headers: {
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      }
     );
   }
 
@@ -97,7 +103,7 @@ export async function GET(
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            minHeight: 380,
+            minHeight: 520,
             position: 'relative',
           }}
         >
@@ -107,7 +113,7 @@ export async function GET(
               alt=""
               style={{
                 width: '100%',
-                height: 380,
+                height: 520,
                 objectFit: 'cover',
               }}
             />
@@ -115,7 +121,7 @@ export async function GET(
             <div
               style={{
                 width: '100%',
-                height: 380,
+                height: 520,
                 background: 'linear-gradient(135deg, #e4e4e7 0%, #a1a1aa 100%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -131,8 +137,8 @@ export async function GET(
           style={{
             display: 'flex',
             flexDirection: 'column',
-            padding: '20px 28px 24px',
-            gap: 14,
+            padding: '16px 28px 20px',
+            gap: 10,
           }}
         >
           <div style={{ fontSize: 28, fontWeight: 700, color: '#18181b' }}>{title}</div>
@@ -175,6 +181,12 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: W, height: H }
+    {
+      width: W,
+      height: H,
+      headers: {
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
+    }
   );
 }
