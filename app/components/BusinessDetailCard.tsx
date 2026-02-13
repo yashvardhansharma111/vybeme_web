@@ -41,6 +41,24 @@ function formatOrganizerTime(date: string | Date | undefined): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+function formatTimeOnly(time: string | undefined): string {
+  return time?.trim() ?? '';
+}
+
+type TagItem = { type: 'distance' | 'location' | 'fb' | 'category'; label: string };
+function getCardTags(post: BusinessDetailPost): TagItem[] {
+  const addDetails = post.add_details ?? [];
+  const detailByType = (type: string) => addDetails.find((d) => d.detail_type === type);
+  const tags: TagItem[] = [];
+  const distanceLabel = detailByType('distance')?.title || detailByType('distance')?.description;
+  const fbLabel = detailByType('f&b')?.title || detailByType('f&b')?.description;
+  const locationLabel = post.location_text?.trim();
+  if (distanceLabel) tags.push({ type: 'distance', label: distanceLabel });
+  if (locationLabel) tags.push({ type: 'location', label: locationLabel });
+  if (fbLabel) tags.push({ type: 'fb', label: fbLabel });
+  return tags.slice(0, 6);
+}
+
 function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
   if (post.media?.length) {
@@ -87,6 +105,7 @@ export function BusinessDetailCard({
   const [carouselIndex, setCarouselIndex] = useState(0);
   const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
+  const cardTags = getCardTags(post);
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -98,18 +117,39 @@ export function BusinessDetailCard({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
-      {/* Fixed top bar: current user profile (top right) when logged in */}
-      {currentUserProfileHref ? (
-        <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent">
-          <Link href={currentUserProfileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={currentUserName ?? 'Your profile'}>
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
-              {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
+      {/* Top bar: user pill (top-left), vybeme. (top-right), profile when logged in */}
+      <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#22d3ee]">
+            <span className="text-white font-bold text-sm" style={{ fontFamily: 'system-ui' }}>;</span>
+          </div>
+          {profileHref ? (
+            <Link href={profileHref} className="flex min-w-0 flex-col transition-opacity hover:opacity-90">
+              <span className="truncate text-sm font-bold text-[#1C1C1E] max-w-[140px]">{authorName}</span>
+              <span className="text-[11px] text-[#71717a]">{formatOrganizerTime(post.date)}</span>
+            </Link>
+          ) : (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
+              <p className="text-[11px] text-[#71717a]">{formatOrganizerTime(post.date)}</p>
             </div>
-          </Link>
-        </header>
-      ) : null}
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {currentUserProfileHref ? (
+            <Link href={currentUserProfileHref} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-sm" aria-label={currentUserName ?? 'Your profile'}>
+              {currentUserAvatar ? (
+                <Image src={currentUserAvatar} alt="" width={36} height={36} className="rounded-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-[#1C1C1E]">{(currentUserName ?? 'You').charAt(0)}</span>
+              )}
+            </Link>
+          ) : null}
+          <span className="text-lg font-bold text-[#1C1C1E]">vybeme.</span>
+        </div>
+      </header>
 
-      {/* Fixed: Hero image – full-width background */}
+      {/* Fixed: Hero image with overlay (title, location, time) bottom-right */}
       <div className="fixed left-1/2 top-0 z-10 h-[340px] w-screen max-w-none -translate-x-1/2 overflow-hidden">
         {hasImage ? (
           <>
@@ -119,6 +159,11 @@ export function BusinessDetailCard({
                 className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'}`}
               >
                 <Image src={url} alt="" fill className="object-cover" sizes="100vw" />
+                <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-0.5 text-white drop-shadow-md">
+                  <span className="text-lg font-extrabold">{post.title}</span>
+                  {post.location_text && <span className="text-sm font-medium opacity-95">{post.location_text}</span>}
+                  {post.time && <span className="text-sm font-medium opacity-95">{formatTimeOnly(post.time)}</span>}
+                </div>
               </div>
             ))}
           </>
@@ -129,7 +174,6 @@ export function BusinessDetailCard({
             </svg>
           </div>
         )}
-        {/* Dots – when more than one image */}
         {images.length > 1 && (
           <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
             {images.map((_, i) => (
@@ -145,31 +189,6 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Organiser pill – fixed center above image (z-30); same position with or without header */}
-      <div className="fixed left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-[20px] bg-white/95 px-3 py-2 shadow-md">
-        {profileHref ? (
-          <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-              <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
-            </div>
-          </Link>
-        ) : (
-          <>
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-              {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-              <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
-            </div>
-          </>
-        )}
-      </div>
-
       {/* Scrollable area: 5px inset from edges; starts lower so more image visible */}
       <div
         className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[300px] mx-[5px]"
@@ -182,7 +201,31 @@ export function BusinessDetailCard({
           }}
         >
           <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-          <p className="mt-2 text-sm leading-[21px] text-[#444] whitespace-pre-line">
+          {cardTags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {cardTags.map((tag, i) => (
+                <span
+                  key={`${tag.type}-${i}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f4f5] px-3 py-1.5 text-sm font-medium text-[#52525b]"
+                >
+                  {tag.type === 'distance' && (
+                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  )}
+                  {tag.type === 'location' && (
+                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  )}
+                  {tag.type === 'fb' && (
+                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14s1.5 2 4 2 4-2 4-2V9s-1.5-2-4-2-4 2-4 2v5zm0 0V9m0 5s1.5 2 4 2 4-2 4-2V9" /></svg>
+                  )}
+                  {tag.type === 'category' && (
+                    <svg className="h-4 w-4 shrink-0 text-[#52525b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                  )}
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-sm leading-[21px] text-[#444] whitespace-pre-line">
           {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
             /^https?:\/\//.test(part) ? (
               <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
