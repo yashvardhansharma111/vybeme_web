@@ -213,7 +213,7 @@ export default function TicketPage() {
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
-    <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Gradient background - exact app colors */}
       <div
         className="absolute inset-0 -z-10"
@@ -259,28 +259,29 @@ export default function TicketPage() {
         <div className="w-11" />
       </header>
 
-      {/* Wrapper: content (captured for download) + message in vacant space below; scrollable so visible on mobile and desktop */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {/* Wrapper: ticket fills screen, lower text fixed at bottom, no scroll */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           ref={ticketContentRef}
-          className={`flex flex-shrink-0 flex-col items-center px-4 ${isDesktopLayout ? 'pb-2 pt-1' : 'pb-2 pt-1'}`}
+          className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-2"
           style={{
             background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
           }}
         >
-          <div className={`relative w-full max-w-[360px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
+          <div className="flex h-full max-h-full w-full max-w-[400px] flex-1 flex-col min-h-0">
             {/* Ticket card (image + info) */}
-            <div className="relative z-[2]">
-            {/* Main ticket card - image: dynamic height, max height so no scroll */}
-            <div className="mb-0 overflow-hidden rounded-[20px] bg-white shadow-[0_6px_16px_rgba(0,0,0,0.1)]">
-              <div className="relative w-full max-h-[38vh] overflow-hidden rounded-t-[20px]">
+            <div className="relative z-[2] flex min-h-0 flex-1 flex-col">
+            {/* Main ticket card - image fills available space, object-contain so image fits div */}
+            <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-[20px] bg-white shadow-[0_6px_16px_rgba(0,0,0,0.1)]">
+              <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-t-[20px]">
                 {mainImage ? (
                   <img
                     src={mainImage}
-                    className="block w-full h-auto max-h-[38vh] object-contain"
+                    alt=""
+                    className="h-full w-full object-contain"
                   />
                 ) : (
-                  <div className="flex aspect-[4/5] max-h-[38vh] w-full items-center justify-center bg-[#94A3B8]">
+                  <div className="flex aspect-[4/5] w-full flex-1 items-center justify-center bg-[#94A3B8]">
                     <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
                     </svg>
@@ -314,7 +315,7 @@ export default function TicketPage() {
 
             {/* Info section - overlaps image, white, pills left + QR right */}
             <div
-              className="relative z-[1] flex gap-3 rounded-[16px] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+              className="relative z-[1] flex shrink-0 gap-3 rounded-[18px] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
               style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 12 }}
             >
               <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
@@ -323,40 +324,39 @@ export default function TicketPage() {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-1.5 self-start rounded-[14px] border border-[#E5E7EB] bg-white py-2 pl-2.5 pr-2.5"
+                      className="flex items-center gap-2 self-start rounded-[14px] border border-[#E5E7EB] bg-white py-2 pl-3 pr-3"
                     >
                       {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                      <span className="min-w-0 max-w-[140px] truncate text-[12px] font-medium text-[#1C1C1E]">
+                      <span className="min-w-0 max-w-[160px] truncate text-[13px] font-medium text-[#1C1C1E]">
                         {item.label}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex min-w-[88px] shrink-0 flex-col items-center justify-center">
-                <div className="mb-1.5 rounded-lg border border-[#E5E7EB] bg-white p-1.5">
+              <div className="flex min-w-[96px] shrink-0 flex-col items-center justify-center">
+                <div className="mb-2 rounded-lg border border-[#E5E7EB] bg-white p-2">
                   {ticket?.qr_code_hash ? (
-                    <QRCodeSVG value={ticket.qr_code_hash} size={88} level="M" />
+                    <QRCodeSVG value={ticket.qr_code_hash} size={96} level="M" />
                   ) : (
-                    <div className="flex h-[88px] w-[88px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
-                      <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex h-[96px] w-[96px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                      <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                       </svg>
                     </div>
                   )}
                 </div>
-                <p className="text-center text-[13px] font-bold text-[#1C1C1E]">{passName}</p>
-                <p className="max-w-full truncate px-1 text-center text-[11px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+                <p className="text-center text-[14px] font-bold text-[#1C1C1E]">{passName}</p>
+                <p className="max-w-full truncate px-1 text-center text-[12px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
               </div>
             </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-2 mb-6 text-center text-[13px] font-medium text-[#1C1C1E] px-4">
+        <p className="shrink-0 py-3 text-center text-[13px] font-medium text-[#1C1C1E]">
           Your pass will be sent to you via Whatsapp shortly
         </p>
-        <div className="min-h-[40px] shrink-0" aria-hidden />
 
         {/* Download button - commented out as of now
         {!isDesktopLayout && (
@@ -385,16 +385,16 @@ export default function TicketPage() {
   // Mobile: full-screen, no scroll
   if (isMobile) {
     return (
-      <div className="fixed inset-0 h-screen w-full overflow-hidden bg-[#8B7AB8]">
+      <div className="fixed inset-0 flex h-screen w-full flex-col overflow-hidden bg-[#8B7AB8]">
         <InnerTicket />
       </div>
     );
   }
 
-  // Desktop: full-page scrollable layout, no phone frame — prevents overflow and cut-off
+  // Desktop: full viewport, no scroll, ticket fills and lower text visible
   return (
-    <div className="min-h-screen overflow-y-auto bg-[#8B7AB8]">
-      <div className="mx-auto flex min-h-screen max-w-[480px] flex-col">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-[#8B7AB8]">
+      <div className="mx-auto flex min-h-0 flex-1 max-w-[480px] flex-col">
         <InnerTicket isDesktopLayout />
       </div>
     </div>
