@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
 import {
   getYashvardhanPlans,
@@ -9,8 +8,7 @@ import {
   getYashvardhanTicket,
 } from '@/lib/api';
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
-
-const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
+import QRCode from 'qrcode';
 
 function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '—';
@@ -139,6 +137,28 @@ export default function YashvardhanPage() {
   const [downloading, setDownloading] = useState(false);
   const ticketContentRef = useRef<HTMLDivElement>(null);
   const downloadCardRef = useRef<HTMLDivElement>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrDataUrlForDownload, setQrDataUrlForDownload] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!ticket?.qr_code_hash) {
+      setQrDataUrl(null);
+      return;
+    }
+    QRCode.toDataURL(ticket.qr_code_hash, { width: 112, margin: 0 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [ticket?.qr_code_hash]);
+
+  useEffect(() => {
+    if (!ticketForDownload?.qr_code_hash) {
+      setQrDataUrlForDownload(null);
+      return;
+    }
+    QRCode.toDataURL(ticketForDownload.qr_code_hash, { width: 112, margin: 0 })
+      .then(setQrDataUrlForDownload)
+      .catch(() => setQrDataUrlForDownload(null));
+  }, [ticketForDownload?.qr_code_hash]);
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
@@ -444,10 +464,14 @@ export default function YashvardhanPage() {
                       })}
                     </div>
                     <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
-                      <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
-                        {dTicket.qr_code_hash ? (
-                          <QRCodeSVG value={dTicket.qr_code_hash} size={112} level="M" />
-                        ) : (
+                        <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                          {qrDataUrlForDownload ? (
+                            <img src={qrDataUrlForDownload} width={112} height={112} alt="" className="block size-[112px]" />
+                          ) : dTicket.qr_code_hash ? (
+                            <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6]">
+                              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#8E8E93] border-t-transparent" />
+                            </div>
+                          ) : (
                           <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
                             <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -580,8 +604,12 @@ export default function YashvardhanPage() {
                       </div>
                       <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
                         <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
-                          {ticket?.qr_code_hash ? (
-                            <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
+                          {qrDataUrl ? (
+                            <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
+                          ) : ticket?.qr_code_hash ? (
+                            <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6]">
+                              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#8E8E93] border-t-transparent" />
+                            </div>
                           ) : (
                             <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
                               <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">

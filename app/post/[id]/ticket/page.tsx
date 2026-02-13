@@ -13,8 +13,7 @@ import { PiLinkSimpleBold } from 'react-icons/pi';
 import { HiOutlineTag } from 'react-icons/hi';
 import { getWebUser, getUserTicket } from '@/lib/api';
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
-
-const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
+import QRCode from 'qrcode';
 
 function getProxiedImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -89,9 +88,20 @@ export default function TicketPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   /** Ref for download: viewport except top (header). Captures gradient + full ticket card. */
   const ticketContentRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (!ticket?.qr_code_hash) {
+      setQrDataUrl(null);
+      return;
+    }
+    QRCode.toDataURL(ticket.qr_code_hash, { width: 112, margin: 0 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [ticket?.qr_code_hash]);
 
   const user = getWebUser();
 
@@ -378,8 +388,12 @@ export default function TicketPage() {
               </div>
               <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
                 <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
-                  {ticket?.qr_code_hash ? (
-                    <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
+                  ) : ticket?.qr_code_hash ? (
+                    <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#8E8E93] border-t-transparent" />
+                    </div>
                   ) : (
                     <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
                       <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
