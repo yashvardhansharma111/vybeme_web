@@ -70,27 +70,29 @@ function EventCard({
           </p>
         </div>
       </div>
-      {/* Buttons below image + details */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      {/* Buttons below image + details — single row on mobile, text centered */}
+      <div className="mt-3 flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
         <Link
           href={`/clubs/registration/${p.plan_id}`}
-          className="inline-flex rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700"
         >
           Registration
         </Link>
         <Link
           href={`/clubs/plan/${p.plan_id}/edit`}
-          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
         >
           Edit
         </Link>
         <Link
           href={`/clubs/scan?plan=${p.plan_id}`}
-          className="inline-flex rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
         >
           Scan
         </Link>
-        <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
+        <div className="shrink-0">
+          <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
+        </div>
       </div>
     </li>
   );
