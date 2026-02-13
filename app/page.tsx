@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from './components/AppHeader';
 import { DownloadAppCTA } from './components/DownloadAppCTA';
+import { Footer } from './components/Footer';
 import { PostCard } from './components/PostCard';
 import { BusinessCard } from './components/BusinessCard';
 import { getWebUser, getFeed, formatFeedData, type FormattedPost } from '@/lib/api';
@@ -162,6 +163,7 @@ export default function Home() {
 
         <DownloadAppCTA className="mx-4 mt-4" />
       </main>
+      <Footer />
     </div>
   );
 }
