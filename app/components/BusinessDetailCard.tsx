@@ -120,22 +120,9 @@ export function BusinessDetailCard({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white">
-      {/* Desktop: top bar – vybeme. left; Download app + profile right */}
+      {/* Desktop: top bar – profile leftmost (sticky), then vybeme., Download app right */}
       <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
-        <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
-          vybeme.
-        </Link>
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              setComingSoon(true);
-              setTimeout(() => setComingSoon(false), 2000);
-            }}
-            className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
-          >
-            Download app
-          </button>
           {currentUserProfileHref ? (
             <Link href={currentUserProfileHref} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={currentUserName ?? 'Your profile'}>
               <div className="relative h-9 w-9 overflow-hidden rounded-full bg-neutral-200">
@@ -143,7 +130,20 @@ export function BusinessDetailCard({
               </div>
             </Link>
           ) : null}
+          <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
+            vybeme.
+          </Link>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setComingSoon(true);
+            setTimeout(() => setComingSoon(false), 2000);
+          }}
+          className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+        >
+          Download app
+        </button>
       </header>
       {comingSoon && (
         <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-lg hidden md:block" role="status">
@@ -195,18 +195,19 @@ export function BusinessDetailCard({
         )}
       </div>
 
-      {/* Mobile: Sticky bar – organiser pill on right, share; pill higher opacity + stronger shadow */}
-      <div className={`fixed left-4 right-4 z-30 flex items-center justify-end gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
-        <div className="flex items-center justify-center min-w-0">
-          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 min-w-0 max-w-[200px]">
+      {/* Mobile: Sticky bar – organiser pill at center of viewport, share on right */}
+      <div className={`fixed left-4 right-4 z-30 flex items-center pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
+        <div className="flex flex-1 min-w-0" aria-hidden />
+        <div className="flex flex-1 justify-center min-w-0">
+          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 w-full max-w-[200px] min-w-0">
             {profileHref ? (
-              <Link href={profileHref} className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90">
+              <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-2 transition-opacity hover:opacity-90 overflow-hidden">
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
                   {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-                  <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+                  <p className="truncate text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
                 </div>
               </Link>
             ) : (
@@ -214,22 +215,24 @@ export function BusinessDetailCard({
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
                   {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#1C1C1E] max-w-[140px]">{authorName}</p>
-                  <p className="text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+                  <p className="truncate text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
                 </div>
               </>
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onShare}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
-          aria-label="Share plan"
-        >
-          <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
-        </button>
+        <div className="flex flex-1 justify-end">
+          <button
+            type="button"
+            onClick={onShare}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
+            aria-label="Share plan"
+          >
+            <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       {shareSnackbar && (
@@ -313,16 +316,16 @@ export function BusinessDetailCard({
       <div className="hidden md:flex min-h-screen flex-col pt-14">
         <div className="flex flex-1 min-h-0">
           <div className="flex w-[40%] flex-col gap-4 p-6 overflow-y-auto bg-white">
-            <div className="flex justify-end">
-              <div className="rounded-full border border-neutral-200 bg-white pl-2 pr-4 py-2 shadow-2xl inline-flex items-center gap-3 w-fit">
+            <div className="flex justify-center">
+              <div className="rounded-full border border-neutral-200 bg-white pl-2 pr-4 py-2 shadow-2xl inline-flex items-center gap-3 max-w-[220px] min-w-0">
                 {profileHref ? (
-                  <Link href={profileHref} className="flex min-w-0 items-center gap-3 transition-opacity hover:opacity-90">
+                  <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3 transition-opacity hover:opacity-90 overflow-hidden">
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
                       {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-500">{authorName.charAt(0)}</span>}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-neutral-900">{authorName}</p>
-                      <p className="text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
+                      <p className="truncate text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
                     </div>
                   </Link>
                 ) : (
@@ -330,9 +333,9 @@ export function BusinessDetailCard({
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
                       {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-500">{authorName.charAt(0)}</span>}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-neutral-900">{authorName}</p>
-                      <p className="text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
+                      <p className="truncate text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
                     </div>
                   </>
                 )}

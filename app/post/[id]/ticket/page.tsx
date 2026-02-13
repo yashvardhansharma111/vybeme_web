@@ -222,7 +222,7 @@ export default function TicketPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <h1 className="text-[22px] font-semibold text-white/98">Booking Confirmed</h1>
+        <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
         {isDesktopLayout ? (
           <button
             type="button"
