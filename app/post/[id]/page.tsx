@@ -261,12 +261,17 @@ export default function PostPage() {
   }
 
   const isBusinessDetailView = !!(post && isBusiness && businessStep === 'detail');
+  const isTicketsStep = !!(post && isBusiness && businessStep === 'tickets');
+  const isSurveyStep = !!(post && isBusiness && businessStep === 'survey');
+  const showAppHeader = !isBusinessDetailView && !isTicketsStep && !isSurveyStep;
 
   return (
     <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
-      {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : <AppHeader />}
+      {showAppHeader && <AppHeader />}
+      {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : null}
       <main className={`mx-auto flex flex-col gap-4 pb-8 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 md:max-w-none' : 'max-w-md p-4 md:max-w-4xl'}`}>
-        {!isBusinessDetailView && (
+        {/* Back + Share: only when not on detail/tickets/survey */}
+        {!isBusinessDetailView && !isTicketsStep && !isSurveyStep && (
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -289,6 +294,16 @@ export default function PostPage() {
             )}
           </div>
         )}
+        {/* Ticket selection: only back button at top */}
+        {isTicketsStep && (
+          <button
+            type="button"
+            onClick={() => setBusinessStep('detail')}
+            className="self-start text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+          >
+            ← Back
+          </button>
+        )}
 
         {post && isBusiness && businessStep === 'tickets' ? (
           <div className="rounded-2xl bg-white p-6 shadow-xl">
@@ -297,14 +312,9 @@ export default function PostPage() {
               <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
             ) : (
             <div className="space-y-3">
-              {passes.map((pass, index) => {
+              {passes.map((pass) => {
                 const isSelected = selectedPassId === pass.pass_id;
-                const gradients: [string, string][] = [
-                  ['#7C3AED', '#6366F1'],
-                  ['#059669', '#10B981'],
-                  ['#047857', '#059669'],
-                ];
-                const colors = gradients[index % gradients.length];
+                const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
                 return (
                   <button
                     key={pass.pass_id}
@@ -312,13 +322,13 @@ export default function PostPage() {
                     onClick={() => setSelectedPassId(pass.pass_id)}
                     className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
                       isSelected
-                        ? 'ring-4 ring-neutral-900 ring-offset-2 shadow-lg scale-[1.02]'
-                        : 'opacity-90 hover:opacity-100'
+                        ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
+                        : 'opacity-95 hover:opacity-100'
                     }`}
-                    style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
+                    style={{ background: ticketGradient }}
                   >
                     <div className="flex flex-1 items-center gap-3 pr-3">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/20' : 'border-white/50'}`}>
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
                         {isSelected ? (
                           <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -342,13 +352,27 @@ export default function PostPage() {
               type="button"
               disabled={passes.length > 0 && !selectedPassId}
               onClick={handleProceedToSurvey}
-              className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60"
+              className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
             >
               Continue
             </button>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
-          <div className="rounded-2xl bg-white p-6 shadow-xl">
+          <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
+            {/* Sticky sub-header with back (chevron) */}
+            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setBusinessStep('tickets')}
+                className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+            </div>
+            <div className="p-6 flex-1">
             <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
             <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
             <div className="space-y-5">
@@ -410,21 +434,20 @@ export default function PostPage() {
               </div>
             </div>
             {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-            <button
-              type="button"
-              disabled={businessRegistering}
-              onClick={handleSubmitRegistration}
-              className="mt-6 w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60"
-            >
-              {businessRegistering ? 'Completing…' : 'Complete registration'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setBusinessStep('tickets')}
-              className="mt-3 w-full py-2 text-sm font-medium text-neutral-500"
-            >
-              ← Back
-            </button>
+            </div>
+            {/* Floating fixed bottom: Complete registration (no bar bg), sticky to bottom */}
+            <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
+              <div className="pointer-events-auto">
+                <button
+                  type="button"
+                  disabled={businessRegistering}
+                  onClick={handleSubmitRegistration}
+                  className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl"
+                >
+                  {businessRegistering ? 'Completing…' : 'Complete registration'}
+                </button>
+              </div>
+            </div>
           </div>
         ) : post && isBusiness ? (
           <BusinessDetailCard
