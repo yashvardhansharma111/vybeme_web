@@ -251,11 +251,11 @@ export default function TicketPage() {
         )}
       </header>
 
-      {/* Wrapper: content (captured for download) + download button outside ref so not in image */}
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* Wrapper: content (captured for download) + message in vacant space below; scrollable so visible on mobile and desktop */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div
           ref={ticketContentRef}
-          className={`flex flex-1 flex-col items-center px-5 ${isDesktopLayout ? 'pb-10 pt-2' : 'pb-8 pt-2'}`}
+          className={`flex flex-shrink-0 flex-col items-center px-5 ${isDesktopLayout ? 'pb-4 pt-2' : 'pb-4 pt-2'}`}
           style={{
             background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
           }}
@@ -348,9 +348,10 @@ export default function TicketPage() {
           </div>
         </div>
 
-        <p className="mt-4 text-center text-sm text-white/90 px-4">
+        <p className="mt-6 mb-8 text-center text-[15px] font-medium text-white px-4">
           Your pass will be sent to you via Whatsapp shortly
         </p>
+        <div className="min-h-[40px] shrink-0" aria-hidden />
 
         {/* Download button - mobile only; outside ref so not in downloaded image */}
         {!isDesktopLayout && (
