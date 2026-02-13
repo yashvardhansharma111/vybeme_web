@@ -72,16 +72,10 @@ export function AppHeader() {
 
       {showLoggedIn ? (
         <div className="flex items-center gap-4">
-          {profile?.is_business ? (
+          {profile?.is_business && (
             <Link href="/clubs" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
               {profile?.name ?? 'Clubs'}
             </Link>
-          ) : (
-            user?.user_id && (
-              <Link href={`/profile/${user.user_id}`} className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
-                Profile
-              </Link>
-            )
           )}
           <div className="relative" ref={dropdownRef}>
           <button
@@ -129,7 +123,7 @@ export function AppHeader() {
                 </>
               )}
               <div className={profile?.is_business ? '' : 'border-t border-neutral-100'} py-2>
-                {user?.user_id && (
+                {profile?.is_business && user?.user_id && (
                   <Link
                     href={`/profile/${user.user_id}`}
                     onClick={() => setDropdownOpen(false)}
