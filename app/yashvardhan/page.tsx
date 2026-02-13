@@ -1,19 +1,24 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
+import {
+  getYashvardhanPlans,
+  getYashvardhanAttendees,
+  getYashvardhanTicket,
+} from '@/lib/api';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
 function formatDate(date: string | Date | null | undefined): string {
-  if (!date) return '';
+  if (!date) return '—';
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
 function formatTime(time: string | null | undefined): string {
-  if (!time) return '';
+  if (!time) return '—';
   return time;
 }
 
@@ -36,6 +41,7 @@ function IconRestaurant() {
   return (
     <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
       <path d="M57.49 47.74l368.43 368.43a37.28 37.28 0 010 52.72L405 477.49a37.28 37.28 0 01-52.72 0L98.27 128.21a37.28 37.28 0 010-52.72l20.22-20.22a37.28 37.28 0 0152.72 0z" />
+      <path d="M400 32l-77.25 77.25A64 64 0 00304 154.51v14.86a16 16 0 004.69 11.32L480 256M16 400l80-80M64 432l48-48" />
     </svg>
   );
 }
@@ -50,6 +56,7 @@ function IconMusicalNotes() {
     </svg>
   );
 }
+
 const PILL_ICONS: Record<string, () => React.ReactElement> = {
   'pricetag-outline': IconPricetag,
   'navigate-outline': IconNavigate,
@@ -57,75 +64,85 @@ const PILL_ICONS: Record<string, () => React.ReactElement> = {
   'musical-notes-outline': IconMusicalNotes,
 };
 
-interface Plan { plan_id: string; title?: string; date?: string; time?: string; }
-interface Attendee { user_id: string; user?: { name?: string } | null; ticket_number: string | null; }
-interface TicketData { ticket: any; plan?: any; qr_code_hash?: string; ticket_number?: string; pass_id?: string; price_paid?: number; }
+type View = 'plans' | 'attendees' | 'ticket';
 
 export default function YashvardhanPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [attendees, setAttendees] = useState<Attendee[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
-  const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
-  const [ticketData, setTicketData] = useState<TicketData | null>(null);
-  const [loadingPlans, setLoadingPlans] = useState(true);
-  const [loadingAttendees, setLoadingAttendees] = useState(false);
-  const [loadingTicket, setLoadingTicket] = useState(false);
+  const [view, setView] = useState<View>('plans');
+  const [plans, setPlans] = useState<Array<{ plan_id: string; title: string; date?: string; time?: string; location_text?: string }>>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [attendees, setAttendees] = useState<Array<{
+    user_id: string;
+    user: { user_id: string; name: string; profile_image?: string | null } | null;
+    ticket_number: string | null;
+  }>>([]);
+  const [ticket, setTicket] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const ticketCardRef = useRef<HTMLDivElement>(null);
+  const ticketContentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetch('/api/yashvardhan/events')
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && Array.isArray(j.data)) setPlans(j.data);
-      })
-      .catch(() => setPlans([]))
-      .finally(() => setLoadingPlans(false));
+  const loadPlans = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getYashvardhanPlans();
+      if (res.success && res.data?.plans) {
+        setPlans(res.data.plans);
+      } else {
+        setError('Failed to load events');
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load events');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!selectedPlanId) {
-      setAttendees([]);
-      return;
+    loadPlans();
+  }, [loadPlans]);
+
+  const onSelectPlan = useCallback(async (planId: string) => {
+    setSelectedPlanId(planId);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getYashvardhanAttendees(planId);
+      if (res.success && res.data?.attendees) {
+        setAttendees(res.data.attendees);
+        setView('attendees');
+      } else {
+        setError('Failed to load attendees');
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load attendees');
+    } finally {
+      setLoading(false);
     }
-    setLoadingAttendees(true);
-    fetch(`/api/yashvardhan/attendees?plan_id=${encodeURIComponent(selectedPlanId)}`)
-      .then((r) => r.json())
-      .then((j) => {
-        const list = j?.data?.attendees ?? [];
-        setAttendees(Array.isArray(list) ? list : []);
-      })
-      .catch(() => setAttendees([]))
-      .finally(() => setLoadingAttendees(false));
+  }, []);
+
+  const onSelectAttendee = useCallback(async (userId: string) => {
+    if (!selectedPlanId) return;
+    setLoading(true);
+    setError(null);
+    setTicket(null);
+    try {
+      const res = await getYashvardhanTicket(selectedPlanId, userId);
+      if (res.success && res.data?.ticket) {
+        setTicket(res.data.ticket);
+        setView('ticket');
+      } else {
+        setError('Ticket not found');
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load ticket');
+    } finally {
+      setLoading(false);
+    }
   }, [selectedPlanId]);
 
-  const loadTicket = useCallback(async (planId: string, userId: string) => {
-    setLoadingTicket(true);
-    setTicketData(null);
-    try {
-      const res = await fetch(`/api/yashvardhan/ticket?plan_id=${encodeURIComponent(planId)}&user_id=${encodeURIComponent(userId)}`);
-      const j = await res.json();
-      const ticket = j?.data?.ticket ?? j?.ticket;
-      const plan = j?.data?.plan ?? j?.plan;
-      if (ticket) setTicketData({ ticket, plan });
-      else setTicketData(null);
-    } catch {
-      setTicketData(null);
-    } finally {
-      setLoadingTicket(false);
-    }
-  }, []);
-
-  const handleSelectAttendee = useCallback(
-    (a: Attendee) => {
-      setSelectedAttendee(a);
-      loadTicket(selectedPlanId, a.user_id);
-    },
-    [selectedPlanId, loadTicket]
-  );
-
-  const handleDownloadTicket = useCallback(async () => {
-    const el = ticketCardRef.current;
+  const handleDownloadImage = useCallback(async () => {
+    const el = ticketContentRef.current;
     if (!el || !selectedPlanId) return;
     setDownloading(true);
     try {
@@ -134,49 +151,46 @@ export default function YashvardhanPage() {
         scale: 2,
         backgroundColor: null,
         logging: false,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
       });
+      const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `ticket-${selectedPlanId}-${selectedAttendee?.user_id ?? 'user'}.png`;
+      a.href = dataUrl;
+      a.download = `vybeme-ticket-${selectedPlanId}.png`;
+      a.setAttribute('download', a.download);
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
     } catch (e) {
       console.error(e);
     } finally {
       setDownloading(false);
     }
-  }, [selectedPlanId, selectedAttendee]);
-
-  const backToAttendees = () => {
-    setSelectedAttendee(null);
-    setTicketData(null);
-  };
-
-  const plan = ticketData?.plan ?? ticketData?.ticket?.plan ?? {};
-  const ticket = { ...(ticketData?.ticket ?? {}), plan };
-  const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
-  const mainImageSrc = mainImage ? `/api/image-proxy?url=${encodeURIComponent(mainImage)}` : null;
-  const passes = plan.passes ?? [];
-  const passId = ticket?.pass_id;
-  const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
-  const passName = selectedPass?.name ?? 'Ticket';
-  const overlapAmount = 40;
+  }, [selectedPlanId]);
 
   const pillItems = useMemo(() => {
     const icons = ['pricetag-outline', 'navigate-outline', 'restaurant-outline', 'musical-notes-outline'] as const;
-    if (!ticket?.plan) return [];
-    const p = ticket.plan;
-    const addDetails = p.add_details ?? [];
+    if (!ticket?.plan) {
+      return [{ icon: icons[0], label: 'Free' }];
+    }
+    const plan = ticket.plan;
+    const addDetails = plan.add_details ?? [];
+    const passes = plan.passes ?? [];
     const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
     const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
       (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
+
     const priceLabel =
       ticket.price_paid > 0
         ? `₹${ticket.price_paid}`
         : passes[0]?.price != null && passes[0].price > 0
           ? `₹${passes[0].price}`
           : 'Free';
-    const labels: string[] = [priceLabel];
-    const distance = getLabel(detailBy('distance'), p.location_text || '');
+
+    const labels: string[] = [];
+    labels.push(priceLabel);
+    const distance = getLabel(detailBy('distance'), plan.location_text || '');
     if (distance) labels.push(distance);
     const fb = getLabel(detailBy('f&b'), '');
     if (fb) labels.push(fb);
@@ -187,109 +201,217 @@ export default function YashvardhanPage() {
       const label = getLabel(d, '');
       if (label && !labels.includes(label)) labels.push(label);
     });
-    const category = (p.category_main || (p.category_sub && p.category_sub[0]) || '').trim();
+    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
     if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
+
     return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
-  }, [ticket, passes]);
+  }, [ticket]);
 
-  const selectedPlan = plans.find((p) => p.plan_id === selectedPlanId);
+  const plan = ticket?.plan ?? {};
+  const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const passes = plan.passes ?? [];
+  const passId = ticket?.pass_id;
+  const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
+  const passName = selectedPass?.name ?? 'Ticket';
+  const overlapAmount = 40;
 
-  if (selectedAttendee && loadingTicket) {
+  if (loading && view === 'plans' && plans.length === 0) {
     return (
-      <div className="min-h-screen bg-[#8B7AB8] flex items-center justify-center">
-        <p className="text-white/90">Loading ticket…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#1C1C1E]">
+        <p className="text-white/90">Loading events…</p>
       </div>
     );
   }
 
-  if (selectedAttendee && !loadingTicket && !ticketData) {
+  if (view === 'plans') {
     return (
-      <div className="min-h-screen bg-[#8B7AB8] flex flex-col items-center justify-center gap-4 p-4">
-        <p className="text-white/90">Could not load ticket.</p>
-        <button type="button" onClick={backToAttendees} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#1C1C1E]">
-          ← Back to attendees
+      <div className="min-h-screen bg-[#1C1C1E] p-6">
+        <h1 className="mb-4 text-xl font-semibold text-white">Select Event</h1>
+        {error && <p className="mb-4 text-red-400">{error}</p>}
+        <ul className="space-y-2">
+          {plans.map((p) => (
+            <li key={p.plan_id}>
+              <button
+                type="button"
+                onClick={() => onSelectPlan(p.plan_id)}
+                disabled={loading}
+                className="w-full rounded-xl bg-[#2C2C2E] px-4 py-3 text-left text-white hover:bg-[#3A3A3C] disabled:opacity-60"
+              >
+                <span className="font-medium">{p.title}</span>
+                {p.date && <span className="ml-2 text-sm text-white/70">{formatDate(p.date)}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+        {plans.length === 0 && !loading && <p className="text-white/70">No events found.</p>}
+      </div>
+    );
+  }
+
+  if (view === 'attendees') {
+    return (
+      <div className="min-h-screen bg-[#1C1C1E] p-6">
+        <button
+          type="button"
+          onClick={() => { setView('plans'); setSelectedPlanId(null); setAttendees([]); }}
+          className="mb-4 text-white/80 hover:text-white"
+        >
+          ← Back to events
         </button>
+        <h1 className="mb-4 text-xl font-semibold text-white">Attendees</h1>
+        {error && <p className="mb-4 text-red-400">{error}</p>}
+        {loading && plans.length > 0 && <p className="mb-4 text-white/70">Loading…</p>}
+        <ul className="space-y-2">
+          {attendees.map((a) => (
+            <li key={a.user_id}>
+              <button
+                type="button"
+                onClick={() => onSelectAttendee(a.user_id)}
+                disabled={loading}
+                className="w-full rounded-xl bg-[#2C2C2E] px-4 py-3 text-left text-white hover:bg-[#3A3A3C] disabled:opacity-60"
+              >
+                <span className="font-medium">{a.user?.name ?? 'Unknown'}</span>
+                <span className="ml-2 text-sm text-white/70">#{a.ticket_number ?? '—'}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        {attendees.length === 0 && !loading && <p className="text-white/70">No attendees.</p>}
       </div>
     );
   }
 
-  if (selectedAttendee && ticketData) {
+  if (view === 'ticket' && ticket) {
     return (
-      <div className="min-h-screen bg-[#8B7AB8] overflow-y-auto">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/20 bg-[#8B7AB8]/95 px-4 py-3 backdrop-blur">
-          <button type="button" onClick={backToAttendees} className="text-white font-medium">
-            ← Back
-          </button>
-          <span className="text-white font-semibold truncate max-w-[180px]">{selectedAttendee.user?.name ?? selectedAttendee.user_id}</span>
-          <button
-            type="button"
-            onClick={handleDownloadTicket}
-            disabled={downloading}
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#1C1C1E] disabled:opacity-60"
-          >
-            {downloading ? '…' : 'Download ticket'}
-          </button>
-        </div>
-        <div className="p-4 pb-10">
-          <div
-            ref={ticketCardRef}
-            className="mx-auto max-w-[420px] rounded-2xl overflow-hidden bg-white shadow-xl"
-            style={{
-              background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-            }}
-          >
-            <div className="p-4 pt-2">
-              <div className="rounded-[24px] overflow-hidden bg-white shadow-lg">
-                <div className="relative w-full overflow-hidden rounded-t-[24px]">
-                  {mainImageSrc ? (
-                    <img src={mainImageSrc} alt="" className="block w-full h-auto object-contain" />
-                  ) : (
-                    <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8]">
-                      <span className="text-white/60 text-sm">No image</span>
-                    </div>
-                  )}
-                  {mainImageSrc && (
-                    <>
-                      <div className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-md" style={{ background: 'rgba(0,0,0,0.2)' }} />
-                      <div className="absolute inset-x-0 bottom-0 pt-9 pb-4 px-4" style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}>
-                        <h2 className="text-xl font-extrabold text-white">{plan.title ?? 'Event'}</h2>
-                        <div className="mt-1 flex justify-between text-sm font-semibold text-white/95">
-                          <span>{formatDate(plan.date)}</span>
-                          <span>{formatTime(plan.time)}</span>
-                        </div>
-                        {plan.location_text && <p className="mt-0.5 truncate text-xs text-white/85">{plan.location_text}</p>}
+      <div className="min-h-screen overflow-y-auto bg-[#8B7AB8]">
+        <div className="mx-auto flex min-h-screen max-w-[480px] flex-col">
+          <div className="flex min-h-full flex-col">
+            <div
+              className="absolute inset-0 -z-10"
+              style={{
+                background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+              }}
+            />
+            <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
+              <button
+                type="button"
+                onClick={() => { setView('attendees'); setTicket(null); }}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
+                aria-label="Back"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 className="text-base font-semibold text-white/98">Booking Confirmed</h1>
+              <button
+                type="button"
+                onClick={handleDownloadImage}
+                disabled={downloading}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
+                aria-label="Download ticket"
+              >
+                {downloading ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+                ) : (
+                  <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+              </button>
+            </header>
+            <p className="shrink-0 text-center text-[11px] font-medium text-[#1C1C1E] px-4 pb-1">
+              Pass for {ticket?.user?.name ?? 'Attendee'}
+            </p>
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div
+                ref={ticketContentRef}
+                className="flex flex-shrink-0 flex-col items-center px-5 pb-4 pt-2"
+                style={{
+                  background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+                }}
+              >
+                <div className="relative w-full max-w-[420px] flex-shrink-0">
+                  <div className="relative z-[2]">
+                    <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                      <div className="relative w-full overflow-hidden rounded-t-[24px]">
+                        {mainImage ? (
+                          <img
+                            src={mainImage}
+                            alt=""
+                            className="block w-full h-auto object-contain"
+                            crossOrigin="anonymous"
+                          />
+                        ) : (
+                          <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8]">
+                            <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                            </svg>
+                          </div>
+                        )}
+                        {mainImage && (
+                          <>
+                            <div
+                              className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-md"
+                              style={{ background: 'rgba(0,0,0,0.2)' }}
+                            />
+                            <div
+                              className="absolute inset-x-0 bottom-0 pt-[36px] pb-5 px-5"
+                              style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
+                            >
+                              <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
+                              <div className="mt-2 flex justify-between text-[14px] font-semibold text-white/95">
+                                <span>{formatDate(plan.date)}</span>
+                                <span>{formatTime(plan.time)}</span>
+                              </div>
+                              {plan.location_text && (
+                                <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </>
-                  )}
-                </div>
-                <div
-                  className="relative flex gap-4 rounded-b-[20px] bg-white p-4 -mt-6 pt-8"
-                  style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 12 }}
-                >
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    {pillItems.map((item, idx) => {
-                      const Icon = PILL_ICONS[item.icon];
-                      return (
-                        <div key={idx} className="flex items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white py-2 pl-3 pr-3">
-                          {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                          <span className="min-w-0 max-w-[160px] truncate text-sm font-medium text-[#1C1C1E]">{item.label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-center">
-                    <div className="rounded-xl border border-[#E5E7EB] bg-white p-2">
-                      {ticket?.qr_code_hash ? (
-                        <QRCodeSVG value={ticket.qr_code_hash} size={100} level="M" />
-                      ) : (
-                        <div className="h-[100px] w-[100px] rounded bg-[#F3F4F6] flex items-center justify-center text-[#8E8E93] text-xs">No QR</div>
-                      )}
                     </div>
-                    <p className="text-center text-sm font-bold text-[#1C1C1E] mt-1">{passName}</p>
-                    <p className="text-center text-xs font-medium text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+                    <div
+                      className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                      style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+                        {pillItems.map((item, idx) => {
+                          const Icon = PILL_ICONS[item.icon];
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
+                            >
+                              {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
+                              <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">
+                                {item.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
+                        <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                          {ticket?.qr_code_hash ? (
+                            <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
+                          ) : (
+                            <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                              <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{passName}</p>
+                        <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+              <div className="min-h-[40px] shrink-0" aria-hidden />
             </div>
           </div>
         </div>
@@ -297,73 +419,20 @@ export default function YashvardhanPage() {
     );
   }
 
-  const backToEvents = () => setSelectedPlanId('');
-
-  return (
-    <div className="min-h-screen bg-[#F5F5F7] p-4">
-      <div className="mx-auto max-w-lg">
-        <h1 className="text-xl font-bold text-[#1C1C1E] mb-2">Events</h1>
-        {loadingPlans ? (
-          <p className="text-[#8E8E93]">Loading events…</p>
-        ) : plans.length === 0 ? (
-          <p className="text-[#8E8E93]">No events. Set YASHVARDHAN_ACCESS_TOKEN and YASHVARDHAN_USER_ID in env.</p>
-        ) : (
-          <>
-            <select
-              value={selectedPlanId}
-              onChange={(e) => setSelectedPlanId(e.target.value)}
-              className="w-full rounded-xl border border-[#E5E5EA] bg-white px-4 py-3 text-[#1C1C1E]"
-            >
-              <option value="">Choose an event</option>
-              {plans.map((p) => (
-                <option key={p.plan_id} value={p.plan_id}>
-                  {p.title ?? p.plan_id}
-                </option>
-              ))}
-            </select>
-            {selectedPlanId && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h2 className="text-lg font-semibold text-[#1C1C1E]">
-                    Registered users {selectedPlan ? `— ${selectedPlan.title}` : ''}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={backToEvents}
-                    className="text-sm text-[#8E8E93] hover:text-[#1C1C1E] shrink-0"
-                  >
-                    Change event
-                  </button>
-                </div>
-                <p className="text-sm text-[#8E8E93] mb-2">Click a name to view their ticket and download it.</p>
-                {loadingAttendees ? (
-                  <p className="text-[#8E8E93]">Loading…</p>
-                ) : attendees.length === 0 ? (
-                  <p className="text-[#8E8E93]">No registered users yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {attendees.map((a) => (
-                      <li key={a.user_id}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectAttendee(a)}
-                          className="w-full rounded-xl border border-[#E5E5EA] bg-white px-4 py-3 text-left hover:bg-[#F2F2F7] flex justify-between items-center gap-2"
-                        >
-                          <span className="font-medium text-[#1C1C1E] truncate">{a.user?.name ?? a.user_id}</span>
-                          <span className="text-sm text-[#8E8E93] shrink-0">View & download ticket</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </>
-        )}
-        <p className="mt-6 text-sm text-[#8E8E93]">
-          <Link href="/" className="underline">Back to home</Link>
-        </p>
+  if (view === 'ticket' && error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#1C1C1E] p-4">
+        <p className="text-red-400">{error}</p>
+        <button
+          type="button"
+          onClick={() => { setView('attendees'); setError(null); }}
+          className="rounded-[20px] bg-[#2C2C2E] px-6 py-3 text-sm font-semibold text-white"
+        >
+          Back to attendees
+        </button>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }

@@ -91,6 +91,7 @@ async function request<T>(
     '/auth/verify-otp',
     '/auth/resend-otp',
     '/auth/refresh-token',
+    '/ticket/yashvardhan',
   ];
   const needsAuth = !publicEndpoints.some((ep) => endpoint.includes(ep));
 
@@ -281,6 +282,37 @@ export async function getTicketsByUser(user_id: string) {
 /** Get user's plans (for business: filter type === 'business'). */
 export async function getUserPlans(user_id: string, limit = 50, offset = 0) {
   return request<any[]>(`/user/plans?user_id=${encodeURIComponent(user_id)}&limit=${limit}&offset=${offset}`, { method: 'GET' });
+}
+
+/** Yashvardhan: list business plans (no auth) */
+export async function getYashvardhanPlans() {
+  return request<{ plans: Array<{ plan_id: string; title: string; date?: string; time?: string; location_text?: string }> }>(
+    '/ticket/yashvardhan/plans',
+    { method: 'GET' }
+  );
+}
+
+/** Yashvardhan: attendee list for a plan (no auth) */
+export async function getYashvardhanAttendees(plan_id: string) {
+  return request<{
+    attendees: Array<{
+      registration_id: string;
+      user_id: string;
+      user: { user_id: string; name: string; profile_image?: string | null } | null;
+      ticket_id: string | null;
+      ticket_number: string | null;
+      status: string;
+      checked_in: boolean;
+      price_paid: number;
+      created_at: string;
+    }>;
+    statistics: { total: number; checked_in: number };
+  }>(`/ticket/yashvardhan/attendees/${plan_id}`, { method: 'GET' });
+}
+
+/** Yashvardhan: get ticket by plan_id + user_id (no auth, same shape as getUserTicket) */
+export async function getYashvardhanTicket(plan_id: string, user_id: string) {
+  return request<{ ticket: any }>(`/ticket/yashvardhan/ticket/${plan_id}/${user_id}`, { method: 'GET' });
 }
 
 /** Get attendee list for a plan (organizer only). Includes survey fields for export. */
