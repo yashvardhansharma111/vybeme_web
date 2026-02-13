@@ -260,12 +260,14 @@ export default function PostPage() {
     );
   }
 
+  const isBusinessDetailView = !!(post && isBusiness && businessStep === 'detail');
+
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${post && isBusiness && businessStep === 'detail' ? 'overflow-x-hidden' : ''}`}>
-      <AppHeader />
-      <main className={`mx-auto flex max-w-md flex-col gap-4 pb-8 md:max-w-4xl md:py-8 ${post && isBusiness && businessStep === 'detail' ? 'p-0' : 'p-4'}`}>
-        <div className={`flex items-center justify-between gap-2 ${post && isBusiness && businessStep === 'detail' ? 'absolute left-4 right-4 top-20 z-30' : ''}`}>
-          {!(post && isBusiness && businessStep === 'detail') ? (
+    <div className={`min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200 ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
+      {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : <AppHeader />}
+      <main className={`mx-auto flex flex-col gap-4 pb-8 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 md:max-w-none' : 'max-w-md p-4 md:max-w-4xl'}`}>
+        {!isBusinessDetailView && (
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => {
@@ -277,18 +279,16 @@ export default function PostPage() {
             >
               ← Back
             </button>
-          ) : (
-            <span />
-          )}
-          {post && (
-            <ShareMenu
-              postId={postId}
-              title={post.title ?? 'Event'}
-              useGoPostUrl
-              className="shrink-0"
-            />
-          )}
-        </div>
+            {post && (
+              <ShareMenu
+                postId={postId}
+                title={post.title ?? 'Event'}
+                useGoPostUrl
+                className="shrink-0"
+              />
+            )}
+          </div>
+        )}
 
         {post && isBusiness && businessStep === 'tickets' ? (
           <div className="rounded-2xl bg-white p-6 shadow-xl">
