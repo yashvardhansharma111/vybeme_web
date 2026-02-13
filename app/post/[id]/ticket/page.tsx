@@ -6,7 +6,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
 import { FaCalendarCheck, FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
-import { IoLocationSharp, IoShirt } from 'react-icons/io5';
+import { IoLocationSharp } from 'react-icons/io5';
+import { IoMdShirt } from 'react-icons/io';
 import { GiRunningShoe } from 'react-icons/gi';
 import { MdFastfood } from 'react-icons/md';
 import { PiLinkSimpleBold } from 'react-icons/pi';
@@ -64,7 +65,7 @@ function getDetailIconKey(detailType: string): string {
 
 const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   price: HiOutlineTag,
-  location: IoLocationSharp,
+  location: GiRunningShoe,   // Distance
   fb: MdFastfood,
   music: FaMusic,
   sports: FaBasketballBall,
@@ -72,12 +73,11 @@ const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   fitness: FaDumbbell,
   social: FaGlassCheers,
   'starting-point': FaFlagCheckered,
-  'dress-code': IoShirt,
+  'dress-code': IoMdShirt,
   links: PiLinkSimpleBold,
   calendar: FaCalendarCheck,
-  // legacy keys for backward compatibility with existing pill order
   'pricetag-outline': HiOutlineTag,
-  'navigate-outline': IoLocationSharp,
+  'navigate-outline': GiRunningShoe,
   'restaurant-outline': MdFastfood,
   'musical-notes-outline': FaMusic,
 };
@@ -173,33 +173,29 @@ export default function TicketPage() {
   }, [planId, ticket?.ticket_number, ticket?.user_id]);
 
   const pillItems = useMemo(() => {
-    const iconKeys: string[] = ['price', 'location', 'fb', 'music'];
+    const iconKeys: string[] = ['music', 'location', 'fb', 'starting-point'];
     if (!ticket?.plan) {
-      return [{ icon: 'price', label: 'Free' }];
+      return [{ icon: 'music', label: 'Event' }];
     }
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
-    const passes = plan.passes ?? [];
     const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
     const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
       (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
 
-    const priceLabel =
-      ticket.price_paid > 0
-        ? `₹${ticket.price_paid}`
-        : passes[0]?.price != null && passes[0].price > 0
-          ? `₹${passes[0].price}`
-          : 'Free';
-
     const items: { icon: string; label: string }[] = [];
-    items.push({ icon: 'price', label: priceLabel });
-
+    // 1. Category tag first (no Free/price)
+    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
+    if (category) {
+      items.push({ icon: getCategoryIconKey(category), label: category });
+    }
+    // 2. Distance
     const distance = getLabel(detailBy('distance'), plan.location_text || '');
     if (distance) items.push({ icon: 'location', label: distance });
-
+    // 3. F&B
     const fb = getLabel(detailBy('f&b'), '');
     if (fb) items.push({ icon: 'fb', label: fb });
-
+    // 4. Other add_details (starting point, dress code, links, etc.)
     addDetails.forEach((d: any) => {
       if (!d || items.length >= 4) return;
       const t = (d.detail_type || '').toLowerCase();
@@ -209,11 +205,6 @@ export default function TicketPage() {
         items.push({ icon: getDetailIconKey(d.detail_type || ''), label });
       }
     });
-
-    const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
-    if (category && items.length < 4 && !items.some((x) => x.label === category)) {
-      items.push({ icon: getCategoryIconKey(category), label: category });
-    }
 
     return items.slice(0, 4).map((item, i) => ({
       ...item,
@@ -321,7 +312,7 @@ export default function TicketPage() {
             {/* Ticket card (image + info) */}
             <div className="relative z-[2]">
             {/* Main ticket card - image: dynamic height, no cropping */}
-            <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+            <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
               <div className="relative w-full overflow-hidden rounded-t-[24px]">
                 {mainImage ? (
                   <img
@@ -369,21 +360,21 @@ export default function TicketPage() {
 
             {/* Info section - overlaps image, white, pills left + QR right */}
             <div
-              className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-              style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
+              className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
+              style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
             >
-              <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+              <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
                 {pillItems.map((item, idx) => {
                   const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
+                      className="flex w-full max-w-[200px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
                     >
                       <span className="flex shrink-0 text-[#1C1C1E]">
                         <Icon className="h-[18px] w-[18px]" />
                       </span>
-                      <span className="min-w-0 max-w-[180px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">
+                      <span className="min-w-0 max-w-[140px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">
                         {item.label}
                       </span>
                     </div>
@@ -391,7 +382,7 @@ export default function TicketPage() {
                 })}
               </div>
               <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
-                <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                   {qrDataUrl ? (
                     <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
                   ) : ticket?.qr_code_hash ? (
@@ -404,8 +395,8 @@ export default function TicketPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
-                <p className="mt-1 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">
+                <p className="mt-2 text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
+                <p className="mt-2 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">
                   {ticket?.ticket_number ?? '—'}
                 </p>
               </div>

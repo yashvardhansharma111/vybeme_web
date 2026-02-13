@@ -10,6 +10,11 @@ import {
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 import QRCode from 'qrcode';
 import dynamic from 'next/dynamic';
+import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
+import { IoMdShirt } from 'react-icons/io';
+import { GiRunningShoe } from 'react-icons/gi';
+import { MdFastfood } from 'react-icons/md';
+import { PiLinkSimpleBold } from 'react-icons/pi';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
 
@@ -24,46 +29,36 @@ function formatTime(time: string | null | undefined): string {
   return time;
 }
 
-function IconPricetag() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M403.29 304H208a16 16 0 01-16-16V96a16 16 0 0116-16h195.29a8 8 0 015.65 2.34l80 80a8 8 0 010 11.32l-80 80a8 8 0 01-5.65 2.34z" />
-      <path d="M112 80H80a32 32 0 00-32 32v320a32 32 0 0032 32h320a32 32 0 0032-32v-32" />
-    </svg>
-  );
-}
-function IconNavigate() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M448 64L64 240.14h200a8 8 0 018 8v171.72L448 64z" />
-    </svg>
-  );
-}
-function IconRestaurant() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M57.49 47.74l368.43 368.43a37.28 37.28 0 010 52.72L405 477.49a37.28 37.28 0 01-52.72 0L98.27 128.21a37.28 37.28 0 010-52.72l20.22-20.22a37.28 37.28 0 0152.72 0z" />
-      <path d="M400 32l-77.25 77.25A64 64 0 00304 154.51v14.86a16 16 0 004.69 11.32L480 256M16 400l80-80M64 432l48-48" />
-    </svg>
-  );
-}
-function IconMusicalNotes() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 512 512" fill="none" stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M192 218v-6c0-14.84 10.87-23.63 32.29-27.8S256 172 256 172s48 3 31.71 12.2C266.13 188.37 256 197.16 256 212v82" />
-      <path d="M256 294v78" />
-      <path d="M256 372c-17.67 0-32 12.5-32 28s14.33 28 32 28 32-12.5 32-28-14.33-28-32-28z" />
-      <path d="M256 78v42" />
-      <path d="M256 78c-17.67 0-32 12.5-32 28s14.33 28 32 28 32-12.5 32-28-14.33-28-32-28z" />
-    </svg>
-  );
+function getCategoryIconKey(category: string): string {
+  const c = (category || '').toLowerCase();
+  if (c.includes('sport')) return 'sports';
+  if (c.includes('run')) return 'running';
+  if (c.includes('fitness') || c.includes('train')) return 'fitness';
+  if (c.includes('social') || c.includes('communit')) return 'social';
+  return 'music';
 }
 
-const PILL_ICONS: Record<string, () => React.ReactElement> = {
-  'pricetag-outline': IconPricetag,
-  'navigate-outline': IconNavigate,
-  'restaurant-outline': IconRestaurant,
-  'musical-notes-outline': IconMusicalNotes,
+function getDetailIconKey(detailType: string): string {
+  const t = (detailType || '').toLowerCase();
+  if (t === 'distance' || t.includes('distance')) return 'location';
+  if (t === 'f&b' || t.includes('f&b')) return 'fb';
+  if (t.includes('starting') || t.includes('point')) return 'starting-point';
+  if (t.includes('dress')) return 'dress-code';
+  if (t.includes('link')) return 'links';
+  return 'music';
+}
+
+const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  location: GiRunningShoe,
+  fb: MdFastfood,
+  music: FaMusic,
+  sports: FaBasketballBall,
+  running: GiRunningShoe,
+  fitness: FaDumbbell,
+  social: FaGlassCheers,
+  'starting-point': FaFlagCheckered,
+  'dress-code': IoMdShirt,
+  links: PiLinkSimpleBold,
 };
 
 const R2_HOST = 'r2.dev';
@@ -94,38 +89,30 @@ function ticketFileName(name: string | null | undefined, userId: string): string
   return `${base}-${suffix}.png`;
 }
 
-/** Build pill items from ticket (shared for visible + hidden card) */
+/** Build pill items from ticket (category first, no Free; same as ticket page) */
 function getPillItemsFromTicket(t: any): Array<{ icon: string; label: string }> {
-  const icons = ['pricetag-outline', 'navigate-outline', 'restaurant-outline', 'musical-notes-outline'] as const;
-  if (!t?.plan) return [{ icon: icons[0], label: 'Free' }];
+  const iconKeys = ['music', 'location', 'fb', 'starting-point'];
+  if (!t?.plan) return [{ icon: 'music', label: 'Event' }];
   const plan = t.plan;
   const addDetails = plan.add_details ?? [];
-  const passes = plan.passes ?? [];
   const detailBy = (key: string) => addDetails.find((d: any) => d.detail_type === key);
   const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
     (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
-  const priceLabel =
-    t.price_paid > 0
-      ? `₹${t.price_paid}`
-      : passes[0]?.price != null && passes[0].price > 0
-        ? `₹${passes[0].price}`
-        : 'Free';
-  const labels: string[] = [];
-  labels.push(priceLabel);
+  const items: { icon: string; label: string }[] = [];
+  const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
+  if (category) items.push({ icon: getCategoryIconKey(category), label: category });
   const distance = getLabel(detailBy('distance'), plan.location_text || '');
-  if (distance) labels.push(distance);
+  if (distance) items.push({ icon: 'location', label: distance });
   const fb = getLabel(detailBy('f&b'), '');
-  if (fb) labels.push(fb);
+  if (fb) items.push({ icon: 'fb', label: fb });
   addDetails.forEach((d: any) => {
-    if (!d || labels.length >= 4) return;
+    if (!d || items.length >= 4) return;
     const typ = (d.detail_type || '').toLowerCase();
     if (typ === 'distance' || typ === 'f&b') return;
     const label = getLabel(d, '');
-    if (label && !labels.includes(label)) labels.push(label);
+    if (label && !items.some((x) => x.label === label)) items.push({ icon: getDetailIconKey(d.detail_type || ''), label });
   });
-  const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
-  if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
-  return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
+  return items.slice(0, 4).map((item, i) => ({ ...item, icon: item.icon || iconKeys[i] }));
 }
 
 type View = 'plans' | 'attendees' | 'ticket';
@@ -272,14 +259,15 @@ export default function YashvardhanPage() {
     processNextInQueue();
   }, [selectedPlanId, attendees, processNextInQueue]);
 
-  const onDownloadAttendeeTicket = useCallback(async (userId: string) => {
+  const onDownloadAttendeeTicket = useCallback(async (attendee: { user_id: string; user?: { name?: string | null } | null }) => {
     if (!selectedPlanId) return;
-    setDownloadingUserId(userId);
+    setDownloadingUserId(attendee.user_id);
     setError(null);
     try {
-      const res = await getYashvardhanTicket(selectedPlanId, userId);
+      const res = await getYashvardhanTicket(selectedPlanId, attendee.user_id);
       if (res.success && res.data?.ticket) {
         setTicketForDownload(res.data.ticket);
+        setDownloadAllFilename(ticketFileName(attendee.user?.name, attendee.user_id));
       } else {
         setError('Ticket not found');
         setDownloadingUserId(null);
@@ -319,8 +307,8 @@ export default function YashvardhanPage() {
       .finally(() => {
         setTicketForDownload(null);
         setDownloadingUserId(null);
+        setDownloadAllFilename(null);
         if (downloadAllModeRef.current) {
-          setDownloadAllFilename(null);
           processNextInQueueRef.current();
         }
       });
@@ -353,9 +341,7 @@ export default function YashvardhanPage() {
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      const planPart = (selectedPlanId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-      const uniquePart = (ticket?.ticket_number || ticket?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
-      a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
+      a.download = ticketFileName(ticket?.user?.name, ticket?.user_id ?? 'ticket');
       a.setAttribute('download', a.download);
       document.body.appendChild(a);
       a.click();
@@ -365,7 +351,7 @@ export default function YashvardhanPage() {
     } finally {
       setDownloading(false);
     }
-  }, [selectedPlanId, ticket?.ticket_number, ticket?.user_id]);
+  }, [selectedPlanId, ticket?.user?.name, ticket?.user_id]);
 
   const pillItems = useMemo(() => getPillItemsFromTicket(ticket), [ticket]);
 
@@ -460,7 +446,7 @@ export default function YashvardhanPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onDownloadAttendeeTicket(a.user_id); }}
+                  onClick={(e) => { e.stopPropagation(); onDownloadAttendeeTicket(a); }}
                   disabled={loading || downloadingUserId !== null || downloadingAll}
                   className="shrink-0 rounded-lg bg-[#8B7AB8] px-3 py-2 text-sm font-medium text-white hover:bg-[#9B8AC8] disabled:opacity-50"
                 >
@@ -486,7 +472,7 @@ export default function YashvardhanPage() {
             >
               <div className="relative w-full max-w-[420px]">
                 <div className="relative z-[2]">
-                  <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                  <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
                     <div className="relative w-full overflow-hidden rounded-t-[24px]">
                       {dMainImage ? (
                         <img
@@ -518,22 +504,22 @@ export default function YashvardhanPage() {
                     </div>
                   </div>
                   <div
-                    className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                    style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
+                    className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
+                    style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
                       {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]">
-                            {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                            <span className="min-w-0 max-w-[180px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">{item.label}</span>
+                          <div key={idx} className="flex w-full max-w-[200px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]">
+                            {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                            <span className="min-w-0 max-w-[140px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">{item.label}</span>
                           </div>
                         );
                       })}
                     </div>
                     <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
-                        <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                        <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                           {qrDataUrlForDownload ? (
                             <img src={qrDataUrlForDownload} width={112} height={112} alt="" className="block size-[112px]" />
                           ) : dTicket.qr_code_hash ? (
@@ -546,8 +532,8 @@ export default function YashvardhanPage() {
                           </div>
                         )}
                       </div>
-                      <p className="text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{dPassName}</p>
-                      <p className="mt-1 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{dTicket.ticket_number ?? '—'}</p>
+                      <p className="mt-2 text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{dPassName}</p>
+                      <p className="mt-2 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{dTicket.ticket_number ?? '—'}</p>
                     </div>
                   </div>
                 </div>
@@ -611,7 +597,7 @@ export default function YashvardhanPage() {
               >
                 <div className="relative w-full max-w-[420px] flex-shrink-0">
                   <div className="relative z-[2]">
-                    <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+                    <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
                       <div className="relative w-full overflow-hidden rounded-t-[24px]">
                         {mainImage ? (
                           <img
@@ -650,19 +636,19 @@ export default function YashvardhanPage() {
                       </div>
                     </div>
                     <div
-                      className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                      style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
+                      className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
+                      style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
-                      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+                      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
                         {pillItems.map((item, idx) => {
                           const Icon = PILL_ICONS[item.icon];
                           return (
                             <div
                               key={idx}
-                              className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
+                              className="flex w-full max-w-[200px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
                             >
-                              {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                              <span className="min-w-0 max-w-[180px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">
+                              {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                              <span className="min-w-0 max-w-[140px] text-[14px] font-medium leading-snug text-[#1C1C1E] break-words">
                                 {item.label}
                               </span>
                             </div>
@@ -670,7 +656,7 @@ export default function YashvardhanPage() {
                         })}
                       </div>
                       <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
-                        <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
+                        <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                           {qrDataUrl ? (
                             <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
                           ) : ticket?.qr_code_hash ? (
@@ -683,8 +669,8 @@ export default function YashvardhanPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
-                        <p className="mt-1 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{ticket?.ticket_number ?? '—'}</p>
+                        <p className="mt-2 text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
+                        <p className="mt-2 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">{ticket?.ticket_number ?? '—'}</p>
                       </div>
                     </div>
                   </div>
