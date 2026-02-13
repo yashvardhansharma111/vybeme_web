@@ -147,6 +147,7 @@ export default function TicketPage() {
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
     const passes = plan.passes ?? [];
+    const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
     const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
       (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
 
@@ -159,19 +160,19 @@ export default function TicketPage() {
 
     const labels: string[] = [];
     labels.push(priceLabel);
-
-    // Additional details: add each add_detail that has a value (description or title), in order
+    const distance = getLabel(detailBy('distance'), plan.location_text || '');
+    if (distance) labels.push(distance);
+    const fb = getLabel(detailBy('f&b'), '');
+    if (fb) labels.push(fb);
     addDetails.forEach((d: any) => {
       if (!d || labels.length >= 4) return;
+      const t = (d.detail_type || '').toLowerCase();
+      if (t === 'distance' || t === 'f&b') return;
       const label = getLabel(d, '');
       if (label && !labels.includes(label)) labels.push(label);
     });
-
     const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
     if (category && labels.length < 4 && !labels.includes(category)) labels.push(category);
-
-    const locationLabel = plan.location_text?.trim();
-    if (locationLabel && labels.length < 4 && !labels.includes(locationLabel)) labels.push(locationLabel);
 
     return labels.slice(0, 4).map((label, i) => ({ icon: icons[i], label }));
   }, [ticket]);
@@ -209,7 +210,7 @@ export default function TicketPage() {
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
   const passName = selectedPass?.name ?? 'Ticket';
 
-  const overlapAmount = 44;
+  const overlapAmount = 56;
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
@@ -222,49 +223,70 @@ export default function TicketPage() {
         }}
       />
 
-      {/* Header: X + Booking Confirmed + spacer; then WhatsApp line below */}
-      <header className="shrink-0 px-5 pt-4 pb-1">
-        <div className="flex items-center justify-between">
+      {/* Header: X + Booking Confirmed + Download (desktop: download in header) */}
+      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
+        <button
+          type="button"
+          onClick={() => router.push(`/post/${planId}`)}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
+          aria-label="Close"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
+        {/* Download button - commented out as of now
+        {isDesktopLayout ? (
           <button
             type="button"
-            onClick={() => router.push(`/post/${planId}`)}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
-            aria-label="Close"
+            onClick={handleDownloadImage}
+            disabled={downloading}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
+            aria-label="Download ticket"
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            {downloading ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+            ) : (
+              <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            )}
           </button>
-          <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
+        ) : (
           <div className="w-11" />
-        </div>
-        <p className="mt-1 truncate text-center text-[11px] font-medium text-[#1C1C1E]">
-          Your pass will be sent to you via Whatsapp shortly
-        </p>
+        )}
+        */}
+        <div className="w-11" />
       </header>
 
-      {/* Wrapper: content (captured for download) + message in vacant space below; scrollable so visible on mobile and desktop */}
+      <p className="shrink-0 text-center text-[11px] font-medium text-[#1C1C1E] px-4 pb-1 whitespace-nowrap truncate">
+        Your pass will be sent to you via Whatsapp shortly
+      </p>
+
+      {/* Wrapper: content (captured for download); scrollable so visible on mobile and desktop */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div
           ref={ticketContentRef}
-          className={`flex flex-shrink-0 flex-col items-center px-4 ${isDesktopLayout ? 'pb-2 pt-1' : 'pb-2 pt-1'}`}
+          className={`flex flex-shrink-0 flex-col items-center px-5 ${isDesktopLayout ? 'pb-4 pt-2' : 'pb-4 pt-2'}`}
           style={{
             background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
           }}
         >
-          <div className={`relative w-full max-w-[360px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
+          <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
             {/* Ticket card (image + info) */}
             <div className="relative z-[2]">
-            {/* Main ticket card - image: dynamic height, max height so no scroll */}
-            <div className="mb-0 overflow-hidden rounded-[20px] bg-white shadow-[0_6px_16px_rgba(0,0,0,0.1)]">
-              <div className="relative w-full max-h-[38vh] overflow-hidden rounded-t-[20px]">
+            {/* Main ticket card - image: dynamic height, no cropping */}
+            <div className="mb-0 overflow-hidden rounded-[24px] bg-white shadow-[0_8px_20px_rgba(0,0,0,0.12)]">
+              <div className="relative w-full overflow-hidden rounded-t-[24px]">
                 {mainImage ? (
                   <img
                     src={mainImage}
-                    className="block w-full h-auto max-h-[38vh] object-contain"
+                    alt=""
+                    className="block w-full h-auto object-contain"
                   />
                 ) : (
-                  <div className="flex aspect-[4/5] max-h-[38vh] w-full items-center justify-center bg-[#94A3B8]">
+                  <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8]">
                     <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
                     </svg>
@@ -279,16 +301,16 @@ export default function TicketPage() {
                     />
                     {/* Gradient overlay + text */}
                     <div
-                      className="absolute inset-x-0 bottom-0 pt-14 pb-3 px-3"
+                      className="absolute inset-x-0 bottom-0 pt-[80px] pb-5 px-5"
                       style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
                     >
-                      <h2 className="text-[20px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                      <div className="mt-1 flex justify-between text-xs font-semibold text-white/95">
+                      <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
+                      <div className="mt-2 flex justify-between text-[14px] font-semibold text-white/95">
                         <span>{formatDate(plan.date)}</span>
                         <span>{formatTime(plan.time)}</span>
                       </div>
                       {plan.location_text && (
-                        <p className="mt-0.5 truncate text-[11px] text-white/85">{plan.location_text}</p>
+                        <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
                       )}
                     </div>
                   </>
@@ -298,46 +320,46 @@ export default function TicketPage() {
 
             {/* Info section - overlaps image, white, pills left + QR right */}
             <div
-              className="relative z-[1] flex gap-3 rounded-[16px] bg-white p-4 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-              style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 12 }}
+              className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+              style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16 }}
             >
-              <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
                 {pillItems.map((item, idx) => {
                   const Icon = PILL_ICONS[item.icon];
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-1.5 self-start rounded-[14px] border border-[#E5E7EB] bg-white py-2 pl-2.5 pr-2.5"
+                      className="flex items-center gap-2 self-start rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-3.5"
                     >
                       {Icon && <span className="flex shrink-0 text-[#1C1C1E]"><Icon /></span>}
-                      <span className="min-w-0 max-w-[140px] truncate text-[12px] font-medium text-[#1C1C1E]">
+                      <span className="min-w-0 max-w-[180px] truncate text-[14px] font-medium text-[#1C1C1E]">
                         {item.label}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex min-w-[88px] shrink-0 flex-col items-center justify-center">
-                <div className="mb-1.5 rounded-lg border border-[#E5E7EB] bg-white p-1.5">
+              <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center">
+                <div className="mb-2.5 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                   {ticket?.qr_code_hash ? (
-                    <QRCodeSVG value={ticket.qr_code_hash} size={88} level="M" />
+                    <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
                   ) : (
-                    <div className="flex h-[88px] w-[88px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
-                      <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                      <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                       </svg>
                     </div>
                   )}
                 </div>
-                <p className="text-center text-[13px] font-bold text-[#1C1C1E]">{passName}</p>
-                <p className="max-w-full truncate px-1 text-center text-[11px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
+                <p className="text-center text-[16px] font-bold text-[#1C1C1E]">{passName}</p>
+                <p className="max-w-full truncate px-1 text-center text-[13px] font-medium tracking-wide text-[#6B7280]">{ticket?.ticket_number ?? '—'}</p>
               </div>
             </div>
             </div>
           </div>
         </div>
 
-        <div className="min-h-[20px] shrink-0" aria-hidden />
+        <div className="min-h-[40px] shrink-0" aria-hidden />
 
         {/* Download button - commented out as of now
         {!isDesktopLayout && (
