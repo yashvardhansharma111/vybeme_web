@@ -11,6 +11,7 @@ import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 import QRCode from 'qrcode';
 import dynamic from 'next/dynamic';
 import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
+import { FaPersonRunning } from 'react-icons/fa6';
 import { IoMdShirt } from 'react-icons/io';
 import { GiRunningShoe } from 'react-icons/gi';
 import { MdFastfood } from 'react-icons/md';
@@ -53,7 +54,7 @@ const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   fb: MdFastfood,
   music: FaMusic,
   sports: FaBasketballBall,
-  running: GiRunningShoe,
+  running: FaPersonRunning,
   fitness: FaDumbbell,
   social: FaGlassCheers,
   'starting-point': FaFlagCheckered,
@@ -507,13 +508,13 @@ export default function YashvardhanPage() {
                     className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-3">
                       {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="flex w-full max-w-[200px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]">
-                            {Icon && <span className="flex shrink-0 items-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                            <span className="flex min-w-0 max-w-[140px] items-center text-[14px] font-medium leading-none text-[#1C1C1E] break-words">{item.label}</span>
+                          <div key={idx} className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-4">
+                            {Icon && <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                            <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E]">{item.label}</span>
                           </div>
                         );
                       })}
@@ -639,16 +640,16 @@ export default function YashvardhanPage() {
                       className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
-                      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3">
+                      <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-3">
                         {pillItems.map((item, idx) => {
                           const Icon = PILL_ICONS[item.icon];
                           return (
                             <div
                               key={idx}
-                              className="flex w-full max-w-[200px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-3 pl-3.5 pr-3.5 min-h-[44px]"
+                              className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-4"
                             >
-                              {Icon && <span className="flex shrink-0 items-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                              <span className="flex min-w-0 max-w-[140px] items-center text-[14px] font-medium leading-none text-[#1C1C1E] break-words">
+                              {Icon && <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
+                              <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E]">
                                 {item.label}
                               </span>
                             </div>
