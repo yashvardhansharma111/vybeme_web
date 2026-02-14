@@ -517,7 +517,11 @@ export default function YashvardhanPage() {
                               <span>{formatDate(dPlan.date)}</span>
                               <span>{formatTime(dPlan.time)}</span>
                             </div>
-                            {dPlan.location_text && <p className="mt-1 truncate text-[13px] text-white/85">{dPlan.location_text}</p>}
+                            {dPlan.location_text && (
+                              <p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
+                                <span className="min-w-0 truncate">{dPlan.location_text}</span>
+                              </p>
+                            )}
                           </div>
                         </>
                       )}
@@ -527,13 +531,13 @@ export default function YashvardhanPage() {
                     className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-2.5">
                         {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 h-[36px] shadow-sm">
-                            {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                            <span className="relative -top-1.5 text-sm font-medium text-[#1C1C1E] leading-none">{item.label}</span>
+                          <div key={idx} className="flex max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-2.5 h-[32px] shadow-sm min-w-0">
+                            {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[16px] w-[16px]" /></span>}
+                            <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">{item.label}</span>
                           </div>
                         );
                       })}
@@ -653,7 +657,9 @@ export default function YashvardhanPage() {
                                 <span>{formatTime(plan.time)}</span>
                               </div>
                               {plan.location_text && (
-                                <p className="mt-1 truncate text-[13px] text-white/85">{plan.location_text}</p>
+                                <p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
+                                  <span className="min-w-0 truncate">{plan.location_text}</span>
+                                </p>
                               )}
                             </div>
                           </>
@@ -664,16 +670,16 @@ export default function YashvardhanPage() {
                       className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
-                      <div className="flex flex-1 flex-col items-start justify-start gap-3">
+                      <div className="flex flex-1 flex-col items-start justify-start gap-2.5">
                         {pillItems.map((item, idx) => {
                           const Icon = PILL_ICONS[item.icon];
                           return (
                             <div
                               key={idx}
-                              className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 h-[36px] shadow-sm"
+                              className="flex max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-2.5 h-[32px] shadow-sm min-w-0"
                             >
-                              {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                              <span className="relative -top-1.5 text-sm font-medium text-[#1C1C1E] leading-none">
+                              {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[16px] w-[16px]" /></span>}
+                              <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">
                                 {item.label}
                               </span>
                             </div>

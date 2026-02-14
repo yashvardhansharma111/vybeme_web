@@ -363,9 +363,9 @@ export default function TicketPage() {
                         <span>{formatTime(plan.time)}</span>
                       </div>
                       {plan.location_text && (
-                        <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-white/85">
+                        <p className="mt-1 flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
                           <IoLocationSharp className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                          {plan.location_text}
+                          <span className="min-w-0 truncate">{plan.location_text}</span>
                         </p>
                       )}
                     </div>
@@ -379,18 +379,18 @@ export default function TicketPage() {
               className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
               style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
             >
-              <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-3">
+              <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2.5">
                 {pillItems.map((item, idx) => {
                   const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
                   return (
                     <div
                       key={idx}
-                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB]/80 bg-[#F2F2F7] py-2.5 pl-3.5 pr-4 shadow-sm"
+                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[18px] border border-[#E5E7EB]/80 bg-[#F2F2F7] py-2 pl-2.5 pr-3 shadow-sm"
                     >
-                      <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]">
-                        <Icon className="h-[18px] w-[18px]" />
+                      <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]">
+                        <Icon className="h-[16px] w-[16px]" />
                       </span>
-                      <span className="relative -top-1.5 min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E]">
+                      <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">
                         {item.label}
                       </span>
                     </div>
