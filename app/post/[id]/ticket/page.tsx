@@ -375,7 +375,7 @@ export default function TicketPage() {
                       <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]">
                         <Icon className="h-[18px] w-[18px]" />
                       </span>
-                      <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E] -translate-y-px">
+                      <span className="min-w-0 text-[14px] font-medium leading-[18px] text-[#1C1C1E] -mt-0.5">
                         {item.label}
                       </span>
                     </div>
