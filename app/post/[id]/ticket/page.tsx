@@ -385,12 +385,12 @@ export default function TicketPage() {
                   return (
                     <div
                       key={idx}
-                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[18px] border border-[#E5E7EB]/80 bg-[#F2F2F7] py-2 pl-2.5 pr-3 shadow-sm"
+                      className="inline-flex h-[34px] min-w-0 max-w-full items-center gap-2 rounded-[18px] border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-2.5 pr-3 shadow-sm"
                     >
                       <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]">
                         <Icon className="h-[16px] w-[16px]" />
                       </span>
-                      <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">
+                      <span className="flex min-w-0 flex-1 items-center truncate text-[13px] font-medium leading-none text-[#1C1C1E]">
                         {item.label}
                       </span>
                     </div>
