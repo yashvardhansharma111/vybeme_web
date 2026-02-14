@@ -62,6 +62,14 @@ const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   links: PiLinkSimpleBold,
 };
 
+/** Fixed category pills: icon + 2 spaces + label, single line */
+const FIXED_CATEGORY_PILLS: Array<{ Icon: React.ComponentType<{ className?: string }>; label: string }> = [
+  { Icon: FaPersonRunning, label: 'Running' },
+  { Icon: GiRunningShoe, label: '5K' },
+  { Icon: FaFlagCheckered, label: 'Metro Station Gate' },
+  { Icon: IoMdShirt, label: 'Run Athleisure' },
+];
+
 const R2_HOST = 'r2.dev';
 function getProxiedImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -526,16 +534,14 @@ export default function YashvardhanPage() {
                     className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
-                    <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-2.5">
-                        {dPillItems.map((item, idx) => {
-                        const Icon = PILL_ICONS[item.icon];
-                        return (
-                          <div key={idx} className="flex h-[34px] min-w-[160px] max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-3 pr-4 shadow-sm">
-                            {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[16px] w-[16px]" /></span>}
-                            <span className="flex min-w-0 flex-1 items-center truncate text-[13px] font-medium leading-none text-[#1C1C1E] -mt-1">{item.label}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-2">
+                      {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
+                        <div key={idx} className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] py-1.5 px-2.5 text-[13px] font-medium text-[#1C1C1E]">
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="inline-block w-[2ch] shrink-0" aria-hidden>{'\u00A0\u00A0'}</span>
+                          <span>{label}</span>
+                        </div>
+                      ))}
                     </div>
                     <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                       <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
@@ -660,21 +666,17 @@ export default function YashvardhanPage() {
                       className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
-                      <div className="flex flex-1 flex-col items-start justify-start gap-2.5">
-                        {pillItems.map((item, idx) => {
-                          const Icon = PILL_ICONS[item.icon];
-                          return (
-                            <div
-                              key={idx}
-                              className="flex h-[34px] max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-2.5 shadow-sm min-w-0"
-                            >
-                              {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[16px] w-[16px]" /></span>}
-                              <span className="flex min-w-0 flex-1 items-center truncate text-[13px] font-medium leading-none text-[#1C1C1E] -mt-1">
-                                {item.label}
-                              </span>
-                            </div>
-                          );
-                        })}
+                      <div className="flex flex-1 flex-col items-start justify-start gap-2">
+                        {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
+                          <div
+                            key={idx}
+                            className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] py-1.5 px-2.5 text-[13px] font-medium text-[#1C1C1E]"
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="inline-block w-[2ch] shrink-0" aria-hidden>{'\u00A0\u00A0'}</span>
+                            <span>{label}</span>
+                          </div>
+                        ))}
                       </div>
                       <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                         <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
