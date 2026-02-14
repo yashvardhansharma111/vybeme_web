@@ -499,21 +499,22 @@ export default function YashvardhanPage() {
                       )}
                       {dMainImage && (
                         <>
+                          {/* Opaque strip at bottom of image (no see-through) */}
                           <div
                             className="absolute bottom-0 left-0 right-0 z-10 h-[25%] min-h-[72px]"
                             style={{
-                              background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)',
-                              backdropFilter: 'blur(5px)',
+                              background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,1) 70%, rgba(0,0,0,1) 100%)',
                             }}
                           />
                           <div
                             className="absolute inset-x-0 bottom-0 z-20 pt-4 pb-5 px-5"
                             style={{
-                              background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.05) 15%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%)',
+                              background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 35%, rgba(0,0,0,1) 65%, rgba(0,0,0,1) 100%)',
                             }}
                           >
                             <h2 className="text-[26px] font-extrabold leading-tight text-white">{dPlan.title ?? 'Event'}</h2>
-                            <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-white/95">
+                            {/* Date, time and location on photo – commented out for now */}
+                            {/* <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-white/95">
                               <span>{formatDate(dPlan.date)}</span>
                               <span>{formatTime(dPlan.time)}</span>
                             </div>
@@ -521,7 +522,7 @@ export default function YashvardhanPage() {
                               <p className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
                                 <span className="min-w-0 truncate">{dPlan.location_text}</span>
                               </p>
-                            )}
+                            )} */}
                           </div>
                         </>
                       )}
@@ -535,9 +536,9 @@ export default function YashvardhanPage() {
                         {dPillItems.map((item, idx) => {
                         const Icon = PILL_ICONS[item.icon];
                         return (
-                          <div key={idx} className="flex max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-2.5 h-[32px] shadow-sm min-w-0">
+                          <div key={idx} className="flex min-w-[160px] max-w-full items-center gap-2 rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] py-2 pl-3 pr-4 h-[34px] shadow-sm">
                             {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[16px] w-[16px]" /></span>}
-                            <span className="min-w-0 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">{item.label}</span>
+                            <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-tight text-[#1C1C1E]">{item.label}</span>
                           </div>
                         );
                       })}
