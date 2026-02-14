@@ -181,27 +181,35 @@ export default function TicketPage() {
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
     const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
-    const getLabel = (d: { title?: string; description?: string } | undefined, fallback: string) =>
-      (d?.title?.trim() || d?.description?.trim() || fallback?.trim() || '').trim() || null;
+    /** Show only the value (description); fallback to title or location. No field name. */
+    const getDetailLabel = (d: { title?: string; description?: string } | undefined, fallback: string): string | null => {
+      if (!d) return (fallback?.trim() || '').trim() || null;
+      const desc = (d.description ?? '').trim();
+      const title = (d.title ?? '').trim();
+      if (desc) return desc;
+      if (title) return title;
+      return (fallback?.trim() || '').trim() || null;
+    };
 
     const items: { icon: string; label: string }[] = [];
-    // 1. Category tag first (no Free/price)
+    // 1. Category tag first (value from category_main / category_sub)
     const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
     if (category) {
       items.push({ icon: getCategoryIconKey(category), label: category });
     }
-    // 2. Distance
-    const distance = getLabel(detailBy('distance'), plan.location_text || '');
+    // 2. Distance – show value (e.g. 5km) or "Distance: value" or fallback to location_text
+    const distanceDetail = detailBy('distance');
+    const distance = getDetailLabel(distanceDetail, plan.location_text || '');
     if (distance) items.push({ icon: 'location', label: distance });
-    // 3. F&B
-    const fb = getLabel(detailBy('f&b'), '');
+    // 3. F&B – show value or "F&B: value"
+    const fb = getDetailLabel(detailBy('f&b'), '');
     if (fb) items.push({ icon: 'fb', label: fb });
-    // 4. Other add_details (starting point, dress code, links, etc.)
+    // 4. Other add_details (starting point, dress code, links) – show value or field name
     addDetails.forEach((d: any) => {
       if (!d || items.length >= 4) return;
       const t = (d.detail_type || '').toLowerCase();
       if (t === 'distance' || t === 'f&b') return;
-      const label = getLabel(d, '');
+      const label = getDetailLabel(d, '');
       if (label && !items.some((x) => x.label === label)) {
         items.push({ icon: getDetailIconKey(d.detail_type || ''), label });
       }
@@ -312,17 +320,18 @@ export default function TicketPage() {
           <div className={`relative w-full max-w-[420px] ${isDesktopLayout ? 'flex-shrink-0' : 'flex-shrink-0'}`}>
             {/* Ticket card (image + info) */}
             <div className="relative z-[2]">
-            {/* Main ticket card - image: dynamic height, no cropping */}
+            {/* Main ticket card - image on top, text overlay on top of image (higher z-index) */}
             <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
               <div className="relative w-full overflow-hidden rounded-t-[24px]">
+                {/* Image layer (behind) */}
                 {mainImage ? (
                   <img
                     src={getProxiedImageUrl(mainImage) ?? mainImage}
                     alt=""
-                    className="block w-full h-auto object-contain"
+                    className="block w-full h-auto object-contain relative z-0"
                   />
                 ) : (
-                  <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8]">
+                  <div className="flex aspect-[4/5] w-full items-center justify-center bg-[#94A3B8] relative z-0">
                     <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
                     </svg>
@@ -330,22 +339,28 @@ export default function TicketPage() {
                 )}
                 {mainImage && (
                   <>
-                    {/* Bottom blur strip (CSS blur) */}
+                    {/* Blur + gradient: upper part of strip lighter, gets stronger toward bottom (180deg = top to bottom) */}
                     <div
-                      className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-md"
-                      style={{ background: 'rgba(0,0,0,0.2)' }}
+                      className="absolute bottom-0 left-0 right-0 z-10 h-[25%] min-h-[72px] pointer-events-none"
+                      aria-hidden
+                      style={{
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)',
+                        backdropFilter: 'blur(5px)',
+                      }}
                     />
-                    {/* Gradient overlay + text */}
                     <div
-                      className="absolute inset-x-0 bottom-0 pt-[36px] pb-5 px-5"
-                      style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.75), transparent)' }}
+                      className="absolute inset-x-0 bottom-0 pt-4 pb-5 px-5 z-20 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.05) 15%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%)',
+                      }}
                     >
                       <h2 className="text-[26px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                      <div className="mt-2 flex items-center justify-between gap-2 text-[14px] font-semibold text-white/95">
+                      <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-white/95">
                         <span className="flex items-center gap-1.5">
                           <FaCalendarCheck className="h-4 w-4 shrink-0 opacity-90" />
-                          {formatDate(plan.date)} · {formatTime(plan.time)}
+                          {formatDate(plan.date)}
                         </span>
+                        <span>{formatTime(plan.time)}</span>
                       </div>
                       {plan.location_text && (
                         <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-white/85">
@@ -370,7 +385,7 @@ export default function TicketPage() {
                   return (
                     <div
                       key={idx}
-                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB] bg-white py-2.5 pl-3.5 pr-4"
+                      className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-[20px] border border-[#E5E7EB]/80 bg-[#F2F2F7] py-2.5 pl-3.5 pr-4 shadow-sm"
                     >
                       <span className="flex shrink-0 items-center justify-center leading-[0] text-[#1C1C1E]">
                         <Icon className="h-[18px] w-[18px]" />
