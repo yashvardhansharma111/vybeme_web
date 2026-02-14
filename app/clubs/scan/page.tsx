@@ -267,23 +267,6 @@ function BusinessScanContent() {
       </div>
 
       {/* Result popup – fixed at top below nav, doesn’t cover scanner center; auto-dismiss */}
-      {scanResult && (
-        <div
-          className="absolute left-4 right-4 top-16 z-20 mx-auto max-w-sm rounded-xl px-4 py-2.5 text-center text-sm font-semibold shadow-lg"
-          style={{
-            backgroundColor: scanResult.already ? 'rgba(217, 119, 6, 0.95)' : 'rgba(22, 163, 74, 0.95)',
-            color: '#fff',
-          }}
-          role="status"
-          aria-live="polite"
-        >
-          {scanResult.already ? (
-            <>Already scanned: {scanResult.name ?? 'Guest'}</>
-          ) : (
-            <>✓ Checked in: {scanResult.name ?? 'Guest'}</>
-          )}
-        </div>
-      )}
       {error && (
         <div
           className="absolute left-4 right-4 top-16 z-20 mx-auto max-w-sm rounded-xl bg-red-600/95 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg"
@@ -293,22 +276,37 @@ function BusinessScanContent() {
         </div>
       )}
 
-      {/* Scanner area – fills space, not scrollable */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        {/* Checked-in count – one line above scanner */}
+      {/* Scanner area – big square in middle, user pill at bottom */}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-hidden px-4">
         {total > 0 && (
-          <p className="shrink-0 py-1.5 text-center text-sm font-semibold text-white">
+          <p className="shrink-0 text-center text-sm font-semibold text-white">
             Checked In: {checkedIn}/{total}
           </p>
         )}
 
-        {/* Camera – takes remaining height so QR is large, no zoom needed */}
-        <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+        {/* Camera – big square in the middle */}
+        <div className="relative aspect-square w-full max-w-[min(85vmin,320px)] overflow-hidden rounded-2xl bg-black">
           <div id="qr-reader" className="absolute inset-0 h-full w-full" />
         </div>
 
-        {/* Bottom strip – compact, no scroll */}
-        <div className="shrink-0 px-4 py-3">
+        {/* Small user pill at bottom when checked in */}
+        {scanResult && (
+          <div
+            className="flex shrink-0 items-center gap-2 rounded-full border border-green-500/50 bg-[#2C2C2E] py-1.5 pl-1.5 pr-3 shadow-lg"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
+              ✓
+            </span>
+            <span className="text-sm font-medium text-white">
+              {scanResult.already ? `Already scanned: ${scanResult.name ?? 'Guest'}` : (scanResult.name ?? 'Guest')}
+            </span>
+          </div>
+        )}
+
+        {/* Start/Stop camera */}
+        <div className="w-full shrink-0 max-w-[min(85vmin,320px)] pb-2">
           {!scanning && selectedPlanId && (
             <button
               type="button"
