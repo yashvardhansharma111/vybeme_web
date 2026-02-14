@@ -30,7 +30,7 @@ function BusinessScanContent() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>(planIdFromUrl);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ name?: string; already?: boolean } | null>(null);
+  const [scanResult, setScanResult] = useState<{ name?: string; profile_image?: string | null; already?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{ checked_in: number; total: number } | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -141,11 +141,12 @@ function BusinessScanContent() {
                 checked_in: (data?.checked_in_count as number) ?? 0,
                 total: (data?.total as number) ?? 0,
               });
-              const attendee = data?.attendee as { name?: string } | undefined;
-              const usr = data?.user as { name?: string } | undefined;
+              const attendee = data?.attendee as { name?: string; profile_image?: string | null } | undefined;
+              const usr = data?.user as { name?: string; profile_image?: string | null } | undefined;
               const name = attendee?.name ?? (usr?.name as string) ?? 'Guest';
+              const profile_image = attendee?.profile_image ?? usr?.profile_image ?? null;
               const already = !!(data?.already_checked_in as boolean);
-              setScanResult({ name, already });
+              setScanResult({ name, profile_image, already });
               setError(null);
               if (already) {
                 setTimeout(() => setScanResult(null), 6000);
@@ -204,45 +205,49 @@ function BusinessScanContent() {
   const checkedIn = stats?.checked_in ?? 0;
   const total = stats?.total ?? 0;
 
-  // No plan in URL: show event picker and "Open scanner" (don't send to View Registrations)
+  // No plan in URL: show event picker and "Open scanner" – no scroll, fit in viewport
   if (!planIdFromUrl) {
     return (
-      <div className="min-h-screen bg-[#1C1C1E]">
-        <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex h-screen flex-col overflow-hidden bg-[#1C1C1E]">
+        <div className="flex shrink-0 items-center justify-between px-4 py-3">
           <Link href="/clubs" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
             <span className="text-2xl">×</span>
           </Link>
           <h1 className="text-lg font-bold text-white">Scan tickets</h1>
           <div className="w-11" />
         </div>
-        <div className="mx-auto max-w-lg px-4 py-6">
-          <p className="mb-3 text-sm text-[#8E8E93]">Select an event, then open the scanner.</p>
-          {loading || plans.length === 0 ? (
-            <p className="text-[#8E8E93]">{loading ? 'Loading events…' : 'No events yet.'}</p>
-          ) : (
-            <>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
-              <select
-                value={selectedPlanId}
-                onChange={(e) => setSelectedPlanId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/20 bg-[#2C2C2E] px-3 py-2.5 text-[15px] text-white [color-scheme:light]"
-                style={{ colorScheme: 'light' }}
-              >
-                {plans.map((p) => (
-                  <option key={p.plan_id} value={p.plan_id} className="bg-white text-[#1C1C1E]">
-                    {p.title ?? 'Event'}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => selectedPlanId && router.push(`/clubs/scan?plan=${selectedPlanId}`)}
-                disabled={!selectedPlanId}
-                className="mt-6 w-full rounded-full bg-white py-3.5 text-base font-bold text-[#1C1C1E] disabled:opacity-50"
-              >
-                Open scanner
-              </button>
-            </>
+        <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pb-6 pt-2">
+          <div className="mx-auto w-full max-w-lg">
+            <p className="mb-3 text-sm text-[#8E8E93]">Select an event, then open the scanner.</p>
+            {loading || plans.length === 0 ? (
+              <p className="text-[#8E8E93]">{loading ? 'Loading events…' : 'No events yet.'}</p>
+            ) : (
+              <>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
+                <select
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-white/20 bg-[#2C2C2E] px-3 py-2.5 text-[15px] text-white [color-scheme:light]"
+                  style={{ colorScheme: 'light' }}
+                >
+                  {plans.map((p) => (
+                    <option key={p.plan_id} value={p.plan_id} className="bg-white text-[#1C1C1E]">
+                      {p.title ?? 'Event'}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+          {!loading && plans.length > 0 && (
+            <button
+              type="button"
+              onClick={() => selectedPlanId && router.push(`/clubs/scan?plan=${selectedPlanId}`)}
+              disabled={!selectedPlanId}
+              className="mt-4 w-full max-w-lg shrink-0 rounded-full bg-white py-3.5 text-base font-bold text-[#1C1C1E] disabled:opacity-50 mx-auto"
+            >
+              Open scanner
+            </button>
           )}
         </div>
       </div>
@@ -269,19 +274,41 @@ function BusinessScanContent() {
       {/* Result popup – fixed at top below nav, doesn’t cover scanner center; auto-dismiss */}
       {scanResult && (
         <div
-          className="absolute left-4 right-4 top-16 z-20 mx-auto max-w-sm rounded-xl px-4 py-2.5 text-center text-sm font-semibold shadow-lg"
-          style={{
-            backgroundColor: scanResult.already ? 'rgba(217, 119, 6, 0.95)' : 'rgba(22, 163, 74, 0.95)',
-            color: '#fff',
-          }}
+          className="absolute left-1/2 top-16 z-20 -translate-x-1/2"
           role="status"
           aria-live="polite"
         >
-          {scanResult.already ? (
-            <>Already scanned: {scanResult.name ?? 'Guest'}</>
-          ) : (
-            <>✓ Checked in: {scanResult.name ?? 'Guest'}</>
-          )}
+          <div
+            className="flex items-center gap-3 rounded-full border-2 border-white/30 bg-[#2C2C2E] py-2 pl-2 pr-4 shadow-lg"
+            style={{
+              boxShadow: scanResult.already ? '0 4px 14px rgba(217, 119, 6, 0.4)' : '0 4px 14px rgba(22, 163, 74, 0.4)',
+            }}
+          >
+            <div className="relative shrink-0">
+              {scanResult.profile_image ? (
+                <img
+                  src={scanResult.profile_image}
+                  alt=""
+                  className="h-10 w-10 rounded-full object-cover bg-[#3A3A3C]"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3A3A3C] text-lg font-semibold text-white">
+                  {(scanResult.name ?? 'G').charAt(0).toUpperCase()}
+                </div>
+              )}
+              {!scanResult.already && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white"
+                  aria-hidden
+                >
+                  ✓
+                </span>
+              )}
+            </div>
+            <span className="text-sm font-semibold text-white">
+              {scanResult.already ? `Already scanned: ${scanResult.name ?? 'Guest'}` : (scanResult.name ?? 'Guest')}
+            </span>
+          </div>
         </div>
       )}
       {error && (
