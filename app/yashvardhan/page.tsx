@@ -514,7 +514,7 @@ export default function YashvardhanPage() {
                         return (
                           <div key={idx} className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 h-[36px]">
                             {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                            <span className="text-sm font-medium text-[#1C1C1E] leading-none -mt-0.5">{item.label}</span>
+                            <span className="text-sm font-medium text-[#1C1C1E] leading-none -mt-px">{item.label}</span>
                           </div>
                         );
                       })}
@@ -649,7 +649,7 @@ export default function YashvardhanPage() {
                               className="flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 h-[36px]"
                             >
                               {Icon && <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]"><Icon className="h-[18px] w-[18px]" /></span>}
-                              <span className="text-sm font-medium text-[#1C1C1E] leading-none -mt-0.5">
+                              <span className="text-sm font-medium text-[#1C1C1E] leading-none -mt-px">
                                 {item.label}
                               </span>
                             </div>
