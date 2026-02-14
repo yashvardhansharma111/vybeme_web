@@ -538,7 +538,7 @@ export default function YashvardhanPage() {
                       {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
                         <div key={idx} className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]">
                           <Icon className="h-4 w-4 shrink-0 self-center" />
-                          <span className="leading-[1] flex items-center m-[-6px]">{label}</span>
+                          <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
                         </div>
                       ))}
                     </div>
@@ -672,7 +672,7 @@ export default function YashvardhanPage() {
                             className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]"
                           >
                             <Icon className="h-4 w-4 shrink-0 self-center" />
-                            <span className="leading-[1] flex items-center m-[-6px]">{label}</span>
+                            <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
                           </div>
                         ))}
                       </div>
