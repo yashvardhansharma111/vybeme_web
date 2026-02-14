@@ -536,7 +536,7 @@ export default function YashvardhanPage() {
                   >
                     <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-2">
                       {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
-                        <div key={idx} className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] py-1.5 px-2.5 text-[13px] font-medium text-[#1C1C1E]">
+                        <div key={idx} className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] pt-0 pb-[9px] px-2.5 text-[13px] font-medium leading-none text-[#1C1C1E]">
                           <Icon className="h-4 w-4 shrink-0" />
                           <span className="inline-block w-[2ch] shrink-0" aria-hidden>{'\u00A0\u00A0'}</span>
                           <span>{label}</span>
@@ -670,7 +670,7 @@ export default function YashvardhanPage() {
                         {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
                           <div
                             key={idx}
-                            className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] py-1.5 px-2.5 text-[13px] font-medium text-[#1C1C1E]"
+                            className="inline-flex items-center whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] pt-0 pb-[9px] px-2.5 text-[13px] font-medium leading-none text-[#1C1C1E]"
                           >
                             <Icon className="h-4 w-4 shrink-0" />
                             <span className="inline-block w-[2ch] shrink-0" aria-hidden>{'\u00A0\u00A0'}</span>
