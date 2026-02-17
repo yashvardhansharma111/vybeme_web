@@ -8,7 +8,7 @@ import { EventDetailCard, type EventDetailPost } from '../../components/EventDet
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, createTicketOrder, verifyTicketPayment } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 
@@ -49,6 +49,7 @@ export default function PostPage() {
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
+  const [paymentOpening, setPaymentOpening] = useState(false);
   const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
   // Registration survey (replaces payment)
   const [ageRange, setAgeRange] = useState('');
@@ -191,7 +192,29 @@ export default function PostPage() {
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
   const handleBookEvent = useCallback(() => setBusinessStep('tickets'), []);
-  const handleProceedToSurvey = useCallback(() => {
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') {
+        resolve(false);
+        return;
+      }
+      const key = 'razorpay-checkout-script';
+      if (document.getElementById(key)) {
+        resolve(!!(window as any).Razorpay);
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = key;
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(!!(window as any).Razorpay);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleProceedToSurvey = useCallback(async () => {
     const passId = passes.length > 0 ? selectedPassId : undefined;
     if (passes.length > 0 && !passId) return;
     if (!user?.user_id) {
@@ -199,9 +222,78 @@ export default function PostPage() {
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
       return;
     }
+    const selectedPass = passes.find((p) => p.pass_id === passId);
+    const isPaid = selectedPass && selectedPass.price > 0;
+    if (isPaid && passId) {
+      setError(null);
+      setPaymentOpening(true);
+      try {
+        const orderRes = await createTicketOrder(postId, user.user_id, passId);
+        if (!orderRes.success || !orderRes.data?.id) {
+          setError(orderRes.message || 'Failed to create order');
+          setPaymentOpening(false);
+          return;
+        }
+        const order = orderRes.data;
+        const loaded = await loadRazorpayScript();
+        if (!loaded) {
+          setError('Payment gateway could not be loaded. Please try again.');
+          setPaymentOpening(false);
+          return;
+        }
+        const Razorpay = (window as any).Razorpay;
+        const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+        if (!rzpKey) {
+          setError('Payment is not configured.');
+          setPaymentOpening(false);
+          return;
+        }
+        const options = {
+          key: rzpKey,
+          amount: order.amount,
+          currency: order.currency || 'INR',
+          name: 'vybeme',
+          description: 'Event Ticket',
+          order_id: order.id,
+          prefill: {
+            name: currentUserProfile?.name || '',
+            email: '',
+            contact: user.user_id || '',
+          },
+          handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+            try {
+              await verifyTicketPayment(
+                response.razorpay_payment_id,
+                response.razorpay_order_id,
+                response.razorpay_signature
+              );
+              setBusinessRegistered(true);
+              setBusinessStep('detail');
+              setSelectedPassId(null);
+              router.push(`/post/${postId}/ticket`);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : 'Payment verification failed');
+            } finally {
+              setPaymentOpening(false);
+            }
+          },
+          modal: { ondismiss: () => setPaymentOpening(false) },
+        };
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', () => {
+          setError('Payment failed or was cancelled.');
+          setPaymentOpening(false);
+        });
+        rzp.open();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not start payment');
+        setPaymentOpening(false);
+      }
+      return;
+    }
     setBusinessStep('survey');
     setError(null);
-  }, [postId, selectedPassId, passes.length, user?.user_id, router]);
+  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name]);
 
   const handleSubmitRegistration = useCallback(() => {
     if (!ageRange || !gender || !runningExperience) {
@@ -354,11 +446,15 @@ export default function PostPage() {
               )}
               <button
                 type="button"
-                disabled={passes.length > 0 && !selectedPassId}
+                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening}
                 onClick={handleProceedToSurvey}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
-                Continue
+                {paymentOpening
+                  ? 'Opening payment…'
+                  : selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) > 0
+                  ? 'Pay & continue'
+                  : 'Continue'}
               </button>
             </div>
           </div>

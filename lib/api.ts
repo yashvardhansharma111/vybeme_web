@@ -129,6 +129,10 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    // Session/user no longer exists (e.g. account deleted) — clear stored user so they can log in again
+    if (res.status === 404 && endpoint.includes('/user/me') && typeof window !== 'undefined') {
+      setStoredUser(null);
+    }
     throw new Error(data.message || `Request failed ${res.status}`);
   }
   return data;
@@ -238,6 +242,30 @@ export async function createJoinRequest(post_id: string, user_id: string, messag
   return request<{ request_id: string }>('/post/join', {
     method: 'POST',
     body: JSON.stringify({ post_id, user_id, message }),
+  });
+}
+
+/** Create Razorpay order for paid ticket. Returns { id, amount, currency, receipt }. */
+export async function createTicketOrder(plan_id: string, user_id: string, pass_id: string) {
+  return request<{ id: string; amount: number; currency: string; receipt: string }>('/ticket/create-order', {
+    method: 'POST',
+    body: JSON.stringify({ plan_id, user_id, pass_id }),
+  });
+}
+
+/** Verify Razorpay payment and create ticket. Call after Razorpay checkout success. */
+export async function verifyTicketPayment(
+  razorpay_payment_id: string,
+  razorpay_order_id: string,
+  razorpay_signature: string
+) {
+  return request<{ registration: unknown; ticket: unknown }>('/ticket/verify-payment', {
+    method: 'POST',
+    body: JSON.stringify({
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+    }),
   });
 }
 
