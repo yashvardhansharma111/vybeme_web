@@ -56,7 +56,7 @@ export default function PostPage() {
   const [gender, setGender] = useState('');
   const [runningExperience, setRunningExperience] = useState('');
   const [whatBringsYou, setWhatBringsYou] = useState('');
-  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null } | null>(null);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -145,7 +145,11 @@ export default function PostPage() {
     }
     getCurrentUserProfile(user.session_id)
       .then((profile) => {
-        if (profile) setCurrentUserProfile({ name: profile.name, profile_image: profile.profile_image ?? null });
+        if (profile) setCurrentUserProfile({
+          name: profile.name,
+          profile_image: profile.profile_image ?? null,
+          phone_number: profile.phone_number ?? null,
+        });
         else setCurrentUserProfile(null);
       })
       .catch(() => setCurrentUserProfile(null));
@@ -258,7 +262,7 @@ export default function PostPage() {
           prefill: {
             name: currentUserProfile?.name || '',
             email: '',
-            contact: user.user_id || '',
+            contact: (currentUserProfile?.phone_number || '').replace(/\D/g, '').slice(-10) || '',
           },
           handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
             try {
