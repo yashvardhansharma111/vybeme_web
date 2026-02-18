@@ -39,7 +39,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     type: 'website',
     locale: 'en_IN',
   };
-  openGraph.images = [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
+  // Use event photo URL as primary og:image so WhatsApp/crawlers get the actual image directly (most reliable)
+  const eventPhotoUrl = post.imageUrl && post.imageUrl.startsWith('http') ? post.imageUrl : null;
+  openGraph.images = eventPhotoUrl
+    ? [
+        { url: eventPhotoUrl, width: 1200, height: 630, alt: post.title },
+        { url: shareImageUrl, width: 1200, height: 630, alt: post.title },
+      ]
+    : [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
+  const primaryImage = eventPhotoUrl ?? shareImageUrl;
   return {
     title: post.title,
     description: ogDescription,
@@ -48,7 +56,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       card: 'summary_large_image',
       title: post.title,
       description: ogDescription,
-      images: [shareImageUrl],
+      images: [primaryImage],
     },
   };
 }
