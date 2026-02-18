@@ -319,6 +319,10 @@ export default function PostPage() {
           setPaymentOpening(false);
           return;
         }
+        const profileForRazorpay = currentUserProfile ?? (await getCurrentUserProfile(user.session_id).catch(() => null));
+        const userName = profileForRazorpay?.name?.trim() || '';
+        const phoneRaw = (profileForRazorpay?.phone_number || '').replace(/\D/g, '');
+        const contact = phoneRaw.length >= 10 ? phoneRaw.slice(-10) : phoneRaw;
         const options = {
           key: rzpKey,
           amount: order.amount,
@@ -327,9 +331,9 @@ export default function PostPage() {
           description: 'Event Ticket',
           order_id: order.id,
           prefill: {
-            name: currentUserProfile?.name || '',
+            name: userName,
             email: '',
-            contact: (currentUserProfile?.phone_number || '').replace(/\D/g, '').slice(-10) || '',
+            contact: contact || '',
           },
           handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
             try {
@@ -649,7 +653,7 @@ export default function PostPage() {
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
             currentUserAvatar={currentUserProfile?.profile_image}
             currentUserName={currentUserProfile?.name}
-            profileCircleHref={user?.user_id && isBusiness ? '/' : undefined}
+            profileCircleHref={user?.user_id && isBusiness ? '/tickets' : undefined}
           />
         ) : post ? (
           <EventDetailCard

@@ -168,7 +168,7 @@ export function BusinessDetailCard({
       <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
         <div className="flex items-center gap-4">
           {(profileCircleHref ?? currentUserProfileHref) ? (
-            <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={profileCircleHref === '/' ? 'My tickets' : (profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile'))}>
+            <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={profileCircleHref === '/' || profileCircleHref === '/tickets' ? 'My tickets' : (profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile'))}>
               <div className="relative h-9 w-9 overflow-hidden rounded-full bg-neutral-200">
                 {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">{(currentUserName ?? 'You').charAt(0)}</span>}
               </div>
@@ -190,7 +190,7 @@ export function BusinessDetailCard({
       {/* Mobile: profile top right when logged in — links to ticket (profileCircleHref) when passed, else profile */}
       {(profileCircleHref ?? currentUserProfileHref) ? (
         <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent md:hidden">
-          <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={profileCircleHref === '/' ? 'My tickets' : (profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile'))}>
+          <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={profileCircleHref === '/' || profileCircleHref === '/tickets' ? 'My tickets' : (profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile'))}>
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
               {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
             </div>
