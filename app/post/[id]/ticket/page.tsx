@@ -260,9 +260,6 @@ export default function TicketPage() {
     return (
       <div 
         className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}
-        style={{
-          background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-        }}
       >
         {/* Header */}
         <header className="flex shrink-0 items-center justify-between px-4 pt-3 pb-2">
@@ -289,14 +286,11 @@ export default function TicketPage() {
           {/* Ticket and button container with unified spacing */}
           <div className="flex flex-col items-center px-4 py-4 gap-4">
             {/* Ticket card wrapper for download */}
-            <div 
-              ref={ticketContentRef}
-              className="relative w-full max-w-[340px]"
-              style={{
-                background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-                padding: '20px 0',
-              }}
-            >
+            <div
+  ref={ticketContentRef}
+  className="relative w-full max-w-[340px] py-5"
+>
+
               {/* Ticket card */}
               <div className="relative z-[2]">
                 <div className="mb-0 overflow-hidden rounded-[20px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
@@ -412,11 +406,17 @@ export default function TicketPage() {
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 h-screen w-full overflow-hidden">
+      <div
+        className="fixed inset-0 h-screen w-full overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+        }}
+      >
         <InnerTicket />
       </div>
     );
   }
+  
 
   return (
     <div className="min-h-screen overflow-y-auto">

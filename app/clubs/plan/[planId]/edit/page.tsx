@@ -41,13 +41,13 @@ export default function BusinessEditPlanPage() {
   const [profile, setProfile] = useState<{ is_business?: boolean; business_id?: string } | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaUrls, setMediaUrls] = useState<string[]>(['']);
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [category, setCategory] = useState('');
   const [ticketsEnabled, setTicketsEnabled] = useState(false);
-  const [passes, setPasses] = useState<{ pass_id?: string; name: string; price: number }[]>([{ name: '', price: 0 }]);
+  const [passes, setPasses] = useState<{ pass_id?: string; name: string; price: number; mediaUrl?: string }[]>([{ name: '', price: 0 }]);
   const [womenOnly, setWomenOnly] = useState(false);
   const [allowGuestList, setAllowGuestList] = useState(true);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
@@ -94,7 +94,7 @@ export default function BusinessEditPlanPage() {
             date?: string;
             time?: string;
             media?: Array<{ url?: string }>;
-            passes?: Array<{ pass_id: string; name: string; price: number }>;
+            passes?: Array<{ pass_id: string; name: string; price: number; media?: Array<{ url?: string }> }>;
             add_details?: Array<{ detail_type?: string; title?: string; description?: string }>;
           };
           setTitle(d.title ?? '');
@@ -105,11 +105,18 @@ export default function BusinessEditPlanPage() {
           setAllowGuestList(d.allow_view_guest_list !== false);
           if (d.date) setDate(new Date(d.date).toISOString().slice(0, 10));
           setTime(d.time ? timeTo24h(d.time) : '');
-          if (d.media?.length && d.media[0].url) setMediaUrl(d.media[0].url);
+          if (d.media?.length) {
+            setMediaUrls(d.media.map((m) => m.url ?? '').filter(Boolean).length ? d.media.map((m) => m.url ?? '') : ['']);
+          }
           const hasPasses = !!(d.passes && d.passes.length > 0);
           setTicketsEnabled(hasPasses);
           setPasses(hasPasses
-            ? d.passes!.map((p) => ({ pass_id: p.pass_id, name: p.name ?? '', price: p.price ?? 0 }))
+            ? d.passes!.map((p) => ({
+                pass_id: p.pass_id,
+                name: p.name ?? '',
+                price: p.price ?? 0,
+                mediaUrl: p.media?.[0]?.url ?? '',
+              }))
             : [{ name: '', price: 0 }]);
           if (d.add_details?.length) {
             setAdditionalDetails(d.add_details.map((a) => ({
@@ -140,7 +147,7 @@ export default function BusinessEditPlanPage() {
   }, [mounted, user?.user_id, planId, router]);
 
   const addPass = () => setPasses((prev) => [...prev, { name: '', price: 0 }]);
-  const updatePass = (i: number, field: 'name' | 'price', value: string | number) => {
+  const updatePass = (i: number, field: 'name' | 'price' | 'mediaUrl', value: string | number) => {
     setPasses((prev) => {
       const next = [...prev];
       next[i] = { ...next[i], [field]: field === 'price' ? Number(value) || 0 : value };
@@ -148,6 +155,21 @@ export default function BusinessEditPlanPage() {
     });
   };
   const removePass = (i: number) => setPasses((prev) => prev.filter((_, idx) => idx !== i));
+
+  const addPostImage = () => setMediaUrls((prev) => [...prev, '']);
+  const updatePostImageUrl = (i: number, url: string) => {
+    setMediaUrls((prev) => {
+      const next = [...prev];
+      next[i] = url;
+      return next;
+    });
+  };
+  const removePostImage = (i: number) => {
+    setMediaUrls((prev) => {
+      const next = prev.filter((_, idx) => idx !== i);
+      return next.length === 0 ? [''] : next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,8 +211,9 @@ export default function BusinessEditPlanPage() {
       if (location.trim()) body.location_text = location.trim();
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
-      if (mediaUrl.trim()) {
-        body.media = [{ url: mediaUrl.trim(), type: 'image' }];
+      const validMedia = mediaUrls.map((u) => u.trim()).filter(Boolean);
+      if (validMedia.length > 0) {
+        body.media = validMedia.map((url) => ({ url, type: 'image' }));
       }
       if (ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0) {
         body.passes = passes.filter((p) => p.name.trim()).map((p) => ({
@@ -199,6 +222,7 @@ export default function BusinessEditPlanPage() {
           price: p.price,
           description: '',
           capacity: 1,
+          media: (p.mediaUrl?.trim() ? [{ url: p.mediaUrl.trim(), type: 'image' as const }] : undefined),
         }));
       } else {
         body.passes = [];
@@ -277,19 +301,46 @@ export default function BusinessEditPlanPage() {
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
-          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post image</p>
-          {mediaUrl && (
-            <div className="mb-2 h-24 w-24 overflow-hidden rounded-xl bg-neutral-200">
-              <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
+          {mediaUrls.map((url, i) => (
+            <div key={i} className="mb-3 flex flex-wrap items-start gap-2">
+              {url.trim() ? (
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePostImage(i)}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : null}
+              <div className="min-w-0 flex-1 flex gap-2 items-center">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => updatePostImageUrl(i, e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
+                  placeholder="https://..."
+                />
+                {mediaUrls.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removePostImage(i)}
+                    className="shrink-0 rounded-full p-1.5 text-neutral-600 hover:bg-neutral-300 hover:text-black"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-          <input
-            type="url"
-            value={mediaUrl}
-            onChange={(e) => setMediaUrl(e.target.value)}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
-            placeholder="https://..."
-          />
+          ))}
+          <button type="button" onClick={addPostImage} className="text-sm font-semibold text-black">
+            + Add another image
+          </button>
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
@@ -353,31 +404,58 @@ export default function BusinessEditPlanPage() {
             <input type="checkbox" checked={ticketsEnabled} onChange={(e) => setTicketsEnabled(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           {ticketsEnabled && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-4">
               {passes.map((p, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={p.name}
-                    onChange={(e) => updatePass(i, 'name', e.target.value)}
-                    placeholder="Ticket name"
-                    className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
-                  />
-                  <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+                <div key={i} className="rounded-xl border border-[#E5E5EA] bg-white p-3 space-y-2">
+                  <div className="flex gap-2">
                     <input
-                      type="number"
-                      min={0}
-                      value={p.price || ''}
-                      onChange={(e) => updatePass(i, 'price', e.target.value)}
-                      placeholder="Price"
-                      className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
+                      type="text"
+                      value={p.name}
+                      onChange={(e) => updatePass(i, 'name', e.target.value)}
+                      placeholder="Ticket name"
+                      className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
                     />
-                    {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
+                    <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-2 py-1">
+                      <input
+                        type="number"
+                        min={0}
+                        value={p.price || ''}
+                        onChange={(e) => updatePass(i, 'price', e.target.value)}
+                        placeholder="Price"
+                        className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
+                      />
+                      {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
+                    </div>
+                    <button type="button" onClick={() => removePass(i)} className="shrink-0 text-black/70 hover:text-black" aria-label="Remove pass">×</button>
                   </div>
-                  <button type="button" onClick={() => removePass(i)} className="text-black/70">×</button>
+                  <div className="border-t border-[#E5E5EA] pt-2">
+                    <p className="mb-1.5 text-xs font-semibold text-black">Ticket image (optional)</p>
+                    <div className="flex flex-wrap items-start gap-2">
+                      {(p.mediaUrl ?? '').trim() ? (
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
+                          <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => updatePass(i, 'mediaUrl', '')}
+                            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-sm hover:bg-black/80"
+                            aria-label="Remove ticket image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : null}
+                      <input
+                        type="url"
+                        value={p.mediaUrl ?? ''}
+                        onChange={(e) => updatePass(i, 'mediaUrl', e.target.value)}
+                        placeholder="https://... (optional)"
+                        className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
-              <button type="button" onClick={addPass} className="text-sm font-semibold text-black">+ Add type</button>
+              <button type="button" onClick={addPass} className="text-sm font-semibold text-black">+ Add ticket type</button>
             </div>
           )}
         </section>
