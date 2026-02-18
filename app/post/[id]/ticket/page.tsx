@@ -258,15 +258,13 @@ export default function TicketPage() {
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
-      <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
-        {/* Gradient background */}
-        <div
-          className="absolute inset-0 -z-10"
-          style={{
-            background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-          }}
-        />
-
+      <div 
+        className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}
+        style={{
+          background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+        }}
+      >
+        {/* Header */}
         <header className="flex shrink-0 items-center justify-between px-4 pt-3 pb-2">
           <button
             type="button"
@@ -282,20 +280,22 @@ export default function TicketPage() {
           <div className="w-9" />
         </header>
 
-        <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-1 whitespace-nowrap truncate">
+        <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-3 whitespace-nowrap truncate">
           Your pass will be sent to you via Whatsapp shortly
         </p>
 
-        {/* Scrollable area */}
+        {/* Scrollable area with seamless background */}
         <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div
-            ref={ticketContentRef}
-            className="flex flex-col items-center px-4 pb-2 pt-0"
-            style={{
-              background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-            }}
-          >
-            <div className="relative w-full max-w-[340px]">
+          <div className="flex flex-col items-center px-4 pt-4 pb-2">
+            {/* Ticket card wrapper for download */}
+            <div 
+              ref={ticketContentRef}
+              className="relative w-full max-w-[340px]"
+              style={{
+                background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+                padding: '20px 0',
+              }}
+            >
               {/* Ticket card */}
               <div className="relative z-[2]">
                 <div className="mb-0 overflow-hidden rounded-[20px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
@@ -397,9 +397,8 @@ export default function TicketPage() {
             </div>
           </div>
 
-          <div className="min-h-[10px] shrink-0" aria-hidden />
-
-          <div className="flex justify-center px-4 pb-5">
+          {/* View Event button - seamless with background */}
+          <div className="flex justify-center px-4 pb-5 pt-2">
             <Link
               href={`/post/${planId}`}
               className="w-full max-w-[340px] shrink-0 rounded-[18px] bg-[#1C1C1E] py-3 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
@@ -414,14 +413,14 @@ export default function TicketPage() {
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 h-screen w-full overflow-hidden bg-[#8B7AB8]">
+      <div className="fixed inset-0 h-screen w-full overflow-hidden">
         <InnerTicket />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-[#8B7AB8]">
+    <div className="min-h-screen overflow-y-auto">
       <div className="mx-auto flex min-h-screen max-w-[420px] flex-col">
         <InnerTicket isDesktopLayout />
       </div>

@@ -274,13 +274,13 @@ export function BusinessDetailCard({
         </div>
       )}
 
-      {/* Mobile: Scrollable area */}
+      {/* Mobile: Scrollable area – white card starts where hero image (60vh) ends */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[30vh] mx-[5px] md:hidden"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[60vh] mx-[5px] md:hidden"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
-          className="rounded-t-[24px] px-5 pb-24 pt-6 shadow-lg min-h-[calc(100vh-120px)]"
+          className="rounded-t-[24px] px-5 pb-24 pt-6 shadow-lg min-h-[40vh]"
           style={{
             background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
           }}
