@@ -118,8 +118,8 @@ export function EventDetailCard({
       </div>
 
       {/* White content card – overlaps feel via no gap */}
-      <div className="rounded-t-3xl bg-white px-4 pb-8 pt-6 shadow-lg md:px-6">
-        <h1 className="text-xl font-extrabold text-neutral-900 md:text-2xl">{post.title}</h1>
+      <div className="relative -mt-8 rounded-t-3xl bg-white px-4 pb-8 pt-6 shadow-xl md:px-6">
+      <h1 className="mt-8 text-xl font-extrabold text-neutral-900 md:text-2xl">{post.title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 md:text-base whitespace-pre-line">{post.description}</p>
 
         {/* Additional tags – temporal, category, tags */}

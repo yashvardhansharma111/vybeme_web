@@ -33,6 +33,35 @@ function trimUrlForDisplay(url: string, maxPathLength = 45): string {
   }
 }
 
+/** Render add_detail description: if it is or contains URLs, make them clickable and trimmed */
+function renderDetailDescription(description: string, linkClassName: string) {
+  const trimmed = description.trim();
+  if (/^https?:\/\//.test(trimmed)) {
+    return (
+      <a href={trimmed} target="_blank" rel="noopener noreferrer" className={linkClassName}>
+        {trimUrlForDisplay(trimmed)}
+      </a>
+    );
+  }
+  const parts = trimmed.split(/(https?:\/\/[^\s]+)/g);
+  if (parts.some((p) => /^https?:\/\//.test(p))) {
+    return (
+      <>
+        {parts.map((part, i) =>
+          /^https?:\/\//.test(part) ? (
+            <a key={i} href={part.trim()} target="_blank" rel="noopener noreferrer" className={linkClassName}>
+              {trimUrlForDisplay(part.trim())}
+            </a>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  }
+  return description;
+}
+
 function formatEventDate(date: string | Date | undefined): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -289,7 +318,11 @@ export function BusinessDetailCard({
               {addDetails.slice(0, 4).map((detail, i) => (
                 <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
                   <p className="text-xs font-semibold text-[#8E8E93]">{detail.title}</p>
-                  {detail.description ? <p className="mt-1 text-sm font-semibold text-[#1C1C1E] whitespace-pre-line">{detail.description}</p> : null}
+                  {detail.description ? (
+                    <p className="mt-1 text-sm font-semibold text-[#1C1C1E] whitespace-pre-line">
+                      {renderDetailDescription(detail.description, 'text-[#007AFF] underline break-all')}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -382,7 +415,11 @@ export function BusinessDetailCard({
                 {addDetails.slice(0, 4).map((detail, i) => (
                   <div key={i} className="min-w-[200px] rounded-xl bg-neutral-100 px-4 py-3">
                     <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{detail.title}</p>
-                    {detail.description ? <p className="mt-1 text-sm font-semibold text-neutral-800 whitespace-pre-line">{detail.description}</p> : null}
+                    {detail.description ? (
+                      <p className="mt-1 text-sm font-semibold text-neutral-800 whitespace-pre-line">
+                        {renderDetailDescription(detail.description, 'text-neutral-900 underline break-all')}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
