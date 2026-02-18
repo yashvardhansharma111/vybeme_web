@@ -649,7 +649,7 @@ export default function PostPage() {
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
             currentUserAvatar={currentUserProfile?.profile_image}
             currentUserName={currentUserProfile?.name}
-            profileCircleHref={user?.user_id && isBusiness ? `/post/${postId}/ticket` : undefined}
+            profileCircleHref={user?.user_id && isBusiness ? '/' : undefined}
           />
         ) : post ? (
           <EventDetailCard
