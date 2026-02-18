@@ -8,7 +8,7 @@ import { EventDetailCard, type EventDetailPost } from '../../components/EventDet
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, createTicketOrder, verifyTicketPayment, getUserTicket } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, createTicketOrder, verifyTicketPayment, getUserTicket } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
@@ -101,7 +101,6 @@ export default function PostPage() {
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
-  const [eventFull, setEventFull] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
   const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
   const [paymentVerifiedForPassId, setPaymentVerifiedForPassId] = useState<string | null>(null);
@@ -181,14 +180,6 @@ export default function PostPage() {
               }
             })
             .catch(() => {});
-          getRegistrations(postIdFromApi)
-            .then((r) => {
-              if (r.success && r.data && (r.data.total_registrations ?? 0) >= 2) setEventFull(true);
-              else setEventFull(false);
-            })
-            .catch(() => setEventFull(false));
-        } else {
-          setEventFull(false);
         }
       } else {
         setError('Post not found');
@@ -704,7 +695,6 @@ export default function PostPage() {
             authorName={authorName}
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
-            eventFull={eventFull}
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
             attendees={guestList}
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}

@@ -116,7 +116,6 @@ export function BusinessDetailCard({
   authorName,
   onBookEvent,
   registered = false,
-  eventFull = false,
   viewTicketHref,
   attendees,
   currentUserProfileHref,
@@ -129,8 +128,6 @@ export function BusinessDetailCard({
   appBaseUrl?: string;
   onBookEvent?: () => void;
   registered?: boolean;
-  /** When true, event has reached max capacity (e.g. 2 users); show disabled Register and full message */
-  eventFull?: boolean;
   viewTicketHref?: string;
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
@@ -355,13 +352,6 @@ export function BusinessDetailCard({
             <Link href={viewTicketHref} className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
               View your pass
             </Link>
-          ) : eventFull ? (
-            <div className="flex flex-col items-center gap-2">
-              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
-                Register
-              </button>
-              <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
-            </div>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
@@ -465,13 +455,6 @@ export function BusinessDetailCard({
                 <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white no-underline shadow-xl hover:bg-neutral-800">
                   View your pass
                 </Link>
-              ) : eventFull ? (
-                <div className="flex flex-col items-center gap-2">
-                  <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
-                    Register
-                  </button>
-                  <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
-                </div>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
                   Register
