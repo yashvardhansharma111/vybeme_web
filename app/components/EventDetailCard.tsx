@@ -16,6 +16,9 @@ export interface EventDetailPost {
   date?: string | Date;
   time?: string;
   add_details?: Array<{ title: string; description?: string }>;
+  tags?: string[];
+  category_sub?: string[];
+  temporal_tags?: string[];
   interacted_users?: unknown[];
   interaction_count?: number;
   [key: string]: unknown;
@@ -73,6 +76,12 @@ export function EventDetailCard({
   const detailOrder = ['Distance', 'Starting Point', 'Dress Code', 'F&B'];
   const detailsByTitle = Object.fromEntries((details as { title: string; description?: string }[]).map((d) => [d.title, d.description ?? '—']));
   const displayDetails = detailOrder.map((title) => ({ title, description: detailsByTitle[title] ?? '—' }));
+  const additionalTags = [
+    ...(post.temporal_tags ?? []),
+    ...(post.category_sub ?? []),
+    ...(post.tags ?? []),
+  ].filter(Boolean) as string[];
+  const uniqueTags = [...new Set(additionalTags.map((t) => String(t).trim()).filter(Boolean))];
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
@@ -112,6 +121,20 @@ export function EventDetailCard({
       <div className="rounded-t-3xl bg-white px-4 pb-8 pt-6 shadow-lg md:px-6">
         <h1 className="text-xl font-extrabold text-neutral-900 md:text-2xl">{post.title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 md:text-base whitespace-pre-line">{post.description}</p>
+
+        {/* Additional tags – temporal, category, tags */}
+        {uniqueTags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {uniqueTags.map((tag, i) => (
+              <span
+                key={`${tag}-${i}`}
+                className="inline-flex items-center rounded-full bg-[#F2F2F7] px-3 py-1.5 text-xs font-semibold text-neutral-800"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Location – light grey block */}
         {(post.location_text || post.date) && (

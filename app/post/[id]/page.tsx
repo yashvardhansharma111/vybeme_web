@@ -107,6 +107,10 @@ export default function PostPage() {
           is_women_only: !!(p.is_women_only ?? false),
           user: author ? { ...author, id: author.id ?? author.user_id ?? authorId, user_id: author.user_id ?? author.id ?? authorId } : undefined,
           user_id: authorId,
+          tags: (p.tags ?? p.category_sub ?? []) as string[],
+          category_sub: (p.category_sub ?? p.tags ?? []) as string[],
+          temporal_tags: (p.temporal_tags ?? []) as string[],
+          add_details: (p.add_details ?? []) as Array<{ title?: string; description?: string }>,
         } as PostData);
         if (type === 'business') {
           getGuestList(postIdFromApi)

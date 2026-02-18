@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og';
 import { getPostOgData } from '@/lib/og-post';
 
-// Upper part = image only (2x height). Lower part = grey box with title + 15-char description.
-const W = 800;
-const IMAGE_HEIGHT = 560; // twice the grey box height
+// 1200x630 = WhatsApp/Facebook recommended for large link previews (1.91:1). Event image dominates; bar below.
+const W = 1200;
+const H = 630;
 const GREY_BOX_HEIGHT = 120;
-const H = IMAGE_HEIGHT + GREY_BOX_HEIGHT; // 680
+const IMAGE_HEIGHT = H - GREY_BOX_HEIGHT; // 510
 
 export async function GET(
   _request: Request,
@@ -35,7 +35,7 @@ export async function GET(
       ),
       {
         width: W,
-        height: 680,
+        height: H,
         headers: {
           'Cache-Control': 'public, max-age=3600, s-maxage=3600',
         },
@@ -44,7 +44,7 @@ export async function GET(
   }
 
   const { title, imageUrl, description } = post;
-  const shortDesc = (description || '').replace(/\s+/g, ' ').trim().slice(0, 15);
+  const shortDesc = (description || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
   return new ImageResponse(
     (
@@ -93,7 +93,7 @@ export async function GET(
           )}
         </div>
 
-        {/* Lower: grey box with title + description (15 chars) */}
+        {/* Lower: bar with title + short description + domain */}
         <div
           style={{
             width: '100%',
@@ -101,16 +101,16 @@ export async function GET(
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            padding: '14px 20px',
-            gap: 4,
+            padding: '16px 24px',
+            gap: 6,
             backgroundColor: '#2C2C2E',
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#ffffff' }}>{title}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#ffffff', lineHeight: 1.2 }}>{title}</div>
           {shortDesc ? (
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)' }}>{shortDesc}</div>
+            <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 1.3 }}>{shortDesc}</div>
           ) : null}
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>app.vybeme.in</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>app.vybeme.in</div>
         </div>
       </div>
     ),

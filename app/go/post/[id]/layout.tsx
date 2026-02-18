@@ -11,28 +11,30 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: 'vybeme. — Find people for your plans',
       description: '',
-      openGraph: { title: 'vybeme.', description: '', url },
+      openGraph: { title: 'vybeme.', description: '', url, type: 'website' },
     };
   }
-  const shortDescription = post.description
-    ? post.description.split(/\n/).slice(0, 3).join(' ').trim().slice(0, 15) || ''
+  const ogDescription = post.description
+    ? post.description.split(/\n/).slice(0, 4).join(' ').replace(/\s+/g, ' ').trim().slice(0, 155) || ''
     : '';
   const openGraph: Metadata['openGraph'] = {
     title: post.title,
-    description: shortDescription,
+    description: ogDescription,
     url,
     siteName: 'vybeme.',
+    type: 'website',
+    locale: 'en_IN',
   };
-  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=3`;
-  openGraph.images = [{ url: shareImageUrl, width: 800, height: 680, alt: post.title }];
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=4`;
+  openGraph.images = [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
   return {
     title: post.title,
-    description: shortDescription,
+    description: ogDescription,
     openGraph,
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: shortDescription,
+      description: ogDescription,
       images: [shareImageUrl],
     },
   };
