@@ -66,7 +66,7 @@ function getDetailIconKey(detailType: string): string {
 
 const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   price: HiOutlineTag,
-  location: GiRunningShoe,   // Distance
+  location: GiRunningShoe,
   fb: MdFastfood,
   music: FaMusic,
   sports: FaBasketballBall,
@@ -94,7 +94,6 @@ export default function TicketPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  /** Ref for download: viewport except top (header). Captures gradient + full ticket card. */
   const ticketContentRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -103,7 +102,7 @@ export default function TicketPage() {
       setQrDataUrl(null);
       return;
     }
-    QRCode.toDataURL(ticket.qr_code_hash, { width: 112, margin: 0 })
+    QRCode.toDataURL(ticket.qr_code_hash, { width: 96, margin: 0 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(null));
   }, [ticket?.qr_code_hash]);
@@ -183,7 +182,6 @@ export default function TicketPage() {
     const plan = ticket.plan;
     const addDetails = plan.add_details ?? [];
     const detailBy = (t: string) => addDetails.find((d: any) => d.detail_type === t);
-    /** Show only the value (description); fallback to title or location. No field name. */
     const getDetailLabel = (d: { title?: string; description?: string } | undefined, fallback: string): string | null => {
       if (!d) return (fallback?.trim() || '').trim() || null;
       const desc = (d.description ?? '').trim();
@@ -194,19 +192,15 @@ export default function TicketPage() {
     };
 
     const items: { icon: string; label: string }[] = [];
-    // 1. Category tag first (value from category_main / category_sub)
     const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
     if (category) {
       items.push({ icon: getCategoryIconKey(category), label: category });
     }
-    // 2. Distance – show value from add_details only (e.g. 5km). Do not use location_text (no location tag).
     const distanceDetail = detailBy('distance');
     const distance = getDetailLabel(distanceDetail, '');
     if (distance) items.push({ icon: 'location', label: distance });
-    // 3. F&B – show value or "F&B: value"
     const fb = getDetailLabel(detailBy('f&b'), '');
     if (fb) items.push({ icon: 'fb', label: fb });
-    // 4. Other add_details: starting point, dress code only. No location, no links (e.g. Instagram).
     const isLinkOrUrl = (s: string) => {
       const x = (s || '').trim().toLowerCase();
       return /^https?:\/\//i.test(x) || x.includes('instagram') || x.includes('.com/');
@@ -260,163 +254,164 @@ export default function TicketPage() {
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
   const passName = selectedPass?.name ?? 'Ticket';
 
-  const overlapAmount = 40;
+  const overlapAmount = 32;
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
-    <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
-      {/* Gradient background */}
-      <div
-        className="absolute inset-0 -z-10"
-        style={{
-          background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
-        }}
-      />
-
-      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
-        <button
-          type="button"
-          onClick={() => (fromTickets ? router.push('/tickets') : router.push(`/post/${planId}`))}
-          className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
-          aria-label="Close"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <h1 className="text-base font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
-        <div className="w-11" />
-      </header>
-
-      <p className="shrink-0 text-center text-[11px] font-medium text-[#1C1C1E] px-4 pb-1 whitespace-nowrap truncate">
-        Your pass will be sent to you via Whatsapp shortly
-      </p>
-
-      {/* Scrollable area: full ticket card (image + overlay + pills + QR) + View Event button */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
+        {/* Gradient background */}
         <div
-          ref={ticketContentRef}
-          className="flex flex-col items-center px-5 pb-2 pt-0"
+          className="absolute inset-0 -z-10"
           style={{
             background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
           }}
-        >
-          <div className="relative w-full max-w-[420px]">
-            {/* Ticket card: image on top, then white block with pills + QR */}
-            <div className="relative z-[2]">
-              <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
-                {/* Image block - natural height, object-cover */}
-                <div className="relative w-full overflow-hidden rounded-t-[24px]">
-                  {mainImage ? (
-                    <img
-                      src={getProxiedImageUrl(mainImage) ?? mainImage}
-                      alt=""
-                      className="block w-full h-auto max-h-[45vh] object-cover object-center"
-                    />
-                  ) : (
-                    <div className="flex aspect-[4/3] w-full items-center justify-center bg-[#94A3B8]">
-                      <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                      </svg>
-                    </div>
-                  )}
-                  {mainImage && (
-                    <>
-                      <div
-                        className="absolute bottom-0 left-0 right-0 z-10 h-[30%] min-h-[72px] pointer-events-none"
-                        aria-hidden
-                        style={{
-                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)',
-                          backdropFilter: 'blur(5px)',
-                        }}
+        />
+
+        <header className="flex shrink-0 items-center justify-between px-4 pt-3 pb-2">
+          <button
+            type="button"
+            onClick={() => (fromTickets ? router.push('/tickets') : router.push(`/post/${planId}`))}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h1 className="text-sm font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
+          <div className="w-9" />
+        </header>
+
+        <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-1 whitespace-nowrap truncate">
+          Your pass will be sent to you via Whatsapp shortly
+        </p>
+
+        {/* Scrollable area */}
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <div
+            ref={ticketContentRef}
+            className="flex flex-col items-center px-4 pb-2 pt-0"
+            style={{
+              background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
+            }}
+          >
+            <div className="relative w-full max-w-[340px]">
+              {/* Ticket card */}
+              <div className="relative z-[2]">
+                <div className="mb-0 overflow-hidden rounded-[20px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
+                  {/* Image block */}
+                  <div className="relative w-full overflow-hidden rounded-t-[20px]">
+                    {mainImage ? (
+                      <img
+                        src={getProxiedImageUrl(mainImage) ?? mainImage}
+                        alt=""
+                        className="block w-full h-auto max-h-[38vh] object-cover object-center"
                       />
-                      <div
-                        className="absolute inset-x-0 bottom-0 pt-4 pb-5 px-5 z-20 pointer-events-none"
-                        style={{
-                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.05) 15%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%)',
-                        }}
-                      >
-                        <h2 className="text-[22px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                        <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-white/95">
-                          <span className="flex items-center gap-1.5">
-                            <FaCalendarCheck className="h-4 w-4 shrink-0 opacity-90" />
-                            {formatDate(plan.date)}
-                          </span>
-                          <span>{formatTime(plan.time)}</span>
+                    ) : (
+                      <div className="flex aspect-[4/3] w-full items-center justify-center bg-[#94A3B8]">
+                        <svg className="h-12 w-12 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                        </svg>
+                      </div>
+                    )}
+                    {mainImage && (
+                      <>
+                        <div
+                          className="absolute bottom-0 left-0 right-0 z-10 h-[30%] min-h-[60px] pointer-events-none"
+                          aria-hidden
+                          style={{
+                            background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)',
+                            backdropFilter: 'blur(5px)',
+                          }}
+                        />
+                        <div
+                          className="absolute inset-x-0 bottom-0 pt-3 pb-4 px-4 z-20 pointer-events-none"
+                          style={{
+                            background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.05) 15%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%)',
+                          }}
+                        >
+                          <h2 className="text-[18px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
+                          <div className="mt-1.5 flex items-center gap-2 text-[12px] font-semibold text-white/95">
+                            <span className="flex items-center gap-1.5">
+                              <FaCalendarCheck className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                              {formatDate(plan.date)}
+                            </span>
+                            <span>{formatTime(plan.time)}</span>
+                          </div>
+                          {plan.location_text && (
+                            <p className="mt-1 flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-white/85">
+                              <IoLocationSharp className="h-3 w-3 shrink-0 opacity-90" />
+                              <span className="min-w-0 truncate">{plan.location_text}</span>
+                            </p>
+                          )}
                         </div>
-                        {plan.location_text && (
-                          <p className="mt-1 flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
-                            <IoLocationSharp className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                            <span className="min-w-0 truncate">{plan.location_text}</span>
-                          </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Info section */}
+                  <div
+                    className="relative z-[1] flex gap-4 rounded-[16px] bg-white p-4 pb-5"
+                    style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 12, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2">
+                      {pillItems.map((item, idx) => {
+                        const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
+                        return (
+                          <div
+                            key={idx}
+                            className="inline-flex h-[30px] min-w-0 max-w-full items-center gap-1.5 rounded-[15px] border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-2 pr-2.5 shadow-sm"
+                          >
+                            <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]">
+                              <Icon className="h-[14px] w-[14px]" />
+                            </span>
+                            <span className="flex min-w-0 flex-1 items-center truncate text-[11px] font-medium leading-none text-[#1C1C1E]">
+                              {item.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex min-w-[96px] shrink-0 flex-col items-center justify-center pb-1">
+                      <div className="mb-2.5 rounded-lg border border-[#E5E7EB] bg-white p-2">
+                        {qrDataUrl ? (
+                          <img src={qrDataUrl} width={96} height={96} alt="" className="block size-[96px]" />
+                        ) : ticket?.qr_code_hash ? (
+                          <QRCodeSVG value={ticket.qr_code_hash} size={96} level="M" />
+                        ) : (
+                          <div className="flex h-[96px] w-[96px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                            <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                          </div>
                         )}
                       </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Info section - pills left, QR + pass name + ticket number right */}
-                <div
-                  className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
-                  style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
-                >
-                  <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2.5">
-                    {pillItems.map((item, idx) => {
-                      const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
-                      return (
-                        <div
-                          key={idx}
-                          className="inline-flex h-[34px] min-w-0 max-w-full items-center gap-2 rounded-[18px] border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-2.5 pr-3 shadow-sm"
-                        >
-                          <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]">
-                            <Icon className="h-[16px] w-[16px]" />
-                          </span>
-                          <span className="flex min-w-0 flex-1 items-center truncate text-[13px] font-medium leading-none text-[#1C1C1E]">
-                            {item.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
-                    <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
-                      {qrDataUrl ? (
-                        <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
-                      ) : ticket?.qr_code_hash ? (
-                        <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
-                      ) : (
-                        <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
-                          <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                          </svg>
-                        </div>
-                      )}
+                      <p className="mt-1.5 text-center text-[14px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
+                      <p className="mt-1.5 min-h-[1.2em] max-w-full px-1 text-center text-[11px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">
+                        {ticket?.ticket_number ?? '—'}
+                      </p>
                     </div>
-                    <p className="mt-2 text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
-                    <p className="mt-2 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">
-                      {ticket?.ticket_number ?? '—'}
-                    </p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <div className="min-h-[10px] shrink-0" aria-hidden />
+
+          <div className="flex justify-center px-4 pb-5">
+            <Link
+              href={`/post/${planId}`}
+              className="w-full max-w-[340px] shrink-0 rounded-[18px] bg-[#1C1C1E] py-3 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
+            >
+              View Event
+            </Link>
+          </div>
         </div>
-
-        <div className="min-h-[12px] shrink-0" aria-hidden />
-
-        <Link
-          href={`/post/${planId}`}
-          className="mx-5 mb-6 w-full max-w-[420px] shrink-0 rounded-[22px] bg-[#1C1C1E] py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
-        >
-          View Event
-        </Link>
       </div>
-    </div>
     );
   };
 
-  // Mobile: full-screen, no scroll
   if (isMobile) {
     return (
       <div className="fixed inset-0 h-screen w-full overflow-hidden bg-[#8B7AB8]">
@@ -425,10 +420,9 @@ export default function TicketPage() {
     );
   }
 
-  // Desktop: full-page scrollable layout, no phone frame — prevents overflow and cut-off
   return (
     <div className="min-h-screen overflow-y-auto bg-[#8B7AB8]">
-      <div className="mx-auto flex min-h-screen max-w-[480px] flex-col">
+      <div className="mx-auto flex min-h-screen max-w-[420px] flex-col">
         <InnerTicket isDesktopLayout />
       </div>
     </div>
