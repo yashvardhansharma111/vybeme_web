@@ -70,11 +70,26 @@ function formatEventDate(date: string | Date | undefined): string {
   return `${day}${ord} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
 
+function formatTimeAMPM(time: string | null | undefined): string {
+  if (!time || !String(time).trim()) return '';
+  const t = String(time).trim();
+  if (/AM|PM/i.test(t)) return t;
+  const match = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return t;
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (h >= 24) h = 0;
+  const period = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
+}
 function formatDayAndTime(date: string | Date | undefined, time: string | undefined): string {
-  if (!date) return time ?? '';
+  if (!date) return formatTimeAMPM(time) ?? '';
   const d = typeof date === 'string' ? new Date(date) : date;
   const dateStr = formatEventDate(date);
-  return time ? `${dateStr} | ${time} onwards` : dateStr;
+  const timeStr = formatTimeAMPM(time);
+  return timeStr ? `${dateStr} | ${timeStr} onwards` : dateStr;
 }
 
 function formatOrganizerTime(date: string | Date | undefined): string {
@@ -101,6 +116,7 @@ export function BusinessDetailCard({
   authorName,
   onBookEvent,
   registered = false,
+  eventFull = false,
   viewTicketHref,
   attendees,
   currentUserProfileHref,
@@ -113,6 +129,8 @@ export function BusinessDetailCard({
   appBaseUrl?: string;
   onBookEvent?: () => void;
   registered?: boolean;
+  /** When true, event has reached max capacity (e.g. 2 users); show disabled Register and full message */
+  eventFull?: boolean;
   viewTicketHref?: string;
   selectedPassId?: string | null;
   onSelectPass?: (passId: string) => void;
@@ -337,6 +355,10 @@ export function BusinessDetailCard({
             <Link href={viewTicketHref} className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
               View your pass
             </Link>
+          ) : eventFull ? (
+            <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+              It&apos;s full. Better luck next time.
+            </button>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
@@ -440,6 +462,10 @@ export function BusinessDetailCard({
                 <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white no-underline shadow-xl hover:bg-neutral-800">
                   View your pass
                 </Link>
+              ) : eventFull ? (
+                <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
+                  It&apos;s full. Better luck next time.
+                </button>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
                   Register

@@ -8,7 +8,7 @@ import { EventDetailCard, type EventDetailPost } from '../../components/EventDet
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, createTicketOrder, verifyTicketPayment, getUserTicket } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, createTicketOrder, verifyTicketPayment, getUserTicket } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
@@ -20,10 +20,26 @@ function formatEventDateOnly(date: string | Date | undefined): string {
   const ord = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
   return `${day}${ord} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
+/** Normalize time string to AM/PM (e.g. "19:00" -> "7:00 PM"). */
+function formatTimeAMPM(time: string | null | undefined): string {
+  if (!time || !String(time).trim()) return '';
+  const t = String(time).trim();
+  if (/AM|PM/i.test(t)) return t;
+  const match = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return t;
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (h >= 24) h = 0;
+  const period = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
+}
 function formatEventDateAndTime(date: string | Date | undefined, time: string | undefined): string {
-  if (!date) return time || '';
+  if (!date) return formatTimeAMPM(time) || '';
   const dateStr = formatEventDateOnly(date);
-  return time ? `${dateStr} | ${time}` : dateStr;
+  const timeStr = formatTimeAMPM(time);
+  return timeStr ? `${dateStr} | ${timeStr}` : dateStr;
 }
 
 function getPendingBusinessRegistration(): { planId: string; passId: string } | null {
@@ -85,6 +101,7 @@ export default function PostPage() {
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
+  const [eventFull, setEventFull] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
   const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
   const [paymentVerifiedForPassId, setPaymentVerifiedForPassId] = useState<string | null>(null);
@@ -164,6 +181,14 @@ export default function PostPage() {
               }
             })
             .catch(() => {});
+          getRegistrations(postIdFromApi)
+            .then((r) => {
+              if (r.success && r.data && (r.data.total_registrations ?? 0) >= 2) setEventFull(true);
+              else setEventFull(false);
+            })
+            .catch(() => setEventFull(false));
+        } else {
+          setEventFull(false);
         }
       } else {
         setError('Post not found');
@@ -341,7 +366,7 @@ export default function PostPage() {
           key: rzpKey,
           amount: order.amount,
           currency: order.currency || 'INR',
-          name: 'vybeme',
+          name: 'Breathe.runclub',
           description: 'Event Ticket',
           order_id: order.id,
           prefill: {
@@ -679,6 +704,7 @@ export default function PostPage() {
             authorName={authorName}
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
+            eventFull={eventFull}
             viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
             attendees={guestList}
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}

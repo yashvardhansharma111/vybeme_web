@@ -32,11 +32,26 @@ function formatEventDate(date: string | Date | undefined): string {
   return `${day}${ord} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
 
+function formatTimeAMPM(time: string | null | undefined): string {
+  if (!time || !String(time).trim()) return '';
+  const t = String(time).trim();
+  if (/AM|PM/i.test(t)) return t;
+  const match = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return t;
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (h >= 24) h = 0;
+  const period = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
+}
 function formatDayAndTime(date: string | Date | undefined, time: string | undefined): string {
-  if (!date) return time || '';
+  if (!date) return formatTimeAMPM(time) || '';
   const d = typeof date === 'string' ? new Date(date) : date;
   const dateStr = formatEventDate(date);
-  return time ? `${dateStr} | ${time}` : dateStr;
+  const timeStr = formatTimeAMPM(time);
+  return timeStr ? `${dateStr} | ${timeStr}` : dateStr;
 }
 
 function formatOrganizerTime(date: string | Date | undefined): string {

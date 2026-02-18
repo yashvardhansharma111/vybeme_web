@@ -38,9 +38,20 @@ function formatDate(date: string | Date | null | undefined): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/** Normalize time to AM/PM (e.g. "19:00" -> "7:00 PM"). */
 function formatTime(time: string | null | undefined): string {
-  if (!time) return '10:00 PM';
-  return time;
+  if (!time || !String(time).trim()) return '';
+  const t = String(time).trim();
+  if (/AM|PM/i.test(t)) return t;
+  const match = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return t;
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (h >= 24) h = 0;
+  const period = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${period}`;
 }
 
 /** Map category/label to pill icon key. */
