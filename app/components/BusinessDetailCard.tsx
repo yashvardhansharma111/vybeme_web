@@ -21,6 +21,18 @@ export interface BusinessDetailPost {
   [key: string]: unknown;
 }
 
+/** Trim URL for display: show hostname + short path, or "Link" */
+function trimUrlForDisplay(url: string, maxPathLength = 45): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname + u.search;
+    const pathDisplay = path.length > maxPathLength ? path.slice(0, maxPathLength - 1) + '…' : path;
+    return pathDisplay ? `${u.hostname}${pathDisplay}` : u.hostname || 'Link';
+  } catch {
+    return url.length > 50 ? url.slice(0, 49) + '…' : url || 'Link';
+  }
+}
+
 function formatEventDate(date: string | Date | undefined): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -65,6 +77,7 @@ export function BusinessDetailCard({
   currentUserProfileHref,
   currentUserAvatar,
   currentUserName,
+  profileCircleHref,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -78,6 +91,8 @@ export function BusinessDetailCard({
   currentUserProfileHref?: string;
   currentUserAvatar?: string | null;
   currentUserName?: string;
+  /** When set (e.g. event ticket URL), profile circle links here instead of user profile. Profile link commented out as of now. */
+  profileCircleHref?: string;
 }) {
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
@@ -123,13 +138,14 @@ export function BusinessDetailCard({
       {/* Desktop: top bar – profile leftmost (sticky), then vybeme., Download app right */}
       <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
         <div className="flex items-center gap-4">
-          {currentUserProfileHref ? (
-            <Link href={currentUserProfileHref} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={currentUserName ?? 'Your profile'}>
+          {(profileCircleHref ?? currentUserProfileHref) ? (
+            <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center rounded-full transition-opacity hover:opacity-80" aria-label={profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile')}>
               <div className="relative h-9 w-9 overflow-hidden rounded-full bg-neutral-200">
                 {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="36px" /> : <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">{(currentUserName ?? 'You').charAt(0)}</span>}
               </div>
             </Link>
           ) : null}
+          {/* Profile link: commented out as of now — profile circle links to ticket when profileCircleHref is passed */}
           <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
             vybeme.
           </Link>
@@ -142,10 +158,10 @@ export function BusinessDetailCard({
         </div>
       )}
 
-      {/* Mobile: profile top right when logged in */}
-      {currentUserProfileHref ? (
+      {/* Mobile: profile top right when logged in — links to ticket (profileCircleHref) when passed, else profile */}
+      {(profileCircleHref ?? currentUserProfileHref) ? (
         <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent md:hidden">
-          <Link href={currentUserProfileHref} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={currentUserName ?? 'Your profile'}>
+          <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile')}>
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
               {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
             </div>
@@ -187,7 +203,7 @@ export function BusinessDetailCard({
       </div>
 
       {/* Mobile: Sticky bar – organiser pill on left, share on right */}
-      <div className={`fixed left-4 right-4 z-30 flex items-center gap-2 pt-[env(safe-area-inset-top)] ${currentUserProfileHref ? 'top-14' : 'top-10'} md:hidden`}>
+      <div className={`fixed left-4 right-4 z-30 flex items-center gap-2 pt-[env(safe-area-inset-top)] ${(profileCircleHref ?? currentUserProfileHref) ? 'top-14' : 'top-10'} md:hidden`}>
         <div className="flex min-w-0 flex-1 justify-start">
           <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 max-w-[200px] min-w-0">
             {profileHref ? (
@@ -244,8 +260,8 @@ export function BusinessDetailCard({
           <p className="mt-2 text-sm leading-[21px] text-[#444] whitespace-pre-line">
             {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
               /^https?:\/\//.test(part) ? (
-                <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline">
-                  {part}
+                <a key={i} href={part.trim()} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline break-all">
+                  {trimUrlForDisplay(part.trim())}
                 </a>
               ) : (
                 part
@@ -286,7 +302,7 @@ export function BusinessDetailCard({
         <div className="w-full max-w-md mx-auto">
           {registered && viewTicketHref ? (
             <Link href={viewTicketHref} className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
-              View ticket
+              View your pass
             </Link>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
@@ -374,8 +390,8 @@ export function BusinessDetailCard({
             <p className="mt-5 text-sm leading-relaxed text-neutral-700 whitespace-pre-line">
               {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
                 /^https?:\/\//.test(part) ? (
-                  <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-neutral-900 underline">
-                    {part}
+                  <a key={i} href={part.trim()} target="_blank" rel="noopener noreferrer" className="text-neutral-900 underline break-all">
+                    {trimUrlForDisplay(part.trim())}
                   </a>
                 ) : (
                   part
@@ -385,7 +401,7 @@ export function BusinessDetailCard({
             <div className="mt-8">
               {registered && viewTicketHref ? (
                 <Link href={viewTicketHref} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white no-underline shadow-xl hover:bg-neutral-800">
-                  View ticket
+                  View your pass
                 </Link>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">

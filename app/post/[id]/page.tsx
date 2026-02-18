@@ -166,6 +166,16 @@ export default function PostPage() {
     loadPost();
   }, [loadPost]);
 
+  // If user is already registered for this business plan, show "View your pass" instead of Register
+  useEffect(() => {
+    if (!postId || !user?.user_id || !post || (post as PostData).type !== 'business') return;
+    getUserTicket(postId, user.user_id)
+      .then((res) => {
+        if (res.success && res.data?.ticket) setBusinessRegistered(true);
+      })
+      .catch(() => {});
+  }, [postId, user?.user_id, post]);
+
   // Load current user profile for business card header (profile button when logged in)
   useEffect(() => {
     if (!user?.session_id || !user?.user_id) {
@@ -544,11 +554,77 @@ export default function PostPage() {
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
-          /* Form commented out — registration goes straight to ticket after payment/free pass */
+          <>
           <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col items-center justify-center p-6">
             <p className="text-neutral-600 text-center">Taking you to your ticket…</p>
             <button type="button" onClick={() => { setBusinessStep('detail'); router.push(`/post/${postId}/ticket`); }} className="mt-4 rounded-full bg-[#1C1C1E] px-6 py-2 text-white text-sm font-semibold">View ticket</button>
           </div>
+          {/* FORM COMMENTED OUT — registration goes straight to ticket after payment/free pass. Restore the block below if needed.
+        ) : post && isBusiness && businessStep === 'survey' ? (
+          (() => {
+            const selectedPass = selectedPassId ? passes.find((p) => p.pass_id === selectedPassId) : undefined;
+            const isPaidPass = selectedPass && selectedPass.price > 0;
+            const needsPayment = isPaidPass && paymentVerifiedForPassId !== selectedPassId;
+            return (
+          <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
+            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
+              <button type="button" onClick={() => setBusinessStep('tickets')} className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                Back
+              </button>
+            </div>
+            <div className="p-6 flex-1">
+            {needsPayment ? (
+              <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <p className="text-sm font-medium text-amber-800">Paid tickets require payment. Please complete payment on the event page first.</p>
+                <button type="button" onClick={() => { setError(null); setBusinessStep('tickets'); }} className="mt-3 w-full rounded-full bg-[#1C1C1E] px-4 py-3 text-sm font-bold text-white">Back to tickets — Pay & continue</button>
+              </div>
+            ) : null}
+            <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
+            <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Age <span className="text-red-500">*</span></p>
+                <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
+                  <option value="">Select age</option>
+                  {['Under 18yrs', '18-24yrs', '25-34yrs', '35-44yrs', 'above 45yrs'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+                </select>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Gender <span className="text-red-500">*</span></p>
+                <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
+                  <option value="">Select gender</option>
+                  {['Male', 'Female', 'Prefer not to say'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+                </select>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Your running experience <span className="text-red-500">*</span></p>
+                <div className="flex flex-col gap-2">
+                  {['This will be my first time.', 'I run occasionally', 'I run regularly', "I'm returning after a break"].map((opt) => (
+                    <button key={opt} type="button" onClick={() => setRunningExperience(opt)} className={`rounded-xl px-4 py-3 text-left text-sm font-medium ${runningExperience === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">What brings you to BREATHE?</p>
+                <textarea value={whatBringsYou} onChange={(e) => setWhatBringsYou(e.target.value)} placeholder="I want to connect with other runners" rows={2} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-500 resize-none" />
+              </div>
+            </div>
+            {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
+              <div className="pointer-events-auto">
+                <button type="button" disabled={businessRegistering || needsPayment} onClick={handleSubmitRegistration} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl">
+                  {businessRegistering ? 'Completing…' : 'Complete registration'}
+                </button>
+              </div>
+            </div>
+          </div>
+            );
+          })()
+        ) : post && isBusiness ? (
+          end of commented form */}
+          </>
         ) : post && isBusiness ? (
           <BusinessDetailCard
             post={{
@@ -573,6 +649,7 @@ export default function PostPage() {
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
             currentUserAvatar={currentUserProfile?.profile_image}
             currentUserName={currentUserProfile?.name}
+            profileCircleHref={user?.user_id && isBusiness ? `/post/${postId}/ticket` : undefined}
           />
         ) : post ? (
           <EventDetailCard
