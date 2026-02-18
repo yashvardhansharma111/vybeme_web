@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(WEB_BASE),
   title: "vybeme. — Find people for your plans",
   description: "Find people for your plans vybeme.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

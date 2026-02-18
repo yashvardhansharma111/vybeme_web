@@ -11,6 +11,7 @@ import type { PostData } from '../../components/PostCard';
 import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, createTicketOrder, verifyTicketPayment } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
+const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
 
 function getPendingBusinessRegistration(): { planId: string; passId: string } | null {
   if (typeof window === 'undefined') return null;
@@ -34,6 +35,28 @@ function clearPendingBusinessRegistration() {
   sessionStorage.removeItem(PENDING_BUSINESS_KEY);
 }
 
+function getPaymentVerified(planId: string, passId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = sessionStorage.getItem(PAYMENT_VERIFIED_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    return data?.planId === planId && data?.passId === passId;
+  } catch {
+    return false;
+  }
+}
+
+function setPaymentVerified(planId: string, passId: string) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(PAYMENT_VERIFIED_KEY, JSON.stringify({ planId, passId }));
+}
+
+function clearPaymentVerified() {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(PAYMENT_VERIFIED_KEY);
+}
+
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
@@ -50,6 +73,8 @@ export default function PostPage() {
   const [businessRegistered, setBusinessRegistered] = useState(false);
   const [businessRegistering, setBusinessRegistering] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
+  const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
+  const [paymentVerifiedForPassId, setPaymentVerifiedForPassId] = useState<string | null>(null);
   const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
   // Registration survey (replaces payment)
   const [ageRange, setAgeRange] = useState('');
@@ -159,15 +184,39 @@ export default function PostPage() {
       .catch(() => setCurrentUserProfile(null));
   }, [user?.session_id, user?.user_id]);
 
-  // After login return: show survey form for pending business registration (do not register until form submitted)
+  // After login return: for paid pass go to tickets and trigger payment; for free pass go to survey (form)
   useEffect(() => {
-    if (!postId || !user?.user_id || !isBusiness) return;
+    if (!postId || !user?.user_id || !isBusiness || !post) return;
     const pending = getPendingBusinessRegistration();
     if (!pending || pending.planId !== postId) return;
     clearPendingBusinessRegistration();
-    setSelectedPassId(pending.passId || null);
-    setBusinessStep('survey');
-  }, [postId, user?.user_id, isBusiness]);
+    const passId = pending.passId || null;
+    setSelectedPassId(passId);
+    const pass = passes.find((p) => p.pass_id === passId);
+    const isPaid = pass && pass.price > 0;
+    if (isPaid) {
+      setBusinessStep('tickets');
+      setTriggerPaymentAfterLogin(true);
+    } else {
+      setBusinessStep('survey');
+    }
+  }, [postId, user?.user_id, isBusiness, post, passes]);
+
+  // Trigger payment when returning from login with a paid pass selected
+  useEffect(() => {
+    if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
+    setTriggerPaymentAfterLogin(false);
+    const id = setTimeout(() => handleProceedToSurvey(), 150);
+    return () => clearTimeout(id);
+  }, [triggerPaymentAfterLogin, user?.user_id, selectedPassId, handleProceedToSurvey]);
+
+  // Restore payment-verified from sessionStorage (e.g. after mobile redirect/reload)
+  useEffect(() => {
+    if (!postId || !selectedPassId || businessStep !== 'survey') return;
+    if (getPaymentVerified(postId, selectedPassId)) {
+      setPaymentVerifiedForPassId(selectedPassId);
+    }
+  }, [postId, selectedPassId, businessStep]);
 
   const handleJoin = useCallback(async () => {
     if (!user?.user_id) {
@@ -275,10 +324,12 @@ export default function PostPage() {
                 response.razorpay_order_id,
                 response.razorpay_signature
               );
+              if (selectedPassId) {
+                setPaymentVerifiedForPassId(selectedPassId);
+                setPaymentVerified(postId, selectedPassId);
+              }
               setBusinessRegistered(true);
-              setBusinessStep('detail');
-              setSelectedPassId(null);
-              router.push(`/post/${postId}/ticket`);
+              setBusinessStep('survey');
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Payment verification failed');
             } finally {
@@ -319,9 +370,11 @@ export default function PostPage() {
       what_brings_you: whatBringsYou.trim() || undefined,
     })
       .then(() => {
+        clearPaymentVerified();
         setBusinessRegistered(true);
         setBusinessStep('detail');
         setSelectedPassId(null);
+        setPaymentVerifiedForPassId(null);
         setAgeRange('');
         setGender('');
         setRunningExperience('');
@@ -467,6 +520,11 @@ export default function PostPage() {
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
+          (() => {
+            const selectedPass = selectedPassId ? passes.find((p) => p.pass_id === selectedPassId) : undefined;
+            const isPaidPass = selectedPass && selectedPass.price > 0;
+            const needsPayment = isPaidPass && paymentVerifiedForPassId !== selectedPassId;
+            return (
           <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
             {/* Sticky sub-header with back (chevron) */}
             <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
@@ -482,6 +540,18 @@ export default function PostPage() {
               </button>
             </div>
             <div className="p-6 flex-1">
+            {needsPayment ? (
+              <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <p className="text-sm font-medium text-amber-800">Paid tickets require payment. Please complete payment on the event page first.</p>
+                <button
+                  type="button"
+                  onClick={() => { setError(null); setBusinessStep('tickets'); }}
+                  className="mt-3 w-full rounded-full bg-[#1C1C1E] px-4 py-3 text-sm font-bold text-white"
+                >
+                  Back to tickets — Pay & continue
+                </button>
+              </div>
+            ) : null}
             <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
             <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
             <div className="space-y-5">
@@ -549,7 +619,7 @@ export default function PostPage() {
               <div className="pointer-events-auto">
                 <button
                   type="button"
-                  disabled={businessRegistering}
+                  disabled={businessRegistering || needsPayment}
                   onClick={handleSubmitRegistration}
                   className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl"
                 >
@@ -558,6 +628,8 @@ export default function PostPage() {
               </div>
             </div>
           </div>
+            );
+          })()
         ) : post && isBusiness ? (
           <BusinessDetailCard
             post={{
