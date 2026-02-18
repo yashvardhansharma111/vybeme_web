@@ -3,15 +3,28 @@ import { getPostOgData } from '@/lib/og-post';
 
 const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
 
+// Ensure metadata (and og:image) is generated on each request so WhatsApp/crawlers get fresh tags
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const post = await getPostOgData(id);
   const url = `${WEB_BASE}/post/${id}`;
+  // Always set an absolute og:image URL so WhatsApp can show a preview (API route returns fallback if post missing)
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=4`;
   if (!post) {
     return {
       title: 'vybeme. — Find people for your plans',
-      description: '',
-      openGraph: { title: 'vybeme.', description: '', url, type: 'website' },
+      description: 'Check out this plan on vybeme.',
+      openGraph: {
+        title: 'vybeme.',
+        description: 'Check out this plan on vybeme.',
+        url,
+        type: 'website',
+        siteName: 'vybeme.',
+        images: [{ url: shareImageUrl, width: 1200, height: 630, alt: 'vybeme.' }],
+      },
+      twitter: { card: 'summary_large_image', title: 'vybeme.', images: [shareImageUrl] },
     };
   }
   // og:description — longer text for WhatsApp/subtitle (recommended ~155 chars)
@@ -26,8 +39,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     type: 'website',
     locale: 'en_IN',
   };
-  // 1200x630 = WhatsApp/Facebook recommended for large preview image. ?v=4 busts cache after OG size change.
-  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=4`;
   openGraph.images = [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
   return {
     title: post.title,
