@@ -202,14 +202,6 @@ export default function PostPage() {
     }
   }, [postId, user?.user_id, isBusiness, post, passes]);
 
-  // Trigger payment when returning from login with a paid pass selected
-  useEffect(() => {
-    if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
-    setTriggerPaymentAfterLogin(false);
-    const id = setTimeout(() => handleProceedToSurvey(), 150);
-    return () => clearTimeout(id);
-  }, [triggerPaymentAfterLogin, user?.user_id, selectedPassId, handleProceedToSurvey]);
-
   // Restore payment-verified from sessionStorage (e.g. after mobile redirect/reload)
   useEffect(() => {
     if (!postId || !selectedPassId || businessStep !== 'survey') return;
@@ -353,6 +345,14 @@ export default function PostPage() {
     setBusinessStep('survey');
     setError(null);
   }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name]);
+
+  // Trigger payment when returning from login with a paid pass selected (must run after handleProceedToSurvey is defined)
+  useEffect(() => {
+    if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
+    setTriggerPaymentAfterLogin(false);
+    const id = setTimeout(() => handleProceedToSurvey(), 150);
+    return () => clearTimeout(id);
+  }, [triggerPaymentAfterLogin, user?.user_id, selectedPassId, handleProceedToSurvey]);
 
   const handleSubmitRegistration = useCallback(() => {
     if (!ageRange || !gender || !runningExperience) {
