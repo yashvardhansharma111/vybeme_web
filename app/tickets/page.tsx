@@ -69,13 +69,15 @@ export default function TicketsPage() {
           vybeme.
         </Link>
         <div className="flex items-center gap-3">
-          {profile?.profile_image ? (
-            <Image src={profile.profile_image} alt="" width={32} height={32} className="rounded-full object-cover" />
-          ) : (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-600">
-              {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
-            </span>
-          )}
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+            {profile?.profile_image ? (
+              <Image src={profile.profile_image} alt="" width={36} height={36} className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
+                {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
+              </span>
+            )}
+          </div>
           <span className="text-sm font-medium text-neutral-700">{profile?.name ?? 'My tickets'}</span>
         </div>
       </header>
@@ -97,7 +99,7 @@ export default function TicketsPage() {
             {tickets.map((t) => (
               <li key={t.ticket_id}>
                 <Link
-                  href={`/post/${t.plan?.plan_id ?? ''}/ticket`}
+                  href={`/post/${t.plan?.plan_id ?? ''}/ticket?from=tickets`}
                   className="block rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm transition hover:bg-neutral-50"
                 >
                   <p className="truncate font-medium text-neutral-900">{t.plan?.title ?? 'Event'}</p>

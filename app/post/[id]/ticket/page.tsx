@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import html2canvas from 'html2canvas';
@@ -86,7 +86,9 @@ const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 export default function TicketPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const planId = params.id as string;
+  const fromTickets = searchParams.get('from') === 'tickets';
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,7 +273,7 @@ export default function TicketPage() {
       <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
         <button
           type="button"
-          onClick={() => router.push(`/post/${planId}`)}
+          onClick={() => (fromTickets ? router.push('/tickets') : router.push(`/post/${planId}`))}
           className="flex h-11 w-11 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
           aria-label="Close"
         >

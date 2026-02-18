@@ -276,7 +276,7 @@ export function BusinessDetailCard({
 
       {/* Mobile: Scrollable area */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[48vh] mx-[5px] md:hidden"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[60vh] mx-[5px] md:hidden"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
