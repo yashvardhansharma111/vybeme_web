@@ -115,6 +115,7 @@ export function EventDetailCard({
               </div>
               <div>
                 <p className="text-sm font-semibold text-neutral-900">{authorNameDisplay}</p>
+                <p className="text-xs text-neutral-500">{formatOrganizerTime(post.date ?? post.created_at)}</p>
               </div>
             </Link>
           ) : (
