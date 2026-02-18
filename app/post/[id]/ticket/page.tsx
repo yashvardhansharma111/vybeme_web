@@ -206,13 +206,17 @@ export default function TicketPage() {
     // 3. F&B – show value or "F&B: value"
     const fb = getDetailLabel(detailBy('f&b'), '');
     if (fb) items.push({ icon: 'fb', label: fb });
-    // 4. Other add_details (starting point, dress code, links) – show value or field name. No location tag.
+    // 4. Other add_details: starting point, dress code only. No location, no links (e.g. Instagram).
+    const isLinkOrUrl = (s: string) => {
+      const x = (s || '').trim().toLowerCase();
+      return /^https?:\/\//i.test(x) || x.includes('instagram') || x.includes('.com/');
+    };
     addDetails.forEach((d: any) => {
       if (!d || items.length >= 4) return;
       const t = (d.detail_type || '').toLowerCase();
-      if (t === 'distance' || t === 'f&b' || t === 'location' || t === 'venue') return;
+      if (t === 'distance' || t === 'f&b' || t === 'location' || t === 'venue' || t === 'links' || t === 'link' || t.includes('url')) return;
       const label = getDetailLabel(d, '');
-      if (label && !items.some((x) => x.label === label)) {
+      if (label && !isLinkOrUrl(label) && !items.some((x) => x.label === label)) {
         items.push({ icon: getDetailIconKey(d.detail_type || ''), label });
       }
     });
@@ -256,12 +260,12 @@ export default function TicketPage() {
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
   const passName = selectedPass?.name ?? 'Ticket';
 
-  const overlapAmount = 28;
+  const overlapAmount = 40;
 
   const InnerTicket = ({ isDesktopLayout = false }: { isDesktopLayout?: boolean }) => {
     return (
     <div className={isDesktopLayout ? 'flex min-h-full flex-col' : 'flex h-full min-h-0 flex-col overflow-hidden'}>
-      {/* Gradient background - exact app colors */}
+      {/* Gradient background */}
       <div
         className="absolute inset-0 -z-10"
         style={{
@@ -269,8 +273,7 @@ export default function TicketPage() {
         }}
       />
 
-      {/* Header: X + Booking Confirmed */}
-      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-1">
+      <header className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
         <button
           type="button"
           onClick={() => (fromTickets ? router.push('/tickets') : router.push(`/post/${planId}`))}
@@ -285,36 +288,34 @@ export default function TicketPage() {
         <div className="w-11" />
       </header>
 
-      <p className="shrink-0 text-center text-[11px] font-medium text-[#1C1C1E] px-4 pb-2 whitespace-nowrap truncate">
+      <p className="shrink-0 text-center text-[11px] font-medium text-[#1C1C1E] px-4 pb-1 whitespace-nowrap truncate">
         Your pass will be sent to you via Whatsapp shortly
       </p>
 
-      {/* Ticket + View Event: fit in viewport without scroll */}
-      <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-hidden">
+      {/* Scrollable area: full ticket card (image + overlay + pills + QR) + View Event button */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div
           ref={ticketContentRef}
-          className="flex min-h-0 w-full max-w-[420px] flex-1 flex-col items-center px-4 pb-2 pt-0"
+          className="flex flex-col items-center px-5 pb-2 pt-0"
           style={{
             background: 'linear-gradient(180deg, #8B7AB8 0%, #C9A0B8 35%, #F5E6E8 70%, #FFFFFF 100%)',
           }}
         >
-          <div className="relative flex min-h-0 w-full max-w-[380px] flex-1 flex-col">
-            {/* Ticket card - constrained height so no scroll */}
-            <div className="relative z-[2] flex min-h-0 flex-1 flex-col">
-              <div className="mb-0 flex min-h-0 flex-1 overflow-hidden rounded-[20px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
-                <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-[20px]">
-                  {/* Image: cap height so card fits viewport */}
+          <div className="relative w-full max-w-[420px]">
+            {/* Ticket card: image on top, then white block with pills + QR */}
+            <div className="relative z-[2]">
+              <div className="mb-0 overflow-hidden rounded-[24px] bg-white" style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}>
+                {/* Image block - natural height, object-cover */}
+                <div className="relative w-full overflow-hidden rounded-t-[24px]">
                   {mainImage ? (
-                    <div className="relative h-[min(26dvh,140px)] min-h-[80px] w-full shrink-0 overflow-hidden">
-                      <img
-                        src={getProxiedImageUrl(mainImage) ?? mainImage}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    </div>
+                    <img
+                      src={getProxiedImageUrl(mainImage) ?? mainImage}
+                      alt=""
+                      className="block w-full h-auto max-h-[45vh] object-cover object-center"
+                    />
                   ) : (
-                    <div className="flex h-[min(26dvh,140px)] min-h-[80px] w-full shrink-0 items-center justify-center bg-[#94A3B8]">
-                      <svg className="h-10 w-10 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex aspect-[4/3] w-full items-center justify-center bg-[#94A3B8]">
+                      <svg className="h-16 w-16 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
                       </svg>
                     </div>
@@ -322,25 +323,30 @@ export default function TicketPage() {
                   {mainImage && (
                     <>
                       <div
-                        className="absolute bottom-0 left-0 right-0 z-10 h-[60%] min-h-[56px] pointer-events-none"
+                        className="absolute bottom-0 left-0 right-0 z-10 h-[30%] min-h-[72px] pointer-events-none"
                         aria-hidden
                         style={{
-                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.75) 100%)',
-                          backdropFilter: 'blur(4px)',
+                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.72) 100%)',
+                          backdropFilter: 'blur(5px)',
                         }}
                       />
-                      <div className="absolute inset-x-0 bottom-0 pt-2 pb-3 px-4 z-20 pointer-events-none">
-                        <h2 className="text-lg font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
-                        <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-white/95">
-                          <span className="flex items-center gap-1">
-                            <FaCalendarCheck className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                      <div
+                        className="absolute inset-x-0 bottom-0 pt-4 pb-5 px-5 z-20 pointer-events-none"
+                        style={{
+                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.05) 15%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%)',
+                        }}
+                      >
+                        <h2 className="text-[22px] font-extrabold leading-tight text-white">{plan.title ?? 'Event'}</h2>
+                        <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-white/95">
+                          <span className="flex items-center gap-1.5">
+                            <FaCalendarCheck className="h-4 w-4 shrink-0 opacity-90" />
                             {formatDate(plan.date)}
                           </span>
                           <span>{formatTime(plan.time)}</span>
                         </div>
                         {plan.location_text && (
-                          <p className="mt-0.5 flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-white/85">
-                            <IoLocationSharp className="h-3 w-3 shrink-0 opacity-90" />
+                          <p className="mt-1 flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-white/85">
+                            <IoLocationSharp className="h-3.5 w-3.5 shrink-0 opacity-90" />
                             <span className="min-w-0 truncate">{plan.location_text}</span>
                           </p>
                         )}
@@ -349,45 +355,45 @@ export default function TicketPage() {
                   )}
                 </div>
 
-                {/* Info section - pills + QR, compact */}
+                {/* Info section - pills left, QR + pass name + ticket number right */}
                 <div
-                  className="relative z-[1] flex shrink-0 gap-3 rounded-b-[20px] rounded-t-[16px] bg-white px-4 py-3"
-                  style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 10, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
+                  className="relative z-[1] flex gap-5 rounded-[20px] bg-white p-5 pb-6"
+                  style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                 >
-                  <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1.5">
+                  <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-2.5">
                     {pillItems.map((item, idx) => {
                       const Icon = PILL_ICONS[item.icon] ?? PILL_ICONS.music;
                       return (
                         <div
                           key={idx}
-                          className="inline-flex h-[28px] min-w-0 max-w-full items-center gap-1.5 rounded-[14px] border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-2 pr-2.5 shadow-sm"
+                          className="inline-flex h-[34px] min-w-0 max-w-full items-center gap-2 rounded-[18px] border border-[#E5E7EB]/80 bg-[#F2F2F7] pl-2.5 pr-3 shadow-sm"
                         >
                           <span className="flex shrink-0 items-center justify-center text-[#1C1C1E]">
-                            <Icon className="h-3.5 w-3.5" />
+                            <Icon className="h-[16px] w-[16px]" />
                           </span>
-                          <span className="min-w-0 flex-1 truncate text-[11px] font-medium leading-none text-[#1C1C1E]">
+                          <span className="flex min-w-0 flex-1 items-center truncate text-[13px] font-medium leading-none text-[#1C1C1E]">
                             {item.label}
                           </span>
                         </div>
                       );
                     })}
                   </div>
-                  <div className="flex min-w-[80px] shrink-0 flex-col items-center justify-center pb-0">
-                    <div className="rounded-lg border border-[#E5E7EB] bg-white p-1.5">
+                  <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
+                    <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
                       {qrDataUrl ? (
-                        <img src={qrDataUrl} width={80} height={80} alt="" className="block size-[80px]" />
+                        <img src={qrDataUrl} width={112} height={112} alt="" className="block size-[112px]" />
                       ) : ticket?.qr_code_hash ? (
-                        <QRCodeSVG value={ticket.qr_code_hash} size={80} level="M" />
+                        <QRCodeSVG value={ticket.qr_code_hash} size={112} level="M" />
                       ) : (
-                        <div className="flex h-[80px] w-[80px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
-                          <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex h-[112px] w-[112px] items-center justify-center rounded bg-[#F3F4F6] text-[#8E8E93]">
+                          <svg className="h-14 w-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                           </svg>
                         </div>
                       )}
                     </div>
-                    <p className="mt-1 text-center text-sm font-bold leading-tight text-[#1C1C1E]">{passName}</p>
-                    <p className="mt-0.5 max-w-full truncate px-0.5 text-center text-[11px] font-medium tracking-wide text-[#6B7280]">
+                    <p className="mt-2 text-center text-[16px] font-bold leading-tight text-[#1C1C1E]">{passName}</p>
+                    <p className="mt-2 min-h-[1.25em] max-w-full px-1 text-center text-[13px] font-medium leading-normal tracking-wide text-[#6B7280] overflow-visible">
                       {ticket?.ticket_number ?? '—'}
                     </p>
                   </div>
@@ -397,10 +403,11 @@ export default function TicketPage() {
           </div>
         </div>
 
-        {/* View Event button - same screen, no scroll */}
+        <div className="min-h-[12px] shrink-0" aria-hidden />
+
         <Link
           href={`/post/${planId}`}
-          className="mt-2 mb-4 w-full max-w-[380px] shrink-0 rounded-[22px] bg-[#1C1C1E] py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
+          className="mx-5 mb-6 w-full max-w-[420px] shrink-0 rounded-[22px] bg-[#1C1C1E] py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
         >
           View Event
         </Link>
