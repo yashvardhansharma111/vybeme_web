@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { getWebUser, getCurrentUserProfile, getBusinessPlanDetails, updateBusinessPlan } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getBusinessPlanDetails, updateBusinessPlan, uploadImageFile } from '@/lib/api';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
 
@@ -42,12 +42,13 @@ export default function BusinessEditPlanPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [mediaUrls, setMediaUrls] = useState<string[]>(['']);
+  const [mediaFiles, setMediaFiles] = useState<(File | null)[]>([null]);
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [category, setCategory] = useState('');
   const [ticketsEnabled, setTicketsEnabled] = useState(false);
-  const [passes, setPasses] = useState<{ pass_id?: string; name: string; price: number; mediaUrl?: string }[]>([{ name: '', price: 0 }]);
+  const [passes, setPasses] = useState<{ pass_id?: string; name: string; price: number; mediaUrl?: string; mediaFile?: File | null }[]>([{ name: '', price: 0 }]);
   const [womenOnly, setWomenOnly] = useState(false);
   const [allowGuestList, setAllowGuestList] = useState(true);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
@@ -106,7 +107,9 @@ export default function BusinessEditPlanPage() {
           if (d.date) setDate(new Date(d.date).toISOString().slice(0, 10));
           setTime(d.time ? timeTo24h(d.time) : '');
           if (d.media?.length) {
-            setMediaUrls(d.media.map((m) => m.url ?? '').filter(Boolean).length ? d.media.map((m) => m.url ?? '') : ['']);
+            const urls = d.media.map((m) => m.url ?? '').filter(Boolean).length ? d.media.map((m) => m.url ?? '') : [''];
+            setMediaUrls(urls);
+            setMediaFiles(urls.map(() => null));
           }
           const hasPasses = !!(d.passes && d.passes.length > 0);
           setTicketsEnabled(hasPasses);
@@ -147,7 +150,7 @@ export default function BusinessEditPlanPage() {
   }, [mounted, user?.user_id, planId, router]);
 
   const addPass = () => setPasses((prev) => [...prev, { name: '', price: 0 }]);
-  const updatePass = (i: number, field: 'name' | 'price' | 'mediaUrl', value: string | number) => {
+  const updatePass = (i: number, field: 'name' | 'price' | 'mediaUrl' | 'mediaFile', value: string | number | File | null) => {
     setPasses((prev) => {
       const next = [...prev];
       next[i] = { ...next[i], [field]: field === 'price' ? Number(value) || 0 : value };
@@ -156,11 +159,22 @@ export default function BusinessEditPlanPage() {
   };
   const removePass = (i: number) => setPasses((prev) => prev.filter((_, idx) => idx !== i));
 
-  const addPostImage = () => setMediaUrls((prev) => [...prev, '']);
+  const addPostImage = () => {
+    setMediaUrls((prev) => [...prev, '']);
+    setMediaFiles((prev) => [...prev, null]);
+  };
   const updatePostImageUrl = (i: number, url: string) => {
     setMediaUrls((prev) => {
       const next = [...prev];
       next[i] = url;
+      return next;
+    });
+  };
+  const setPostImageFile = (i: number, file: File | null) => {
+    setMediaFiles((prev) => {
+      const next = [...prev];
+      while (next.length <= i) next.push(null);
+      next[i] = file;
       return next;
     });
   };
@@ -169,6 +183,7 @@ export default function BusinessEditPlanPage() {
       const next = prev.filter((_, idx) => idx !== i);
       return next.length === 0 ? [''] : next;
     });
+    setMediaFiles((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,19 +226,37 @@ export default function BusinessEditPlanPage() {
       if (location.trim()) body.location_text = location.trim();
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
-      const validMedia = mediaUrls.map((u) => u.trim()).filter(Boolean);
-      if (validMedia.length > 0) {
-        body.media = validMedia.map((url) => ({ url, type: 'image' }));
+      const resolvedMediaUrls: string[] = [];
+      for (let i = 0; i < mediaUrls.length; i++) {
+        const file = mediaFiles[i];
+        if (file) {
+          const url = await uploadImageFile(file);
+          resolvedMediaUrls.push(url);
+        } else {
+          const u = mediaUrls[i]?.trim();
+          if (u) resolvedMediaUrls.push(u);
+        }
+      }
+      if (resolvedMediaUrls.length > 0) {
+        body.media = resolvedMediaUrls.map((url) => ({ url, type: 'image' }));
       }
       if (ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0) {
-        body.passes = passes.filter((p) => p.name.trim()).map((p) => ({
-          pass_id: p.pass_id || `pass_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-          name: p.name.trim(),
-          price: p.price,
-          description: '',
-          capacity: 1,
-          media: (p.mediaUrl?.trim() ? [{ url: p.mediaUrl.trim(), type: 'image' as const }] : undefined),
-        }));
+        body.passes = await Promise.all(
+          passes.filter((p) => p.name.trim()).map(async (p) => {
+            let mediaUrl = p.mediaUrl?.trim();
+            if (p.mediaFile) {
+              mediaUrl = await uploadImageFile(p.mediaFile);
+            }
+            return {
+              pass_id: p.pass_id || `pass_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+              name: p.name.trim(),
+              price: p.price,
+              description: '',
+              capacity: 1,
+              media: mediaUrl ? [{ url: mediaUrl, type: 'image' as const }] : undefined,
+            };
+          })
+        );
       } else {
         body.passes = [];
       }
@@ -302,42 +335,68 @@ export default function BusinessEditPlanPage() {
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
-          {mediaUrls.map((url, i) => (
-            <div key={i} className="mb-3 flex flex-wrap items-start gap-2">
-              {url.trim() ? (
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
-                  <img src={url} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removePostImage(i)}
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                    aria-label="Remove image"
-                  >
-                    ×
-                  </button>
+          {mediaUrls.map((url, i) => {
+            const file = mediaFiles[i] ?? null;
+            const previewSrc = file ? URL.createObjectURL(file) : (url.trim() || null);
+            return (
+              <div key={i} className="mb-3 flex flex-wrap items-start gap-2">
+                {previewSrc ? (
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+                    <img src={previewSrc} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setPostImageFile(i, null); updatePostImageUrl(i, ''); }}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => updatePostImageUrl(i, e.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
+                      placeholder="Paste image URL or upload below"
+                    />
+                    {mediaUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removePostImage(i)}
+                        className="shrink-0 rounded-full p-1.5 text-neutral-600 hover:bg-neutral-300 hover:text-black"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id={`post-image-file-${i}`}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setPostImageFile(i, f);
+                        e.target.value = '';
+                      }}
+                    />
+                    <label
+                      htmlFor={`post-image-file-${i}`}
+                      className="cursor-pointer rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-neutral-50"
+                    >
+                      Upload from device
+                    </label>
+                    {file && <span className="text-xs text-neutral-600 truncate">{file.name}</span>}
+                  </div>
                 </div>
-              ) : null}
-              <div className="min-w-0 flex-1 flex gap-2 items-center">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => updatePostImageUrl(i, e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
-                  placeholder="https://..."
-                />
-                {mediaUrls.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removePostImage(i)}
-                    className="shrink-0 rounded-full p-1.5 text-neutral-600 hover:bg-neutral-300 hover:text-black"
-                    aria-label="Remove image"
-                  >
-                    ×
-                  </button>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           <button type="button" onClick={addPostImage} className="text-sm font-semibold text-black">
             + Add another image
           </button>
@@ -430,28 +489,57 @@ export default function BusinessEditPlanPage() {
                   </div>
                   <div className="border-t border-[#E5E5EA] pt-2">
                     <p className="mb-1.5 text-xs font-semibold text-black">Ticket image (optional)</p>
-                    <div className="flex flex-wrap items-start gap-2">
-                      {(p.mediaUrl ?? '').trim() ? (
-                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
-                          <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => updatePass(i, 'mediaUrl', '')}
-                            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-sm hover:bg-black/80"
-                            aria-label="Remove ticket image"
-                          >
-                            ×
-                          </button>
+                    {(() => {
+                      const ticketUrl = (p.mediaUrl ?? '').trim();
+                      const ticketFile = p.mediaFile ?? null;
+                      const ticketPreview = ticketFile ? URL.createObjectURL(ticketFile) : (ticketUrl || null);
+                      return (
+                        <div className="flex flex-wrap items-start gap-2">
+                          {ticketPreview ? (
+                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
+                              <img src={ticketPreview} alt="" className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => { updatePass(i, 'mediaUrl', ''); updatePass(i, 'mediaFile', null); }}
+                                className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-sm hover:bg-black/80"
+                                aria-label="Remove ticket image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : null}
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <input
+                              type="url"
+                              value={p.mediaUrl ?? ''}
+                              onChange={(e) => updatePass(i, 'mediaUrl', e.target.value)}
+                              placeholder="Paste URL or upload below"
+                              className="w-full rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-500"
+                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id={`ticket-image-${i}`}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) updatePass(i, 'mediaFile', f);
+                                  e.target.value = '';
+                                }}
+                              />
+                              <label
+                                htmlFor={`ticket-image-${i}`}
+                                className="cursor-pointer rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-neutral-50"
+                              >
+                                Upload from device
+                              </label>
+                              {ticketFile && <span className="text-xs text-neutral-600 truncate">{ticketFile.name}</span>}
+                            </div>
+                          </div>
                         </div>
-                      ) : null}
-                      <input
-                        type="url"
-                        value={p.mediaUrl ?? ''}
-                        onChange={(e) => updatePass(i, 'mediaUrl', e.target.value)}
-                        placeholder="https://... (optional)"
-                        className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-500"
-                      />
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}

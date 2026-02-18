@@ -439,6 +439,32 @@ export async function updateBusinessPlan(plan_id: string, body: Record<string, u
   });
 }
 
+/** Upload a single image file; returns URL. Used for post/ticket images in edit. Backend expects field name "file". */
+export async function uploadImageFile(file: File): Promise<string> {
+  const user = getStoredUser();
+  if (!user?.access_token) throw new Error('Not authenticated');
+  const formData = new FormData();
+  formData.append('file', file);
+  const url = `${BASE_URL}/upload/image`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${user.access_token}` },
+    body: formData,
+  });
+  const contentType = res.headers.get('content-type');
+  let data: { url?: string; data?: { url?: string }; message?: string };
+  if (contentType?.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(text || `Upload failed ${res.status}`);
+  }
+  if (!res.ok) throw new Error(data.message || `Upload failed ${res.status}`);
+  const imageUrl = data.data?.url ?? data.url;
+  if (!imageUrl || typeof imageUrl !== 'string') throw new Error('Upload did not return an image URL');
+  return imageUrl;
+}
+
 /** Get registration counts for a business post. */
 export async function getRegistrations(plan_id: string) {
   return request<{ total_registrations: number; approved_registrations: number; rejected_registrations: number }>(
