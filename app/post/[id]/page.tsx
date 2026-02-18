@@ -13,6 +13,19 @@ import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostI
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
 
+function formatEventDateOnly(date: string | Date | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const day = d.getDate();
+  const ord = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+  return `${day}${ord} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+}
+function formatEventDateAndTime(date: string | Date | undefined, time: string | undefined): string {
+  if (!date) return time || '';
+  const dateStr = formatEventDateOnly(date);
+  return time ? `${dateStr} | ${time}` : dateStr;
+}
+
 function getPendingBusinessRegistration(): { planId: string; passId: string } | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -85,7 +98,8 @@ export default function PostPage() {
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
-  const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string }> })?.passes ?? [];
+  const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url?: string }> }>; media?: Array<{ url?: string }> })?.passes ?? [];
+  const eventFirstImageUrl = (post as { media?: Array<{ url?: string }> })?.media?.[0]?.url ?? null;
 
   const loadPost = useCallback(async () => {
     if (!postId) return;
@@ -486,7 +500,7 @@ export default function PostPage() {
           </div>
         )}
         {post && isBusiness && businessStep === 'tickets' ? (
-          <div className="relative h-[100dvh] overflow-hidden flex flex-col bg-white">
+          <div className="relative min-h-[100dvh] flex flex-col bg-white overflow-y-auto">
             {/* Back button top left */}
             <div className="absolute left-4 top-4 z-10">
               <button
@@ -500,49 +514,66 @@ export default function PostPage() {
                 Back
               </button>
             </div>
-            {/* Tickets only, centered in viewport — no scroll */}
-            <div className="flex flex-1 flex-col items-center justify-center px-4">
-              <h2 className="mb-6 text-xl font-bold text-neutral-900">Select Tickets</h2>
-              {passes.length === 0 ? (
-                <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
-              ) : (
-                <div className="w-full max-w-md space-y-3">
-                  {passes.map((pass) => {
-                    const isSelected = selectedPassId === pass.pass_id;
-                    const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
-                    return (
-                      <button
-                        key={pass.pass_id}
-                        type="button"
-                        onClick={() => setSelectedPassId(pass.pass_id)}
-                        className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
-                          isSelected
-                            ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
-                            : 'opacity-95 hover:opacity-100'
-                        }`}
-                        style={{ background: ticketGradient }}
-                      >
-                        <div className="flex flex-1 items-center gap-3 pr-3">
-                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
-                            {isSelected ? (
-                              <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            ) : null}
+            {/* Event details + ticket selection */}
+            <div className="flex flex-1 flex-col items-center pt-14 pb-8 px-4">
+              {/* Event details: Title, Date | Time, Location */}
+              <div className="w-full max-w-md text-left mb-6">
+                <h1 className="text-xl font-bold text-neutral-900">{post.title ?? 'Event'}</h1>
+                <p className="mt-1 text-sm text-neutral-700">
+                  {formatEventDateAndTime(post.date, post.time) || '—'}
+                </p>
+                {post.location_text ? (
+                  <p className="mt-1 text-sm text-neutral-700">{post.location_text}</p>
+                ) : null}
+              </div>
+              {/* Ticket selection in light grey container */}
+              <div className="w-full max-w-md rounded-2xl bg-neutral-100 p-4 shadow-sm">
+                <h2 className="mb-4 text-lg font-bold text-neutral-900">Select Passes</h2>
+                {passes.length === 0 ? (
+                  <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {passes.map((pass) => {
+                      const isSelected = selectedPassId === pass.pass_id;
+                      const ticketImageUrl = pass.media?.[0]?.url ?? eventFirstImageUrl;
+                      const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
+                      const cardStyle = ticketImageUrl
+                        ? { backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url(${ticketImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' as const }
+                        : { background: ticketGradient };
+                      return (
+                        <button
+                          key={pass.pass_id}
+                          type="button"
+                          onClick={() => setSelectedPassId(pass.pass_id)}
+                          className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
+                            isSelected
+                              ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
+                              : 'opacity-95 hover:opacity-100'
+                          }`}
+                          style={cardStyle}
+                        >
+                          <div className="flex flex-1 items-center gap-3 pr-3">
+                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
+                              {isSelected ? (
+                                <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              ) : null}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-base font-bold">{pass.name}</p>
+                              {pass.description ? (
+                                <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-base font-bold">{pass.name}</p>
-                            {pass.description ? (
-                              <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
-                            ) : null}
-                          </div>
-                        </div>
-                        <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                          <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 disabled={(passes.length > 0 && !selectedPassId) || paymentOpening}
@@ -553,7 +584,7 @@ export default function PostPage() {
                   ? 'Opening payment…'
                   : selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) > 0
                   ? 'Pay & continue'
-                  : 'Continue'}
+                  : 'Proceed to payments'}
               </button>
             </div>
           </div>
