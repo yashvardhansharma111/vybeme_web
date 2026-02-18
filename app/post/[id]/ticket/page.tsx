@@ -284,9 +284,10 @@ export default function TicketPage() {
           Your pass will be sent to you via Whatsapp shortly
         </p>
 
-        {/* Scrollable area with seamless background */}
+        {/* Scrollable area - gradient background continues seamlessly */}
         <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-col items-center px-4 pt-4 pb-2">
+          {/* Ticket and button container with unified spacing */}
+          <div className="flex flex-col items-center px-4 py-4 gap-4">
             {/* Ticket card wrapper for download */}
             <div 
               ref={ticketContentRef}
@@ -395,10 +396,8 @@ export default function TicketPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* View Event button - seamless with background */}
-          <div className="flex justify-center px-4 pb-5 pt-2">
+            {/* View Event button */}
             <Link
               href={`/post/${planId}`}
               className="w-full max-w-[340px] shrink-0 rounded-[18px] bg-[#1C1C1E] py-3 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
