@@ -356,9 +356,12 @@ export function BusinessDetailCard({
               View your pass
             </Link>
           ) : eventFull ? (
-            <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
-              It&apos;s full. Better luck next time.
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+                Register
+              </button>
+              <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
+            </div>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
@@ -463,9 +466,12 @@ export function BusinessDetailCard({
                   View your pass
                 </Link>
               ) : eventFull ? (
-                <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
-                  It&apos;s full. Better luck next time.
-                </button>
+                <div className="flex flex-col items-center gap-2">
+                  <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
+                    Register
+                  </button>
+                  <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
+                </div>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
                   Register
