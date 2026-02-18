@@ -592,7 +592,7 @@ export default function PostPage() {
               </div>
               <button
                 type="button"
-                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening}
+                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || eventFull}
                 onClick={handleProceedToSurvey}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
@@ -602,6 +602,9 @@ export default function PostPage() {
                   ? 'Pay & continue'
                   : 'Proceed to payments'}
               </button>
+              {eventFull && (
+                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">Event is full. Better luck next time.</p>
+              )}
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (

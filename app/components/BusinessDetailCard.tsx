@@ -92,12 +92,6 @@ function formatDayAndTime(date: string | Date | undefined, time: string | undefi
   return timeStr ? `${dateStr} | ${timeStr} onwards` : dateStr;
 }
 
-function formatOrganizerTime(date: string | Date | undefined): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
 function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
   if (post.media?.length) {
@@ -257,7 +251,6 @@ export function BusinessDetailCard({
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
-                  <p className="truncate text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
                 </div>
               </Link>
             ) : (
@@ -267,7 +260,6 @@ export function BusinessDetailCard({
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
-                  <p className="truncate text-[11px] text-[#8E8E93]">{formatOrganizerTime(post.date)}</p>
                 </div>
               </>
             )}
@@ -377,7 +369,6 @@ export function BusinessDetailCard({
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
-                      <p className="truncate text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
                     </div>
                   </Link>
                 ) : (
@@ -387,7 +378,6 @@ export function BusinessDetailCard({
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
-                      <p className="truncate text-xs text-neutral-500">{formatOrganizerTime(post.date)}</p>
                     </div>
                   </>
                 )}
