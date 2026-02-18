@@ -21,15 +21,15 @@ export interface BusinessDetailPost {
   [key: string]: unknown;
 }
 
-/** Trim URL for display: show hostname + short path, or "Link" */
-function trimUrlForDisplay(url: string, maxPathLength = 45): string {
+/** Trim URL for display: show hostname + short path (about half), then … */
+function trimUrlForDisplay(url: string, maxPathLength = 22): string {
   try {
     const u = new URL(url);
     const path = u.pathname + u.search;
-    const pathDisplay = path.length > maxPathLength ? path.slice(0, maxPathLength - 1) + '…' : path;
+    const pathDisplay = path.length > maxPathLength ? path.slice(0, maxPathLength) + '…' : path;
     return pathDisplay ? `${u.hostname}${pathDisplay}` : u.hostname || 'Link';
   } catch {
-    return url.length > 50 ? url.slice(0, 49) + '…' : url || 'Link';
+    return url.length > 30 ? url.slice(0, 29) + '…' : url || 'Link';
   }
 }
 
@@ -276,11 +276,11 @@ export function BusinessDetailCard({
 
       {/* Mobile: Scrollable area */}
       <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[58vh] mx-[5px] md:hidden"
+        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[48vh] mx-[5px] md:hidden"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div
-          className="rounded-t-[24px] px-5 pb-24 pt-2 shadow-lg min-h-[calc(100vh-120px)]"
+          className="rounded-t-[24px] px-5 pb-24 pt-6 shadow-lg min-h-[calc(100vh-120px)]"
           style={{
             background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
           }}
