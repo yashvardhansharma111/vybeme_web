@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og';
 import { getPostOgData } from '@/lib/og-post';
 
-// 1200x630 = WhatsApp/Facebook recommended for large link previews (1.91:1). Event image dominates; bar below.
+// 1200x1260 = twice the previous height so preview image appears taller (event image dominates; bar below).
 const W = 1200;
-const H = 630;
+const H = 1260;
 const GREY_BOX_HEIGHT = 120;
-const IMAGE_HEIGHT = H - GREY_BOX_HEIGHT; // 510
+const IMAGE_HEIGHT = H - GREY_BOX_HEIGHT; // 1140
 
 const FALLBACK_HEADERS = {
   'Cache-Control': 'public, max-age=3600, s-maxage=3600',

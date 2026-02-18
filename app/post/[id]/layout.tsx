@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const post = await getPostOgData(id);
   const url = `${WEB_BASE}/post/${id}`;
   // Always set an absolute og:image URL so WhatsApp can show a preview (API route returns fallback if post missing)
-  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=4`;
+  const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=5`;
   if (!post) {
     return {
       title: 'vybeme. — Find people for your plans',
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         url,
         type: 'website',
         siteName: 'vybeme.',
-        images: [{ url: shareImageUrl, width: 1200, height: 630, alt: 'vybeme.' }],
+        images: [{ url: shareImageUrl, width: 1200, height: 1260, alt: 'vybeme.' }],
       },
       twitter: { card: 'summary_large_image', title: 'vybeme.', images: [shareImageUrl] },
     };
@@ -39,15 +39,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     type: 'website',
     locale: 'en_IN',
   };
-  // Use event photo URL as primary og:image so WhatsApp/crawlers get the actual image directly (most reliable)
+  // Use tall composite (1200x1260) as primary so preview image is twice as tall; event photo as fallback
   const eventPhotoUrl = post.imageUrl && post.imageUrl.startsWith('http') ? post.imageUrl : null;
+  const ogW = 1200;
+  const ogH = 1260;
   openGraph.images = eventPhotoUrl
     ? [
-        { url: eventPhotoUrl, width: 1200, height: 630, alt: post.title },
-        { url: shareImageUrl, width: 1200, height: 630, alt: post.title },
+        { url: shareImageUrl, width: ogW, height: ogH, alt: post.title },
+        { url: eventPhotoUrl, width: ogW, height: ogH, alt: post.title },
       ]
-    : [{ url: shareImageUrl, width: 1200, height: 630, alt: post.title }];
-  const primaryImage = eventPhotoUrl ?? shareImageUrl;
+    : [{ url: shareImageUrl, width: ogW, height: ogH, alt: post.title }];
+  const primaryImage = shareImageUrl;
   return {
     title: post.title,
     description: ogDescription,
