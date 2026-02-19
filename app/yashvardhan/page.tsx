@@ -63,12 +63,15 @@ const PILL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 /** Fixed category pills: icon + 2 spaces + label, single line */
-const FIXED_CATEGORY_PILLS: Array<{ Icon: React.ComponentType<{ className?: string }>; label: string }> = [
-  { Icon: FaPersonRunning, label: 'Running' },
-  { Icon: GiRunningShoe, label: '5K' },
-  { Icon: FaFlagCheckered, label: 'Metro Station Gate' },
-  { Icon: IoMdShirt, label: 'Run Athleisure' },
-];
+  // Previously we hard‑coded a set of pills (`Running`, `5K`, etc.) that
+  // appeared on every ticket – this caused the Breathe event to show unrelated
+  // tags despite being a fitness/training post with no distance/starting point
+  // information. We now compute the pills dynamically from the ticket data
+  // using `getPillItemsFromTicket`, which mirrors what the rest of the app
+  // already does.
+  //
+  // The `FIXED_CATEGORY_PILLS` constant has been removed entirely to avoid
+  // confusion and lint warnings.
 
 const R2_HOST = 'r2.dev';
 function getProxiedImageUrl(url: string | null | undefined): string | null {
@@ -535,12 +538,16 @@ export default function YashvardhanPage() {
                     style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                   >
                     <div className="flex min-w-0 flex-1 flex-col items-start justify-start gap-2">
-                      {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
-                        <div key={idx} className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]">
-                          <Icon className="h-4 w-4 shrink-0 self-center" />
-                          <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
-                        </div>
-                      ))}
+                      {dPillItems.map(({ icon, label }, idx) => {
+                        const Icon = PILL_ICONS[icon] || FaMusic;
+                        return (
+                          <div key={idx} className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]">
+                            <Icon className="h-4 w-4 shrink-0 self-center" />
+                            <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
+                          </div>
+                        );
+                      })} // dynamic pills based on ticket data
+
                     </div>
                     <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                       <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
@@ -666,15 +673,19 @@ export default function YashvardhanPage() {
                       style={{ marginTop: -overlapAmount, paddingTop: overlapAmount + 16, boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
                     >
                       <div className="flex flex-1 flex-col items-start justify-start gap-2">
-                        {FIXED_CATEGORY_PILLS.map(({ Icon, label }, idx) => (
-                          <div
-                            key={idx}
-                            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]"
-                          >
-                            <Icon className="h-4 w-4 shrink-0 self-center" />
-                            <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
-                          </div>
-                        ))}
+                        {pillItems.map(({ icon, label }, idx) => {
+                          const Icon = PILL_ICONS[icon] || FaMusic;
+                          return (
+                            <div
+                              key={idx}
+                              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB]/80 bg-[#F2F2F7] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]"
+                            >
+                              <Icon className="h-4 w-4 shrink-0 self-center" />
+                              <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
+                            </div>
+                          );
+                        })} // dynamic pills for visible ticket view
+
                       </div>
                       <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
                         <div className="mb-3 rounded-xl border border-[#E5E7EB] bg-white p-2.5">
