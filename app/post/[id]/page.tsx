@@ -305,13 +305,18 @@ export default function PostPage() {
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
   const handleBookEvent = useCallback(() => {
+    if (!user?.user_id) {
+      setPendingBusinessRegistration(postId, '');
+      router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
+      return;
+    }
     // if there are no passes at all, jump straight to survey form
     if (passes.length === 0) {
       setBusinessStep('survey');
     } else {
       setBusinessStep('tickets');
     }
-  }, [passes.length]);
+  }, [passes.length, postId, router, user?.user_id]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
