@@ -408,14 +408,26 @@ export default function PostPage() {
       }
       return;
     }
-    // Free pass: register without form and go to ticket
+    // Free event: register without payment.
     setError(null);
     setBusinessRegistering(true);
     try {
-      await registerForBusinessEvent(postId, user.user_id, passId ?? undefined, undefined, undefined);
+      const res = await registerForBusinessEvent(postId, user.user_id, passId ?? undefined, undefined, undefined);
       setBusinessRegistered(true);
       setBusinessStep('detail');
-      router.push(`/post/${postId}/ticket`);
+
+      const isFreeNoPasses = passes.length === 0;
+      const checkinCode =
+        (res?.data as any)?.registration?.checkin_code ??
+        (res as any)?.data?.registration?.checkin_code ??
+        (res as any)?.registration?.checkin_code ??
+        null;
+
+      if (isFreeNoPasses && checkinCode) {
+        router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
+      } else {
+        router.push(`/post/${postId}/ticket`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registration failed');
     } finally {
