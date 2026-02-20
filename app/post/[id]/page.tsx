@@ -249,7 +249,12 @@ export default function PostPage() {
       setBusinessStep('tickets');
       setTriggerPaymentAfterLogin(true);
     } else {
-      setBusinessStep('tickets');
+      // non‑paid: either free ticket or no passes
+      if (passes.length === 0) {
+        setBusinessStep('survey');
+      } else {
+        setBusinessStep('tickets');
+      }
     }
   }, [postId, user?.user_id, isBusiness, post, passes]);
 
@@ -291,7 +296,14 @@ export default function PostPage() {
 
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
-  const handleBookEvent = useCallback(() => setBusinessStep('tickets'), []);
+  const handleBookEvent = useCallback(() => {
+    // if there are no passes at all, jump straight to survey form
+    if (passes.length === 0) {
+      setBusinessStep('survey');
+    } else {
+      setBusinessStep('tickets');
+    }
+  }, [passes.length]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -322,7 +334,7 @@ export default function PostPage() {
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
       return;
     }
-    // Check before payment: avoid double payment if user already registered
+    // Check if already registered to avoid repeating flow
     try {
       const ticketRes = await getUserTicket(postId, user.user_id);
       if (ticketRes.success && ticketRes.data?.ticket) {
@@ -332,11 +344,14 @@ export default function PostPage() {
         return;
       }
     } catch {
-      // No ticket or API error — proceed
+      // ignore
     }
+
     const selectedPass = passes.find((p) => p.pass_id === passId);
     const isPaid = selectedPass && selectedPass.price > 0;
+
     if (isPaid && passId) {
+      // start payment but defer registration until after survey
       setError(null);
       setPaymentOpening(true);
       try {
@@ -387,9 +402,10 @@ export default function PostPage() {
                 setPaymentVerifiedForPassId(selectedPassId);
                 setPaymentVerified(postId, selectedPassId);
               }
+              // registration has been created on the server by verifyPayment
               setBusinessRegistered(true);
-              setBusinessStep('detail');
-              router.push(`/post/${postId}/ticket`);
+              // advance to survey so user can complete registration form
+              setBusinessStep('survey');
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Payment verification failed');
             } finally {
@@ -410,33 +426,10 @@ export default function PostPage() {
       }
       return;
     }
-    // Free event: register without payment.
-    setError(null);
-    setBusinessRegistering(true);
-    try {
-      const res = await registerForBusinessEvent(postId, user.user_id, passId ?? undefined, undefined, undefined);
-      setBusinessRegistered(true);
-      setBusinessStep('detail');
 
-      const isFreeNoPasses = passes.length === 0;
-      const checkinCode =
-        (res?.data as any)?.registration?.checkin_code ??
-        (res as any)?.data?.registration?.checkin_code ??
-        (res as any)?.registration?.checkin_code ??
-        null;
-
-      if (isFreeNoPasses && checkinCode) {
-        router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
-      } else {
-        router.push(`/post/${postId}/ticket`);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Registration failed');
-    } finally {
-      setBusinessRegistering(false);
-    }
+    // Non-paid path simply go to survey to collect info
+    setBusinessStep('survey');
   }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name]);
-
   // Trigger payment when returning from login with a paid pass selected (must run after handleProceedToSurvey is defined)
   useEffect(() => {
     if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
@@ -445,54 +438,6 @@ export default function PostPage() {
     return () => clearTimeout(id);
   }, [triggerPaymentAfterLogin, user?.user_id, selectedPassId, handleProceedToSurvey]);
 
-  const handleCoffeeSubmit = useCallback(
-    async (joiningCoffee: boolean) => {
-      if (!user?.user_id) return;
-  
-      setBusinessRegistering(true);
-      setError(null);
-  
-      const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
-  
-      try {
-        const res = await registerForBusinessEvent(
-          postId,
-          user.user_id,
-          passId,
-          undefined,
-          {
-            age_range: undefined,
-            gender: undefined,
-            running_experience: undefined,
-            what_brings_you: joiningCoffee ? "COFFEE" : "No Coffee",
-          }
-        );
-  
-        setBusinessRegistered(true);
-        setBusinessStep('detail');
-  
-        const checkinCode =
-          (res?.data as any)?.registration?.checkin_code ??
-          (res as any)?.data?.registration?.checkin_code ??
-          null;
-  
-        if (checkinCode) {
-          router.push(
-            `/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`
-          );
-        } else {
-          router.push(`/post/${postId}/ticket`);
-        }
-  
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Registration failed');
-      } finally {
-        setBusinessRegistering(false);
-      }
-    },
-    [postId, selectedPassId, passes.length, user?.user_id, router]
-  );
-  
   const handleSubmitRegistration = useCallback(() => {
     if (!ageRange || !gender || !runningExperience) {
       setError('Please fill Age, Gender, and Running experience.');
@@ -508,7 +453,7 @@ export default function PostPage() {
       running_experience: runningExperience,
       what_brings_you: whatBringsYou.trim() || undefined,
     })
-      .then(() => {
+      .then((res) => {
         clearPaymentVerified();
         setBusinessRegistered(true);
         setBusinessStep('detail');
@@ -518,10 +463,23 @@ export default function PostPage() {
         setGender('');
         setRunningExperience('');
         setWhatBringsYou('');
+
+        // after survey-based registration, navigate to the appropriate page
+        const isFreeNoPasses = passes.length === 0;
+        const checkinCode =
+          (res?.data as any)?.registration?.checkin_code ??
+          (res as any)?.data?.registration?.checkin_code ??
+          (res as any)?.registration?.checkin_code ??
+          null;
+        if (isFreeNoPasses && checkinCode) {
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
+        } else {
+          router.push(`/post/${postId}/ticket`);
+        }
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
       .finally(() => setBusinessRegistering(false));
-  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou]);
+  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router]);
 
   if (loading) {
     return (
@@ -561,10 +519,8 @@ export default function PostPage() {
     <div className={`min-h-screen ${isTicketsStep || isBusinessDetailView ? 'bg-white' : 'bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200'} ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
       {showAppHeader && <AppHeader />}
       {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : null}
-  
       <main className={`mx-auto flex flex-col gap-4 pb-8 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 md:max-w-none' : 'max-w-md p-4 md:max-w-4xl'}`}>
-        
-        {/* 1. Back + Share Bar */}
+        {/* Back + Share: only when not on detail/tickets/survey */}
         {!isBusinessDetailView && !isTicketsStep && !isSurveyStep && (
           <div className="flex items-center justify-between gap-2">
             <button
@@ -588,28 +544,34 @@ export default function PostPage() {
             )}
           </div>
         )}
-  
-        {/* 2. Logic Flow: Tickets -> Survey (Coffee Form) -> Detail */}
         {post && isBusiness && businessStep === 'tickets' ? (
           <div className="relative min-h-[100dvh] flex flex-col bg-white overflow-y-auto">
+            {/* Back button top left */}
             <div className="absolute left-4 top-4 z-10">
               <button
                 type="button"
                 onClick={() => setBusinessStep('detail')}
                 className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
               </button>
             </div>
+            {/* Event details + ticket selection */}
             <div className="flex flex-1 flex-col items-center pt-14 pb-8 px-4">
+              {/* Event details: Title, Date | Time, Location */}
               <div className="w-full max-w-md text-left mb-6">
                 <h1 className="text-xl font-bold text-neutral-900">{post.title ?? 'Event'}</h1>
-                <p className="mt-1 text-sm text-neutral-700">{formatEventDateAndTime(post.date, post.time) || '—'}</p>
-                {post.location_text && <p className="mt-1 text-sm text-neutral-700">{post.location_text}</p>}
+                <p className="mt-1 text-sm text-neutral-700">
+                  {formatEventDateAndTime(post.date, post.time) || '—'}
+                </p>
+                {post.location_text ? (
+                  <p className="mt-1 text-sm text-neutral-700">{post.location_text}</p>
+                ) : null}
               </div>
+              {/* Ticket selection in light grey container */}
               <div className="w-full max-w-md rounded-2xl bg-neutral-100 p-4 shadow-sm">
                 <h2 className="mb-4 text-lg font-bold text-neutral-900">Select Passes</h2>
                 {passes.length === 0 ? (
@@ -619,28 +581,35 @@ export default function PostPage() {
                     {passes.map((pass) => {
                       const isSelected = selectedPassId === pass.pass_id;
                       const ticketImageUrl = pass.media?.[0]?.url ?? eventFirstImageUrl;
+                      const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
                       const cardStyle = ticketImageUrl
-                        ? { backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url(${ticketImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                        : { background: 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)' };
+                        ? { backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url(${ticketImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' as const }
+                        : { background: ticketGradient };
                       return (
                         <button
                           key={pass.pass_id}
                           type="button"
                           onClick={() => setSelectedPassId(pass.pass_id)}
-                          className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${isSelected ? 'ring-2 ring-white/70 ring-offset-1 shadow-md' : 'opacity-95 hover:opacity-100'}`}
+                          className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
+                            isSelected
+                              ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
+                              : 'opacity-95 hover:opacity-100'
+                          }`}
                           style={cardStyle}
                         >
                           <div className="flex flex-1 items-center gap-3 pr-3">
                             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
-                              {isSelected && (
+                              {isSelected ? (
                                 <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
-                              )}
+                              ) : null}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="text-base font-bold">{pass.name}</p>
-                              {pass.description && <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>}
+                              {pass.description ? (
+                                <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
+                              ) : null}
                             </div>
                           </div>
                           <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
@@ -656,69 +625,137 @@ export default function PostPage() {
                 onClick={handleProceedToSurvey}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
-                {paymentOpening ? 'Opening payment…' : 'Register'}
+                {paymentOpening
+                  ? 'Opening payment…'
+                  : selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) > 0
+                  ? 'Pay & continue'
+                  : 'Continue'}
               </button>
+              {/* COMMENTED OUT: removed event full message */}
+              {/* {eventFull && (
+                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">Event is full. Better luck next time.</p>
+              )} */}
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
-          <div className="min-h-screen flex flex-col bg-white">
-            <div className="sticky top-0 z-10 flex items-center border-b border-neutral-200 bg-white px-4 py-3">
-              <button type="button" onClick={() => setBusinessStep('tickets')} className="flex items-center gap-1 text-sm font-medium text-neutral-700">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+          (() => {
+            const selectedPass = selectedPassId ? passes.find((p) => p.pass_id === selectedPassId) : undefined;
+            const isPaidPass = selectedPass && selectedPass.price > 0;
+            const needsPayment = isPaidPass && paymentVerifiedForPassId !== selectedPassId;
+            return (
+          <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
+            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
+              <button type="button" onClick={() => setBusinessStep('tickets')} className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 Back
               </button>
             </div>
-            <div className="flex flex-1 flex-col justify-center px-6 pb-24">
-              <h2 className="text-2xl font-bold text-neutral-900 mb-6 text-center">One last thing ☕</h2>
-              <p className="text-center text-neutral-600 mb-10">Would you like to join us for a post-run coffee at <span className="font-semibold">Paragon</span>?</p>
-              <div className="flex flex-col gap-4 max-w-md mx-auto w-full">
-                <button type="button" onClick={() => handleCoffeeSubmit(true)} className="rounded-2xl bg-[#1C1C1E] py-4 text-white font-semibold text-base shadow-lg">
-                  Yes! I would love to join ☕
-                </button>
-                <button type="button" onClick={() => handleCoffeeSubmit(false)} className="rounded-2xl bg-[#F2F2F7] py-4 text-neutral-800 font-semibold text-base">
-                  No, maybe next time
+            <div className="p-6 flex-1">
+            {needsPayment ? (
+              <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <p className="text-sm font-medium text-amber-800">Paid tickets require payment. Please complete payment on the event page first.</p>
+                <button type="button" onClick={() => { setError(null); setBusinessStep('tickets'); }} className="mt-3 w-full rounded-full bg-[#1C1C1E] px-4 py-3 text-sm font-bold text-white">Back to tickets — Pay & continue</button>
+              </div>
+            ) : null}
+            <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
+            <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Age <span className="text-red-500">*</span></p>
+                <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
+                  <option value="">Select age</option>
+                  {['Under 18yrs', '18-24yrs', '25-34yrs', '35-44yrs', 'above 45yrs'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+                </select>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Gender <span className="text-red-500">*</span></p>
+                <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
+                  <option value="">Select gender</option>
+                  {['Male', 'Female', 'Prefer not to say'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+                </select>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">Your running experience <span className="text-red-500">*</span></p>
+                <div className="flex flex-col gap-2">
+                  {['This will be my first time.', 'I run occasionally', 'I run regularly', "I'm returning after a break"].map((opt) => (
+                    <button key={opt} type="button" onClick={() => setRunningExperience(opt)} className={`rounded-xl px-4 py-3 text-left text-sm font-medium ${runningExperience === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-neutral-800">What brings you to BREATHE?</p>
+                <textarea value={whatBringsYou} onChange={(e) => setWhatBringsYou(e.target.value)} placeholder="I want to connect with other runners" rows={2} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-500 resize-none" />
+              </div>
+            </div>
+            {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
+              <div className="pointer-events-auto">
+                <button type="button" disabled={businessRegistering || needsPayment} onClick={handleSubmitRegistration} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl">
+                  {businessRegistering ? 'Completing…' : 'Complete registration'}
                 </button>
               </div>
-              {error && <p className="mt-6 text-center text-sm text-red-600">{error}</p>}
             </div>
           </div>
+            );
+          })()
         ) : post && isBusiness ? (
           <BusinessDetailCard
-            post={{...post, plan_id: post.plan_id ?? post.post_id}}
+            post={{
+              plan_id: post.plan_id ?? post.post_id ?? (post as { id?: string }).id,
+              title: post.title ?? '',
+              description: post.description ?? '',
+              media: post.media,
+              image: post.image,
+              user: post.user,
+              user_id: post.user_id,
+              location_text: post.location_text,
+              date: post.date,
+              time: post.time,
+              add_details: (post as { add_details?: Array<{ title: string; description?: string }> }).add_details,
+              passes: (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string }> }).passes,
+            }}
             authorName={authorName}
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             eventFull={eventFull}
-            viewTicketHref={businessRegistered ? `/post/${postId}/ticket` : undefined}
+            viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
             attendees={guestList}
+            currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
+            currentUserAvatar={currentUserProfile?.profile_image}
+            currentUserName={currentUserProfile?.name}
+            profileCircleHref={user?.user_id && isBusiness ? '/tickets' : undefined}
           />
         ) : post ? (
           <EventDetailCard
-            post={post}
+            post={post as EventDetailPost}
             joinSent={joinSent}
             joining={joining}
             onJoin={handleJoin}
             authorName={authorName}
+            authorId={post.user_id ?? (post.user as { user_id?: string })?.user_id ?? (post as { user_id?: string }).user_id}
+            isWomenOnly={(post as PostData & { is_women_only?: boolean }).is_women_only}
+            womenOnlyBlocked={womenOnlyBlocked}
           />
         ) : null}
-  
-        {/* 3. Footer CTAs */}
         {post && !isBusiness && (joinSent || businessRegistered) && (
           <div className="mt-4 flex flex-col gap-3">
-            <p className="text-center text-sm font-semibold text-neutral-800">Continue plan conversation on the app</p>
+            <p className="text-center text-sm font-semibold text-neutral-800">
+              Continue plan conversation on the app
+            </p>
             <DownloadAppCTA className="mt-0" />
           </div>
         )}
         {post && !isBusiness && !joinSent && !businessRegistered && <DownloadAppCTA className="mt-4" />}
-        
+        {(error && !joinSent) || (error && isBusiness && !businessRegistered) ? (
+          <p className="text-center text-sm text-red-600">{error}</p>
+        ) : null}
         {(joining || businessRegistering) && (
-          <p className="text-center text-sm text-neutral-500">
+          <p className="text-center text-sm text-neutral-500 md:sr-only">
             {businessRegistering ? 'Completing registration…' : 'Sending join request…'}
           </p>
         )}
       </main>
-    </div>
+    </div>  
   );
 }
