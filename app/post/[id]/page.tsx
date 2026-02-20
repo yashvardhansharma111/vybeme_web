@@ -181,12 +181,14 @@ export default function PostPage() {
               }
             })
             .catch(() => {});
-          getRegistrations(postIdFromApi)
-            .then((r) => {
-              if (r.success && r.data && (r.data.total_registrations ?? 0) >= 20) setEventFull(true);
-              else setEventFull(false);
-            })
-            .catch(() => setEventFull(false));
+          // COMMENTED OUT: removed 20 user limit check
+          // getRegistrations(postIdFromApi)
+          //   .then((r) => {
+          //     if (r.success && r.data && (r.data.total_registrations ?? 0) >= 20) setEventFull(true);
+          //     else setEventFull(false);
+          //   })
+          //   .catch(() => setEventFull(false));
+          setEventFull(false); // Always false since limit is removed
         } else {
           setEventFull(false);
         }
@@ -613,7 +615,7 @@ export default function PostPage() {
               </div>
               <button
                 type="button"
-                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || eventFull}
+                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening /* || eventFull - COMMENTED OUT: removed limit */}
                 onClick={handleProceedToSurvey}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
@@ -623,9 +625,10 @@ export default function PostPage() {
                   ? 'Pay & continue'
                   : 'Proceed to payments'}
               </button>
-              {eventFull && (
+              {/* COMMENTED OUT: removed event full message */}
+              {/* {eventFull && (
                 <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">Event is full. Better luck next time.</p>
-              )}
+              )} */}
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
