@@ -17,26 +17,22 @@ export default function RegistrationConfirmationPage() {
 
   return (
     <div
-      className="fixed inset-0 flex h-screen w-full items-center justify-center bg-gradient-to-b from-neutral-900/90 via-neutral-900/85 to-black/90 px-4"
-      style={{
-        backgroundImage:
-          'linear-gradient(180deg, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.94) 40%, rgba(0,0,0,0.98) 100%)',
-      }}
+      className="fixed inset-0 flex h-screen w-full items-center justify-center bg-white px-4"
     >
-      <div className="relative w-full max-w-[420px] rounded-3xl bg-white/4 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl">
+      <div className="relative w-full max-w-[420px] rounded-3xl bg-white border border-neutral-200 overflow-hidden shadow-2xl">
         {/* Header */}
-        <header className="flex items-center justify-between px-5 pt-4 pb-3">
+        <header className="flex items-center justify-between px-5 pt-4 pb-3 bg-white border-b border-neutral-200">
           <button
             type="button"
             onClick={handleClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-700 hover:bg-neutral-100"
             aria-label="Close"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-sm font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
+          <h1 className="text-sm font-semibold text-neutral-900 whitespace-nowrap">Booking Confirmed</h1>
           <div className="w-9" />
         </header>
 

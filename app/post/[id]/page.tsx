@@ -621,9 +621,11 @@ export default function PostPage() {
               >
                 {paymentOpening
                   ? 'Opening payment…'
+                  : passes.length === 0 || (selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) === 0)
+                  ? 'Register'
                   : selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) > 0
                   ? 'Pay & continue'
-                  : 'Proceed to payments'}
+                  : 'Register'}
               </button>
               {/* COMMENTED OUT: removed event full message */}
               {/* {eventFull && (
