@@ -111,6 +111,7 @@ export default function PostPage() {
   const [gender, setGender] = useState('');
   const [runningExperience, setRunningExperience] = useState('');
   const [whatBringsYou, setWhatBringsYou] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null } | null>(null);
 
   const user = getWebUser();
@@ -212,7 +213,14 @@ export default function PostPage() {
     if (!postId || !user?.user_id || !post || (post as PostData).type !== 'business') return;
     getUserTicket(postId, user.user_id)
       .then((res) => {
-        if (res.success && res.data?.ticket) setBusinessRegistered(true);
+        if (res.success && res.data?.ticket) {
+          setBusinessRegistered(true);
+        }
+        // capture checkin code for no-ticket events (registration may be returned even w/o ticket)
+        const code =
+          (res?.data as any)?.registration?.checkin_code ??
+          null;
+        if (code) setConfirmationCode(code);
       })
       .catch(() => {});
   }, [postId, user?.user_id, post]);
@@ -439,7 +447,8 @@ export default function PostPage() {
   }, [triggerPaymentAfterLogin, user?.user_id, selectedPassId, handleProceedToSurvey]);
 
   const handleSubmitRegistration = useCallback(() => {
-    if (!ageRange || !gender || !runningExperience) {
+    const isNoTicketEvent = passes.length === 0;
+    if (!isNoTicketEvent && (!ageRange || !gender || !runningExperience)) {
       setError('Please fill Age, Gender, and Running experience.');
       return;
     }
@@ -447,12 +456,17 @@ export default function PostPage() {
     setBusinessRegistering(true);
     setError(null);
     const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
-    registerForBusinessEvent(postId, user.user_id, passId, undefined, {
-      age_range: ageRange,
-      gender,
-      running_experience: runningExperience,
-      what_brings_you: whatBringsYou.trim() || undefined,
-    })
+    // build survey object; for no-ticket event only send whatBringsYou
+    const survey: any = {};
+    if (isNoTicketEvent) {
+      survey.what_brings_you = whatBringsYou.trim() || undefined;
+    } else {
+      survey.age_range = ageRange;
+      survey.gender = gender;
+      survey.running_experience = runningExperience;
+      survey.what_brings_you = whatBringsYou.trim() || undefined;
+    }
+    registerForBusinessEvent(postId, user.user_id, passId, undefined, survey)
       .then((res) => {
         clearPaymentVerified();
         setBusinessRegistered(true);
@@ -471,6 +485,7 @@ export default function PostPage() {
           (res as any)?.data?.registration?.checkin_code ??
           (res as any)?.registration?.checkin_code ??
           null;
+        if (checkinCode) setConfirmationCode(checkinCode);
         if (isFreeNoPasses && checkinCode) {
           router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
         } else {
@@ -642,6 +657,34 @@ export default function PostPage() {
             const selectedPass = selectedPassId ? passes.find((p) => p.pass_id === selectedPassId) : undefined;
             const isPaidPass = selectedPass && selectedPass.price > 0;
             const needsPayment = isPaidPass && paymentVerifiedForPassId !== selectedPassId;
+
+            // simplified question for events without any ticket types
+            if (passes.length === 0) {
+              return (
+                <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col items-center justify-center p-6">
+                  <p className="text-lg font-bold text-neutral-900 text-center">
+                    Would you like to join us in a post-run coffee at Paragon?
+                  </p>
+                  <div className="mt-6 flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => { setWhatBringsYou('yes'); handleSubmitRegistration(); }}
+                      className="rounded-full bg-[#1C1C1E] px-6 py-3 text-sm font-bold text-white"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setWhatBringsYou('no'); handleSubmitRegistration(); }}
+                      className="rounded-full border border-[#1C1C1E] px-6 py-3 text-sm font-bold text-[#1C1C1E]"
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
           <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
             <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
@@ -719,7 +762,13 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             eventFull={eventFull}
-            viewTicketHref={businessRegistered && user?.user_id ? `/post/${postId}/ticket` : undefined}
+            viewTicketHref={
+              businessRegistered && user?.user_id
+                ? passes.length === 0
+                  ? `/post/${postId}/confirmation${confirmationCode ? `?code=${encodeURIComponent(confirmationCode)}` : ''}`
+                  : `/post/${postId}/ticket`
+                : undefined
+            }
             attendees={guestList}
             currentUserProfileHref={user?.user_id ? `/profile/${user.user_id}` : undefined}
             currentUserAvatar={currentUserProfile?.profile_image}

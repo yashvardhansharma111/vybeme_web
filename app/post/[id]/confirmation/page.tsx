@@ -8,6 +8,7 @@ export default function RegistrationConfirmationPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const planId = params.id as string;
   const code = (searchParams.get('code') || '').toUpperCase();
 
@@ -16,63 +17,84 @@ export default function RegistrationConfirmationPage() {
   };
 
   return (
-    <div
-      className="fixed inset-0 flex h-screen w-full items-center justify-center bg-gradient-to-b from-neutral-900/90 via-neutral-900/85 to-black/90 px-4"
-      style={{
-        backgroundImage:
-          'linear-gradient(180deg, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.94) 40%, rgba(0,0,0,0.98) 100%)',
-      }}
-    >
-      <div className="relative w-full max-w-[420px] rounded-3xl bg-white/4 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl">
+    <div className="relative flex min-h-screen w-full flex-col overflow-hidden">
+
+      {/* Golden White Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#f6e7c1] via-[#f8f4ea] to-white" />
+
+      {/* Granular Blur Layer */}
+      <div className="absolute inset-0 backdrop-blur-2xl bg-white/30" />
+
+      {/* Content */}
+      <div className="relative z-10 flex min-h-screen flex-col px-6 pt-6 pb-8">
+
         {/* Header */}
-        <header className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-3 mb-8">
           <button
-            type="button"
             onClick={handleClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white/95 hover:bg-white/10"
-            aria-label="Close"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/10 backdrop-blur-md"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-sm font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
-          <div className="w-9" />
-        </header>
 
-        {/* Body */}
-        <div className="px-6 pb-6 pt-1 bg-gradient-to-b from-white/95 via-white to-neutral-100">
-          <div className="mb-6 rounded-2xl bg-neutral-50 border border-neutral-200 px-4 py-4 shadow-sm">
-            <p className="text-xs font-medium text-neutral-500 mb-1">Your registration is confirmed</p>
-            <p className="text-sm text-neutral-700">
-              You&apos;re registered for this event. Keep your check‑in code handy for post‑run activities.
+          <h1 className="text-lg font-semibold text-black">
+            Booking Confirmed
+          </h1>
+        </div>
+
+        {/* Spacer to push content near middle */}
+        <div className="flex-1 flex flex-col justify-center">
+
+          {/* White Confirmation Card */}
+          <div className="mx-auto w-full max-w-md rounded-3xl bg-white px-6 py-6 shadow-xl">
+            <p className="text-sm text-neutral-500 mb-2">
+              Your registration is confirmed for
+            </p>
+
+            <h2 className="text-lg font-semibold text-black mb-2">
+              Breathe Community 5k Run
+            </h2>
+
+            <p className="text-sm text-neutral-600">
+              Sun, 22nd Feb | 7:00 AM
+            </p>
+
+            <p className="text-sm text-neutral-600">
+              Indiranagar, Bengaluru
             </p>
           </div>
 
-          <div className="mb-6 text-center">
-            <p className="text-xs font-semibold text-neutral-500 mb-2 tracking-wide">YOUR CHECK‑IN CODE</p>
-            <div className="inline-flex min-w-[210px] items-center justify-center rounded-full bg-neutral-900 px-6 py-3 shadow-lg">
-              <span className="text-lg font-extrabold tracking-[0.15em] text-white">
-                {code || '— — — —'}
+          {/* Check-in Code Section */}
+          <div className="mt-10 text-center">
+            <p className="text-sm text-neutral-600 mb-4">
+              Your check-in code is
+            </p>
+
+            <div className="mx-auto w-[80%] rounded-full bg-white py-4 shadow-lg">
+              <span className="text-xl font-bold tracking-widest text-black">
+                {code || 'BREATHE 01'}
               </span>
             </div>
-            <p className="mt-3 text-[11px] text-neutral-500">
-              Share this code at the venue to access post‑event activities.
-            </p>
           </div>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="mt-12">
+          <p className="text-center text-sm text-neutral-600 mb-6">
+            You will receive a WhatsApp confirmation within 24 hours
+          </p>
 
           <Link
             href={`/post/${planId}`}
-            className="mb-1 flex h-11 w-full items-center justify-center rounded-[999px] bg-neutral-900 text-sm font-semibold text-white shadow-md hover:bg-neutral-800 transition-colors"
+            className="block w-full rounded-full bg-black py-4 text-center text-sm font-semibold text-white"
           >
             View event
           </Link>
-          <p className="mt-1 text-center text-[11px] text-neutral-500">
-            You&apos;ll also receive a WhatsApp confirmation shortly, if enabled for this event.
-          </p>
         </div>
+
       </div>
     </div>
   );
 }
-
