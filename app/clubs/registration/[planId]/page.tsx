@@ -11,6 +11,7 @@ interface Attendee {
   user_id: string;
   user: { user_id: string; name: string; profile_image?: string | null } | null;
   ticket_number: string | null;
+  checkin_code?: string | null;
   status: string;
   checked_in: boolean;
   checked_in_at: string | null;
@@ -86,7 +87,7 @@ export default function BusinessRegistrationPage() {
       const s = String(v ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
       return `"${s}"`;
     };
-    const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Checked in', 'Registered at'];
+    const headers = ['Name', 'Gender', 'Age range', 'Running experience', 'What brings you', 'Ticket number', 'Checkin code', 'Checked in', 'Registered at'];
     const rows = attendees.map((a) => [
       escape(a.user?.name ?? 'Guest'),
       escape(a.gender ?? null),
@@ -94,6 +95,7 @@ export default function BusinessRegistrationPage() {
       escape(a.running_experience ?? null),
       escape(a.what_brings_you ?? null),
       escape(a.ticket_number ?? null),
+      escape(a.checkin_code ?? null),
       escape(a.checked_in ? (a.checked_in_at ?? 'Yes') : 'No'),
       escape(a.created_at ? new Date(a.created_at).toISOString() : null),
     ]);

@@ -353,6 +353,7 @@ export async function getAttendeeList(plan_id: string, user_id: string) {
       user: { user_id: string; name: string; profile_image?: string | null } | null;
       ticket_id: string | null;
       ticket_number: string | null;
+      checkin_code?: string | null;
       status: string;
       checked_in: boolean;
       checked_in_at: string | null;
