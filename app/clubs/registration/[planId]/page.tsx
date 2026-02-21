@@ -124,6 +124,17 @@ export default function BusinessRegistrationPage() {
     );
   }, [attendees, searchQuery]);
 
+  const genderCounts = useMemo(() => {
+    let men = 0;
+    let women = 0;
+    attendees.forEach((a) => {
+      const g = (a.gender ?? '').trim().toLowerCase();
+      if (g === 'male') men += 1;
+      else if (g === 'female') women += 1;
+    });
+    return { men, women, total: attendees.length };
+  }, [attendees]);
+
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
@@ -168,9 +179,15 @@ export default function BusinessRegistrationPage() {
         {/* Stats + Download */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           {stats != null && (
-            <p className="text-sm font-semibold text-neutral-800">
-              Total: {stats.total} attendee{stats.total !== 1 ? 's' : ''}
-            </p>
+            <div className="flex flex-col">
+              <p className="text-sm font-semibold text-neutral-800">
+                Total: {stats.total} attendee{stats.total !== 1 ? 's' : ''}
+              </p>
+              <p className="text-xs font-medium text-neutral-500">
+                Men: {genderCounts.men} / {genderCounts.total} 
+                {' '}Women: {genderCounts.women} / {genderCounts.total}
+              </p>
+            </div>
           )}
           {filteredAttendees.length > 0 && (
             <button
