@@ -145,6 +145,7 @@ export default function YashvardhanPage() {
     user_id: string;
     user: { user_id: string; name: string; profile_image?: string | null; phone_number?: string | null } | null;
     ticket_number: string | null;
+    checkin_code?: string | null;
   }>>([]);
   const [ticket, setTicket] = useState<any>(null);
   const [ticketForDownload, setTicketForDownload] = useState<any>(null);
@@ -152,6 +153,7 @@ export default function YashvardhanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
   const ticketContentRef = useRef<HTMLDivElement>(null);
   const downloadCardRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -241,6 +243,50 @@ export default function YashvardhanPage() {
       setLoading(false);
     }
   }, [selectedPlanId]);
+
+  const escapeCsvCell = useCallback((value: unknown) => {
+    const s = value === null || value === undefined ? '' : String(value);
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }, []);
+
+  const onDownloadAttendeesCsv = useCallback(() => {
+    if (!selectedPlanId || attendees.length === 0) return;
+    setDownloadingCsv(true);
+    setError(null);
+    try {
+      const header = ['Name', 'Phone', 'Ticket Number', 'Checkin Code', 'User ID'];
+      const lines = [header.map(escapeCsvCell).join(',')];
+      attendees.forEach((a) => {
+        lines.push(
+          [
+            a.user?.name ?? '',
+            a.user?.phone_number ?? '',
+            a.ticket_number ?? '',
+            a.checkin_code ?? '',
+            a.user_id,
+          ]
+            .map(escapeCsvCell)
+            .join(',')
+        );
+      });
+      const csv = `${lines.join('\n')}\n`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendees-${selectedPlanId}.csv`;
+      a.setAttribute('download', a.download);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to download CSV');
+    } finally {
+      setDownloadingCsv(false);
+    }
+  }, [attendees, escapeCsvCell, selectedPlanId]);
 
   const processNextInQueue = useCallback(() => {
     if (downloadQueueRef.current.length === 0) {
@@ -441,14 +487,24 @@ export default function YashvardhanPage() {
         {error && <p className="mb-4 text-red-400">{error}</p>}
         {loading && plans.length > 0 && <p className="mb-4 text-white/70">Loading…</p>}
         {attendees.length > 0 && (
-          <button
-            type="button"
-            onClick={onDownloadAllTickets}
-            disabled={loading || downloadingAll}
-            className="mb-4 w-full rounded-xl bg-[#8B7AB8] px-4 py-3 text-sm font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-50"
-          >
-            {downloadingAll ? 'Downloading…' : 'Download all tickets'}
-          </button>
+          <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={onDownloadAllTickets}
+              disabled={loading || downloadingAll}
+              className="w-full rounded-xl bg-[#8B7AB8] px-4 py-3 text-sm font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-50"
+            >
+              {downloadingAll ? 'Downloading…' : 'Download all tickets'}
+            </button>
+            <button
+              type="button"
+              onClick={onDownloadAttendeesCsv}
+              disabled={loading || downloadingAll || downloadingCsv}
+              className="w-full rounded-xl bg-[#2C2C2E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3A3A3C] disabled:opacity-50"
+            >
+              {downloadingCsv ? 'Downloading…' : 'Download attendees CSV'}
+            </button>
+          </div>
         )}
         <ul className="space-y-2">
           {attendees.map((a) => (

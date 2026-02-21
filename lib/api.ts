@@ -329,6 +329,7 @@ export async function getYashvardhanAttendees(plan_id: string) {
       user: { user_id: string; name: string; profile_image?: string | null; phone_number?: string | null } | null;
       ticket_id: string | null;
       ticket_number: string | null;
+      checkin_code?: string | null;
       status: string;
       checked_in: boolean;
       price_paid: number;
