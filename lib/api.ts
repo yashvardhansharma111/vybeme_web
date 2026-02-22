@@ -486,6 +486,59 @@ export async function getFeed(user_id: string | null, limit = 30, offset = 0) {
   });
 }
 
+// Form APIs
+export async function createForm(body: Record<string, unknown>) {
+  return request<{ form_id: string; name: string }>('/form', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getUserForms(userId: string) {
+  return request<{ forms: any[] }>(`/form/by-user/${userId}`, {
+    method: 'GET',
+  });
+}
+
+export async function getForm(formId: string) {
+  return request<any>(`/form/${formId}`, {
+    method: 'GET',
+  });
+}
+
+export async function updateForm(formId: string, body: Record<string, unknown>) {
+  return request<any>(`/form/${formId}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteForm(formId: string) {
+  return request<any>(`/form/${formId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function submitFormResponse(body: Record<string, unknown>) {
+  return request<any>('/form/response/submit', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getFormResponse(registrationId: string) {
+  return request<any>(`/form/response/by-registration/${registrationId}`, {
+    method: 'GET',
+  });
+}
+
+export async function getPlanFormResponses(planId: string, formId?: string) {
+  const query = formId ? `?formId=${formId}` : '';
+  return request<{ responses: any[] }>(`/form/responses/by-plan/${planId}${query}`, {
+    method: 'GET',
+  });
+}
+
 // Format feed like the app: fetch user profile per post, image from media[0].url, interacted_users
 export interface FormattedPost {
   post_id: string;

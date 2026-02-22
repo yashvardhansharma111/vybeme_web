@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, getAttendeeList } from '@/lib/api';
+import FormResponseViewer from '@/app/components/FormResponseViewer';
 
 interface Attendee {
   registration_id: string;
@@ -34,6 +35,7 @@ export default function BusinessRegistrationPage() {
   const [stats, setStats] = useState<{ total: number; checked_in: number; pending: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user?.user_id || !planId) return;
@@ -212,7 +214,8 @@ export default function BusinessRegistrationPage() {
             {filteredAttendees.map((a) => (
               <li
                 key={a.registration_id}
-                className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm"
+                onClick={() => setSelectedRegistrationId(a.registration_id)}
+                className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm cursor-pointer hover:shadow-md transition"
               >
                 {a.user?.profile_image ? (
                   <Image
@@ -245,6 +248,17 @@ export default function BusinessRegistrationPage() {
           </Link>
         </div>
       </div>
+
+      {/* Form Response Viewer Modal */}
+      {selectedRegistrationId && (
+        <FormResponseViewer
+          registrationId={selectedRegistrationId}
+          userName={
+            attendees.find((a) => a.registration_id === selectedRegistrationId)?.user?.name ?? 'Unknown'
+          }
+          onClose={() => setSelectedRegistrationId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShareMenu } from '@/app/components/ShareMenu';
-import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles } from '@/lib/api';
+import FormBuilder, { FormField } from '@/app/components/FormBuilder';
+import FormSelector from '@/app/components/FormSelector';
+import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, createForm } from '@/lib/api';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
 const MAX_MEDIA = 5;
@@ -45,6 +47,12 @@ export default function BusinessCreatePage() {
   const [planLivePostId, setPlanLivePostId] = useState<string | null>(null);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Form-related state
+  const [formId, setFormId] = useState<string | null>(null);
+  const [showFormSelector, setShowFormSelector] = useState(false);
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [savingForm, setSavingForm] = useState(false);
 
   // Min date for event: today (local), so only future dates can be selected
   const todayMin = (() => {
@@ -83,6 +91,40 @@ export default function BusinessCreatePage() {
     });
   };
   const removePass = (i: number) => setPasses((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleFormSelectorSelect = async (selectedFormId: string) => {
+    setFormId(selectedFormId);
+    setShowFormSelector(false);
+  };
+
+  const handleFormBuilderSave = async (fields: FormField[]) => {
+    if (!user?.user_id) {
+      setError('User ID not available');
+      return;
+    }
+
+    setSavingForm(true);
+    try {
+      const res = await createForm({
+        user_id: user.user_id,
+        name: `Form ${new Date().toLocaleDateString()}`,
+        description: 'Custom registration form',
+        fields: fields
+      });
+
+      if (res.success && res.data?.form_id) {
+        setFormId(res.data.form_id);
+        setShowFormBuilder(false);
+        setError(null);
+      } else {
+        setError('Failed to create form');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create form');
+    } finally {
+      setSavingForm(false);
+    }
+  };
 
   const onPostMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -142,6 +184,7 @@ export default function BusinessCreatePage() {
       if (location.trim()) body.location_text = location.trim();
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
+      if (formId) body.form_id = formId;
       if (mediaUrl.trim() && mediaFiles.length === 0) {
         body.media = [{ url: mediaUrl.trim(), type: 'image' }];
       }
@@ -436,6 +479,25 @@ export default function BusinessCreatePage() {
             <span className="text-[16px] font-semibold text-black">Allow viewing guest list</span>
             <input type="checkbox" checked={allowGuestList} onChange={(e) => setAllowGuestList(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-[16px] font-semibold text-black">Add form</span>
+            <button
+              type="button"
+              onClick={() => setShowFormSelector(true)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                formId
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-neutral-300 text-neutral-600 hover:bg-neutral-400'
+              }`}
+            >
+              {formId ? '✓ Added' : 'Add'}
+            </button>
+          </div>
+          {formId && (
+            <p className="mt-2 text-sm text-neutral-600">
+              Form attached: Your registration form is ready. Users will fill it when registering.
+            </p>
+          )}
         </section>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
@@ -566,6 +628,29 @@ export default function BusinessCreatePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Form Selector Modal */}
+      {showFormSelector && user?.user_id && (
+        <FormSelector
+          userId={user.user_id}
+          onSelect={handleFormSelectorSelect}
+          onCreateNew={() => {
+            setShowFormSelector(false);
+            setShowFormBuilder(true);
+          }}
+          onCancel={() => setShowFormSelector(false)}
+          loading={savingForm}
+        />
+      )}
+
+      {/* Form Builder Modal */}
+      {showFormBuilder && (
+        <FormBuilder
+          onSave={handleFormBuilderSave}
+          onCancel={() => setShowFormBuilder(false)}
+          loading={savingForm}
+        />
       )}
     </div>
   );
