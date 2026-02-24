@@ -572,6 +572,22 @@ export default function PostPage() {
       .finally(() => setBusinessRegistering(false));
   }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router]);
 
+  // If we land on the survey step but the plan has no form configured, auto-submit registration.
+  useEffect(() => {
+    if (!post || businessStep !== 'survey') return;
+    // If a custom form is present, do not auto-submit here (FormRenderer will handle it)
+    if ((post as any).form_id) return;
+    // Otherwise auto-complete registration (avoid double-run)
+    const id = setTimeout(() => {
+      try {
+        handleSubmitRegistration();
+      } catch {
+        // swallow
+      }
+    }, 120);
+    return () => clearTimeout(id);
+  }, [businessStep, post, handleSubmitRegistration]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
