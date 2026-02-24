@@ -336,6 +336,9 @@ export async function getYashvardhanAttendees(plan_id: string) {
 }
 
 /** Yashvardhan: get ticket by plan_id + user_id (no auth, same shape as getUserTicket) */
+export async function getYashvardhanTicket(plan_id: string, user_id: string) {
+  return request<{ ticket: any }>(`/ticket/yashvardhan/ticket/${plan_id}/${user_id}`, { method: 'GET' });
+}
 
 /** Get attendee list for a plan (organizer only). Includes survey fields for export. */
 export async function getAttendeeList(plan_id: string, user_id: string) {
