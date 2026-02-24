@@ -401,15 +401,17 @@ export default function TicketPage() {
                 </div>
               </div>
             </div>
-
-            {/* View Event button */}
-            <Link
-              href={`/post/${planId}`}
-              className="w-full max-w-[340px] shrink-0 rounded-[18px] bg-[#1C1C1E] py-3 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
-            >
-              View Event
-            </Link>
           </div>
+        </div>
+
+        {/* View Event button - fixed at bottom, outside scroll area */}
+        <div className="shrink-0 flex justify-center px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Link
+            href={`/post/${planId}`}
+            className="w-full max-w-[340px] rounded-[18px] bg-[#1C1C1E] py-3 text-center text-sm font-bold text-white no-underline shadow-lg hover:bg-[#2d2d2d]"
+          >
+            View Event
+          </Link>
         </div>
       </div>
     );
