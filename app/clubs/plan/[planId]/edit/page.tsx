@@ -49,6 +49,7 @@ export default function BusinessEditPlanPage() {
   const [category, setCategory] = useState('');
   const [ticketsEnabled, setTicketsEnabled] = useState(false);
   const [passes, setPasses] = useState<{ pass_id?: string; name: string; price: number; mediaUrl?: string; mediaFile?: File | null }[]>([{ name: '', price: 0 }]);
+  const [registrationRequired, setRegistrationRequired] = useState(false);
   const [womenOnly, setWomenOnly] = useState(false);
   const [allowGuestList, setAllowGuestList] = useState(true);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
@@ -257,6 +258,7 @@ export default function BusinessEditPlanPage() {
             };
           })
         );
+        body.registration_required = registrationRequired;
       } else {
         body.passes = [];
       }
@@ -606,6 +608,10 @@ export default function BusinessEditPlanPage() {
           <div className="flex items-center justify-between py-2">
             <span className="text-[16px] font-semibold text-black">Allow viewing guest list</span>
             <input type="checkbox" checked={allowGuestList} onChange={(e) => setAllowGuestList(e.target.checked)} className="h-5 w-5 rounded" />
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-[16px] font-semibold text-black">Require registration</span>
+            <input type="checkbox" checked={registrationRequired} onChange={(e) => setRegistrationRequired(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
         </section>
 

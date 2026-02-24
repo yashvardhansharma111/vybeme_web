@@ -53,6 +53,11 @@ export default function BusinessCreatePage() {
   const [showFormSelector, setShowFormSelector] = useState(false);
   const [showFormBuilder, setShowFormBuilder] = useState(false);
   const [savingForm, setSavingForm] = useState(false);
+  const [registrationRequired, setRegistrationRequired] = useState(false); // whether we ask users to fill a survey/form
+
+  useEffect(() => {
+    if (formId) setRegistrationRequired(true);
+  }, [formId]);
 
   // Min date for event: today (local), so only future dates can be selected
   const todayMin = (() => {
@@ -478,6 +483,10 @@ export default function BusinessCreatePage() {
           <div className="flex items-center justify-between py-2">
             <span className="text-[16px] font-semibold text-black">Allow viewing guest list</span>
             <input type="checkbox" checked={allowGuestList} onChange={(e) => setAllowGuestList(e.target.checked)} className="h-5 w-5 rounded" />
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-[16px] font-semibold text-black">Require registration</span>
+            <input type="checkbox" checked={registrationRequired} onChange={(e) => setRegistrationRequired(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-[16px] font-semibold text-black">Add form</span>

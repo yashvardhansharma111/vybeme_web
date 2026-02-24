@@ -64,7 +64,7 @@ function clearPendingBusinessRegistration() {
   sessionStorage.removeItem(PENDING_BUSINESS_KEY);
 }
 
-function getPaymentVerified(planId: string, passId: string): boolean {
+function getPaymentVerified(planId: string, passId: string | null | undefined): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const raw = sessionStorage.getItem(PAYMENT_VERIFIED_KEY);
@@ -76,7 +76,7 @@ function getPaymentVerified(planId: string, passId: string): boolean {
   }
 }
 
-function setPaymentVerified(planId: string, passId: string) {
+function setPaymentVerified(planId: string, passId: string | null | undefined) {
   if (typeof window === 'undefined') return;
   sessionStorage.setItem(PAYMENT_VERIFIED_KEY, JSON.stringify({ planId, passId }));
 }
@@ -98,8 +98,10 @@ export default function PostPage() {
   const [womenOnlyBlocked, setWomenOnlyBlocked] = useState(false);
   // Business post flow: detail | tickets | survey → after submit → detail with View ticket
   const [businessStep, setBusinessStep] = useState<'detail' | 'tickets' | 'survey'>('detail');
+
   const [selectedPassId, setSelectedPassId] = useState<string | null>(null);
   const [businessRegistered, setBusinessRegistered] = useState(false);
+
   const [businessRegistering, setBusinessRegistering] = useState(false);
   const [eventFull, setEventFull] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
@@ -117,6 +119,16 @@ export default function PostPage() {
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
   const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url?: string }> }>; media?: Array<{ url?: string }> })?.passes ?? [];
+
+  // determine whether the current plan actually needs any registration form/survey
+  // registration_required is a boolean stored on the plan; a custom form also implies
+  // registration.  If neither is true we will skip the survey step entirely.
+  // Use a safe cast to `any` because `PostData` doesn't include backend-only fields.
+  const needsSurvey = !!(
+    post &&
+    isBusiness &&
+    (((post as any).registration_required) || ((post as any).form_id))
+  );
   const eventFirstImageUrl = (post as { media?: Array<{ url?: string }> })?.media?.[0]?.url ?? null;
 
   const loadPost = useCallback(async () => {
@@ -259,12 +271,13 @@ export default function PostPage() {
     } else {
       // non‑paid: either free ticket or no passes
       if (passes.length === 0) {
-        setBusinessStep('survey');
+        if (needsSurvey) setBusinessStep('survey');
+        else setBusinessStep('detail');
       } else {
         setBusinessStep('tickets');
       }
     }
-  }, [postId, user?.user_id, isBusiness, post, passes]);
+  }, [postId, user?.user_id, isBusiness, post, passes, needsSurvey]);
 
   // Restore payment-verified from sessionStorage (e.g. after mobile redirect/reload)
   useEffect(() => {
@@ -310,13 +323,21 @@ export default function PostPage() {
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
       return;
     }
-    // if there are no passes at all, jump straight to survey form
+
+    // if there are no passes at all we normally would show the survey page
+    // but only do so when the plan actually requires registration.  otherwise
+    // there's nothing to do – just stay on the detail view.
     if (passes.length === 0) {
-      setBusinessStep('survey');
+      if (needsSurvey) {
+        setBusinessStep('survey');
+      } else {
+        // nothing to register; remain on detail
+        setBusinessStep('detail');
+      }
     } else {
       setBusinessStep('tickets');
     }
-  }, [passes.length, postId, router, user?.user_id]);
+  }, [passes.length, postId, router, user?.user_id, needsSurvey]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -340,7 +361,7 @@ export default function PostPage() {
   };
 
   const handleProceedToSurvey = useCallback(async () => {
-    const passId = passes.length > 0 ? selectedPassId : undefined;
+    const passId = passes.length > 0 ? (selectedPassId ?? undefined) : undefined;
     if (passes.length > 0 && !passId) return;
     if (!user?.user_id) {
       setPendingBusinessRegistration(postId, passId ?? '');
@@ -363,8 +384,41 @@ export default function PostPage() {
     const selectedPass = passes.find((p) => p.pass_id === passId);
     const isPaid = selectedPass && selectedPass.price > 0;
 
+    // helper to complete a registration without survey
+    const doRegister = async () => {
+      try {
+        const survey: any = {}; // empty since no form
+        const res = await registerForBusinessEvent(postId, user.user_id, passId, undefined, survey);
+        clearPaymentVerified();
+        setBusinessRegistered(true);
+        setBusinessStep('detail');
+        setSelectedPassId(null);
+        setPaymentVerifiedForPassId(null);
+        setAgeRange('');
+        setGender('');
+        setRunningExperience('');
+        setWhatBringsYou('');
+
+        // after survey‑less registration, navigate appropriately
+        const isFreeNoPasses = passes.length === 0;
+        const checkinCode =
+          (res?.data as any)?.registration?.checkin_code ??
+          (res as any)?.data?.registration?.checkin_code ??
+          (res as any)?.registration?.checkin_code ??
+          null;
+        if (checkinCode) setConfirmationCode(checkinCode);
+        if (isFreeNoPasses && checkinCode) {
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
+        } else {
+          router.push(`/post/${postId}/ticket`);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Registration failed');
+      }
+    };
+
     if (isPaid && passId) {
-      // start payment but defer registration until after survey
+      // start payment but defer registration until after survey/payment
       setError(null);
       setPaymentOpening(true);
       try {
@@ -417,8 +471,13 @@ export default function PostPage() {
               }
               // registration has been created on the server by verifyPayment
               setBusinessRegistered(true);
-              // advance to survey so user can complete registration form
-              setBusinessStep('survey');
+              if (needsSurvey) {
+                setBusinessStep('survey');
+              } else {
+                // skip survey – user is already registered, go to ticket immediately
+                setBusinessStep('detail');
+                router.push(`/post/${postId}/ticket`);
+              }
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Payment verification failed');
             } finally {
@@ -440,9 +499,13 @@ export default function PostPage() {
       return;
     }
 
-    // Non-paid path simply go to survey to collect info
-    setBusinessStep('survey');
-  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name]);
+    // Non-paid path: either go to survey or register immediately
+    if (needsSurvey) {
+      setBusinessStep('survey');
+    } else {
+      await doRegister();
+    }
+  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey]);
   // Trigger payment when returning from login with a paid pass selected (must run after handleProceedToSurvey is defined)
   useEffect(() => {
     if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
