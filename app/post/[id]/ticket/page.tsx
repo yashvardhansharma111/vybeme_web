@@ -289,7 +289,7 @@ export default function TicketPage() {
         </header>
 
         <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-3 whitespace-nowrap truncate">
-          Your pass will be sent to you via Whatsapp shortly
+          Your passes will be sent to you via Whatsapp within 24hrs
         </p>
 
         {/* Scrollable area - gradient background continues seamlessly */}
