@@ -121,8 +121,9 @@ function getPillItemsFromTicket(t: any): Array<{ icon: string; label: string }> 
   const items: { icon: string; label: string }[] = [];
   const category = (plan.category_main || (plan.category_sub && plan.category_sub[0]) || '').trim();
   if (category) items.push({ icon: getCategoryIconKey(category), label: category });
-  const distance = getDetailLabel(detailBy('distance'), plan.location_text || '');
-  if (distance) items.push({ icon: 'location', label: distance });
+  const distanceDetail = detailBy('distance');
+const distance = getDetailLabel(distanceDetail, '');
+if (distance) items.push({ icon: 'location', label: distance });
   const fb = getDetailLabel(detailBy('f&b'), '');
   if (fb) items.push({ icon: 'fb', label: fb });
   addDetails.forEach((d: any) => {
