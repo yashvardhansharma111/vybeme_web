@@ -32,6 +32,14 @@ function getProxiedImageUrl(url: string | null | undefined): string | null {
   }
 }
 
+function withCacheBust(url: string | null | undefined, bust: string | null | undefined): string | null {
+  if (!url) return null;
+  const v = (bust || '').trim();
+  if (!v) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}v=${encodeURIComponent(v)}`;
+}
+
 function formatDate(date: string | Date | null | undefined): string {
   if (!date) return 'Jan 29, 2022';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -260,6 +268,7 @@ export default function TicketPage() {
 
   const plan = ticket?.plan ?? {};
   const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const mainImageWithVersion = withCacheBust(mainImage, plan.updated_at);
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
@@ -309,7 +318,7 @@ export default function TicketPage() {
                   <div className="relative w-full overflow-hidden rounded-t-[20px]">
                     {mainImage ? (
                       <img
-                        src={getProxiedImageUrl(mainImage) ?? mainImage}
+                        src={getProxiedImageUrl(mainImageWithVersion) ?? mainImageWithVersion ?? getProxiedImageUrl(mainImage) ?? mainImage}
                         alt=""
                         className="block w-full h-auto max-h-[38vh] object-cover object-center"
                       />

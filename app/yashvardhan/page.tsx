@@ -602,7 +602,7 @@ export default function YashvardhanPage() {
                             <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
                           </div>
                         );
-                      })} // dynamic pills based on ticket data
+                      })}
 
                     </div>
                     <div className="flex min-w-[112px] shrink-0 flex-col items-center justify-center pb-1">
@@ -746,7 +746,7 @@ export default function YashvardhanPage() {
                               <span className="relative -top-1.5 leading-[1] flex items-center m-[-6px]">{label}</span>
                             </div>
                           );
-                        })} // dynamic pills for visible ticket view
+                        })} 
 
                       </div>
                       <div className="flex min-w-[100px] shrink-0 flex-col items-center justify-center pb-0">

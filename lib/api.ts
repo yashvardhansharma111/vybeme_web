@@ -294,10 +294,6 @@ export async function registerForBusinessEvent(
   });
 }
 
-export async function getUserTicket(plan_id: string, user_id: string) {
-  return request<any>(`/ticket/${plan_id}/${user_id}`);
-}
-
 /** Get all tickets for the current user (for My Tickets). */
 export async function getTicketsByUser(user_id: string) {
   return request<{ tickets: Array<{
@@ -340,9 +336,6 @@ export async function getYashvardhanAttendees(plan_id: string) {
 }
 
 /** Yashvardhan: get ticket by plan_id + user_id (no auth, same shape as getUserTicket) */
-export async function getYashvardhanTicket(plan_id: string, user_id: string) {
-  return request<{ ticket: any }>(`/ticket/yashvardhan/ticket/${plan_id}/${user_id}`, { method: 'GET' });
-}
 
 /** Get attendee list for a plan (organizer only). Includes survey fields for export. */
 export async function getAttendeeList(plan_id: string, user_id: string) {
@@ -367,6 +360,37 @@ export async function getAttendeeList(plan_id: string, user_id: string) {
     }>;
     statistics: { total: number; checked_in: number; pending: number };
   }>(`/ticket/attendees/${plan_id}?user_id=${encodeURIComponent(user_id)}`, { method: 'GET' });
+}
+
+/** Get user's ticket (for My Tickets). */
+export async function getUserTicket(plan_id: string, user_id: string) {
+  return request<{
+    ticket: {
+      ticket_id: string;
+      ticket_number: string;
+      qr_code: string;
+      qr_code_hash: string;
+      status: string;
+      price_paid: number;
+      pass_id?: string | null;
+      plan: {
+        plan_id: string;
+        title?: string;
+        description?: string;
+        location_text?: string | null;
+        date?: string | null;
+        time?: string | null;
+        media?: Array<{ url: string; type?: string }>;
+        ticket_image?: string | null;
+        updated_at?: string | null;
+        passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url: string }> }>;
+        add_details?: Array<{ detail_type?: string; title: string; description?: string }>;
+        category_main?: string | null;
+        category_sub?: string[];
+      } | null;
+      user?: { user_id: string; name: string; profile_image?: string | null } | null;
+    };
+  }>(`/ticket/${plan_id}/${user_id}`, { method: 'GET' });
 }
 
 /** Get guest list for an event (public: who's coming). */
