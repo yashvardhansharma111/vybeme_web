@@ -383,7 +383,9 @@ export default function YashvardhanPage() {
   useEffect(() => {
     if (!ticketForDownload) return;
     const plan = ticketForDownload.plan ?? {};
-    const mainImg = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+    const planMedia = Array.isArray(plan.media) ? plan.media : [];
+    const latestMediaUrl = planMedia.length ? planMedia[planMedia.length - 1]?.url : null;
+    const mainImg = plan.ticket_image ?? latestMediaUrl ?? null;
     if (!mainImg) {
       const id = setTimeout(() => runDownloadCapture(), 200);
       return () => clearTimeout(id);
@@ -422,7 +424,9 @@ export default function YashvardhanPage() {
   const pillItems = useMemo(() => getPillItemsFromTicket(ticket), [ticket]);
 
   const plan = ticket?.plan ?? {};
-  const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const planMedia = Array.isArray(plan.media) ? plan.media : [];
+  const latestMediaUrl = planMedia.length ? planMedia[planMedia.length - 1]?.url : null;
+  const mainImage = plan.ticket_image ?? latestMediaUrl ?? null;
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
   const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
@@ -466,7 +470,9 @@ export default function YashvardhanPage() {
     const overlapAmount = 40;
     const dTicket = ticketForDownload;
     const dPlan = dTicket?.plan ?? {};
-    const dMainImage = dPlan.ticket_image ?? dPlan.media?.[0]?.url ?? null;
+    const dPlanMedia = Array.isArray(dPlan.media) ? dPlan.media : [];
+    const dLatestMediaUrl = dPlanMedia.length ? dPlanMedia[dPlanMedia.length - 1]?.url : null;
+    const dMainImage = dPlan.ticket_image ?? dLatestMediaUrl ?? null;
     const dProxiedImage = getProxiedImageUrl(dMainImage) ?? dMainImage;
     const dPasses = dPlan.passes ?? [];
     const dPassId = dTicket?.pass_id;

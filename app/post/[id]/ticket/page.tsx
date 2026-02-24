@@ -267,7 +267,9 @@ export default function TicketPage() {
   }
 
   const plan = ticket?.plan ?? {};
-  const mainImage = plan.ticket_image ?? plan.media?.[0]?.url ?? null;
+  const planMedia = Array.isArray(plan.media) ? plan.media : [];
+  const latestMediaUrl = planMedia.length ? planMedia[planMedia.length - 1]?.url : null;
+  const mainImage = plan.ticket_image ?? latestMediaUrl ?? null;
   const mainImageWithVersion = withCacheBust(mainImage, plan.updated_at);
   const passes = plan.passes ?? [];
   const passId = ticket?.pass_id;
