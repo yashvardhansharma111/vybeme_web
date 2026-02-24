@@ -831,13 +831,7 @@ export default function PostPage() {
                       }
                     }}
                   />
-                ) : (
-                  <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col items-center justify-center p-6">
-                    <p className="text-lg font-bold text-neutral-900">Complete registration</p>
-                    <button type="button" onClick={() => handleSubmitRegistration()} className="mt-4 rounded-full bg-[#1C1C1E] px-6 py-3 text-sm font-bold text-white">Complete registration</button>
-                    {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-                  </div>
-                )}
+                ) : null}
             {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
             </div>
             <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
