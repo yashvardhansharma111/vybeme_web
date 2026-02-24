@@ -505,10 +505,12 @@ export default function PostPage() {
       return;
     }
 
-    // Non-paid path: either go to survey or register immediately
-    if (needsSurvey) {
+    // Non-paid path: only go to survey if form exists; otherwise register immediately
+    if ((post as any).form_id) {
+      // Form exists: show survey step with FormRenderer
       setBusinessStep('survey');
     } else {
+      // No form: skip survey and register directly
       await doRegister();
     }
   }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey]);
