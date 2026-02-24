@@ -273,13 +273,14 @@ export default function PostPage() {
     } else {
       // non‑paid: either free ticket or no passes
       if (passes.length === 0) {
-        if (needsSurvey) setBusinessStep('survey');
+        // Only show survey if a form is configured; otherwise go to detail
+        if ((post as any).form_id) setBusinessStep('survey');
         else setBusinessStep('detail');
       } else {
         setBusinessStep('tickets');
       }
     }
-  }, [postId, user?.user_id, isBusiness, post, passes, needsSurvey]);
+  }, [postId, user?.user_id, isBusiness, post, passes]);
 
   // Restore payment-verified from sessionStorage (e.g. after mobile redirect/reload)
   useEffect(() => {
@@ -327,19 +328,18 @@ export default function PostPage() {
     }
 
     // if there are no passes at all we normally would show the survey page
-    // but only do so when the plan actually requires registration.  otherwise
-    // there's nothing to do – just stay on the detail view.
+    // but only do so if a form is configured. otherwise stay on detail.
     if (passes.length === 0) {
-      if (needsSurvey) {
+      if ((post as any).form_id) {
         setBusinessStep('survey');
       } else {
-        // nothing to register; remain on detail
+        // No form configured; remain on detail
         setBusinessStep('detail');
       }
     } else {
       setBusinessStep('tickets');
     }
-  }, [passes.length, postId, router, user?.user_id, needsSurvey]);
+  }, [passes.length, postId, router, user?.user_id, post]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -477,10 +477,11 @@ export default function PostPage() {
               }
               // registration has been created on the server by verifyPayment
               setBusinessRegistered(true);
-              if (needsSurvey) {
+              if ((post as any).form_id) {
+                // Form exists: show survey for responses
                 setBusinessStep('survey');
               } else {
-                // skip survey – user is already registered, go to ticket immediately
+                // No form: skip survey and go to ticket immediately
                 setBusinessStep('detail');
                 router.push(`/post/${postId}/ticket`);
               }
