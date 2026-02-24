@@ -7,8 +7,9 @@ import { ShareMenu } from '../../components/ShareMenu';
 import { EventDetailCard, type EventDetailPost } from '../../components/EventDetailCard';
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
+import FormRenderer from '../../components/FormRenderer';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, createTicketOrder, verifyTicketPayment, getUserTicket } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, createTicketOrder, verifyTicketPayment, getUserTicket, submitFormResponse } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
@@ -103,6 +104,7 @@ export default function PostPage() {
   const [businessRegistered, setBusinessRegistered] = useState(false);
 
   const [businessRegistering, setBusinessRegistering] = useState(false);
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [eventFull, setEventFull] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
   const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
@@ -406,6 +408,8 @@ export default function PostPage() {
           (res as any)?.data?.registration?.checkin_code ??
           (res as any)?.registration?.checkin_code ??
           null;
+        const regId = (res?.data as any)?.registration?.registration_id ?? (res as any)?.registration?.registration_id ?? null;
+        if (regId) setRegistrationId(regId);
         if (checkinCode) setConfirmationCode(checkinCode);
         if (isFreeNoPasses && checkinCode) {
           router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
@@ -458,13 +462,15 @@ export default function PostPage() {
             email: '',
             contact: contact || '',
           },
-          handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+              handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
             try {
-              await verifyTicketPayment(
+              const verifyRes = await verifyTicketPayment(
                 response.razorpay_payment_id,
                 response.razorpay_order_id,
                 response.razorpay_signature
               );
+              const regId = (verifyRes?.data as any)?.registration?.registration_id ?? (verifyRes as any)?.registration?.registration_id ?? null;
+              if (regId) setRegistrationId(regId);
               if (selectedPassId) {
                 setPaymentVerifiedForPassId(selectedPassId);
                 setPaymentVerified(postId, selectedPassId);
@@ -536,6 +542,8 @@ export default function PostPage() {
     }
     registerForBusinessEvent(postId, user.user_id, passId, undefined, survey)
       .then((res) => {
+        const regId = (res?.data as any)?.registration?.registration_id ?? (res as any)?.registration?.registration_id ?? null;
+        if (regId) setRegistrationId(regId);
         clearPaymentVerified();
         setBusinessRegistered(true);
         setBusinessStep('detail');
@@ -769,35 +777,51 @@ export default function PostPage() {
               </div>
             ) : null}
             <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
-            <p className="mb-6 text-sm text-neutral-600">Please share a few details (required for registration).</p>
-            <div className="space-y-5">
-              <div>
-                <p className="mb-2 text-sm font-semibold text-neutral-800">Age <span className="text-red-500">*</span></p>
-                <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
-                  <option value="">Select age</option>
-                  {['Under 18yrs', '18-24yrs', '25-34yrs', '35-44yrs', 'above 45yrs'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-                </select>
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-semibold text-neutral-800">Gender <span className="text-red-500">*</span></p>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#1C1C1E]/20">
-                  <option value="">Select gender</option>
-                  {['Male', 'Female', 'Prefer not to say'].map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-                </select>
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-semibold text-neutral-800">Your running experience <span className="text-red-500">*</span></p>
-                <div className="flex flex-col gap-2">
-                  {['This will be my first time.', 'I run occasionally', 'I run regularly', "I'm returning after a break"].map((opt) => (
-                    <button key={opt} type="button" onClick={() => setRunningExperience(opt)} className={`rounded-xl px-4 py-3 text-left text-sm font-medium ${runningExperience === opt ? 'bg-[#1C1C1E] text-white' : 'bg-[#F2F2F7] text-neutral-800'}`}>{opt}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-semibold text-neutral-800">What brings you to BREATHE?</p>
-                <textarea value={whatBringsYou} onChange={(e) => setWhatBringsYou(e.target.value)} placeholder="I want to connect with other runners" rows={2} className="w-full rounded-xl border border-[#E5E5EA] bg-[#F2F2F7] px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-500 resize-none" />
-              </div>
-            </div>
+                <p className="mb-6 text-sm text-neutral-600">Please complete the registration form to finish booking.</p>
+                {(post as any).form_id ? (
+                  <FormRenderer
+                    formId={(post as any).form_id}
+                    planId={postId}
+                    userId={user?.user_id}
+                    registrationId={registrationId}
+                    onSubmit={async (responses) => {
+                      setBusinessRegistering(true);
+                      setError(null);
+                      try {
+                        // Ensure registration exists: if none, create via registerForBusinessEvent (server allows update when already exists)
+                        let regId = registrationId;
+                        if (!regId) {
+                          const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
+                          const r = await registerForBusinessEvent(postId, user!.user_id, passId, undefined, {} as any);
+                          regId = (r?.data as any)?.registration?.registration_id ?? (r as any)?.registration?.registration_id ?? null;
+                          if (regId) setRegistrationId(regId);
+                        }
+                        if (!regId) throw new Error('Could not determine registration id');
+                        await submitFormResponse({ form_id: (post as any).form_id, registration_id: regId, plan_id: postId, user_id: user!.user_id, responses });
+                        // After successful form submission, navigate to ticket/confirmation same as other flow
+                        setBusinessRegistered(true);
+                        setBusinessStep('detail');
+                        setSelectedPassId(null);
+                        setPaymentVerifiedForPassId(null);
+                        setAgeRange('');
+                        setGender('');
+                        setRunningExperience('');
+                        setWhatBringsYou('');
+                        router.push(`/post/${postId}/ticket`);
+                      } catch (e: unknown) {
+                        setError(e instanceof Error ? e.message : 'Submission failed');
+                      } finally {
+                        setBusinessRegistering(false);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col items-center justify-center p-6">
+                    <p className="text-lg font-bold text-neutral-900">Complete registration</p>
+                    <button type="button" onClick={() => handleSubmitRegistration()} className="mt-4 rounded-full bg-[#1C1C1E] px-6 py-3 text-sm font-bold text-white">Complete registration</button>
+                    {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+                  </div>
+                )}
             {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
             </div>
             <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
