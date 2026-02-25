@@ -116,11 +116,15 @@ export default function PostPage() {
   const [runningExperience, setRunningExperience] = useState('');
   const [whatBringsYou, setWhatBringsYou] = useState('');
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
   const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url?: string }> }>; media?: Array<{ url?: string }> })?.passes ?? [];
+  const isWomenOnlyBusiness = !!(isBusiness && (post as any)?.is_women_only);
+  const currentUserGender = ((currentUserProfile?.gender ?? '') as string).trim().toLowerCase();
+  const isCurrentUserFemale = currentUserGender === 'female' || currentUserGender === 'woman';
+  const businessWomenOnlyBlocked = isWomenOnlyBusiness && !!user?.user_id && !!currentUserGender && !isCurrentUserFemale;
 
   // determine whether the current plan actually needs any registration form/survey
   // registration_required is a boolean stored on the plan; a custom form also implies
@@ -251,11 +255,30 @@ export default function PostPage() {
           name: profile.name,
           profile_image: profile.profile_image ?? null,
           phone_number: profile.phone_number ?? null,
+          gender: profile.gender ?? null,
         });
         else setCurrentUserProfile(null);
       })
       .catch(() => setCurrentUserProfile(null));
   }, [user?.session_id, user?.user_id]);
+
+  const ensureWomenOnlyAllowedForBusiness = useCallback(async (): Promise<boolean> => {
+    if (!isWomenOnlyBusiness) return true;
+    if (!user?.user_id) return true;
+    try {
+      const profile = await getCurrentUserProfile(user.session_id);
+      const g = (profile?.gender ?? '').trim().toLowerCase();
+      const ok = g === 'female' || g === 'woman';
+      if (!ok) {
+        setWomenOnlyBlocked(true);
+        setError("This event is only for women.");
+        return false;
+      }
+    } catch {
+      // if profile can't be fetched, allow attempt (backend may enforce)
+    }
+    return true;
+  }, [isWomenOnlyBusiness, user?.session_id, user?.user_id]);
 
   // After login return: for paid pass go to tickets and trigger payment; for free pass go to survey (form)
   useEffect(() => {
@@ -320,10 +343,16 @@ export default function PostPage() {
 
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
-  const handleBookEvent = useCallback(() => {
+  const handleBookEvent = useCallback(async () => {
     if (!user?.user_id) {
       setPendingBusinessRegistration(postId, '');
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
+      return;
+    }
+
+    setWomenOnlyBlocked(false);
+    setError(null);
+    if (!(await ensureWomenOnlyAllowedForBusiness())) {
       return;
     }
 
@@ -339,7 +368,7 @@ export default function PostPage() {
     } else {
       setBusinessStep('tickets');
     }
-  }, [passes.length, postId, router, user?.user_id, post]);
+  }, [passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -368,6 +397,11 @@ export default function PostPage() {
     if (!user?.user_id) {
       setPendingBusinessRegistration(postId, passId ?? '');
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
+      return;
+    }
+
+    setWomenOnlyBlocked(false);
+    if (!(await ensureWomenOnlyAllowedForBusiness())) {
       return;
     }
     // Check if already registered to avoid repeating flow
@@ -514,7 +548,7 @@ export default function PostPage() {
       // No form: skip survey and register directly
       await doRegister();
     }
-  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey]);
+  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey, ensureWomenOnlyAllowedForBusiness]);
   // Trigger payment when returning from login with a paid pass selected (must run after handleProceedToSurvey is defined)
   useEffect(() => {
     if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
@@ -731,7 +765,7 @@ export default function PostPage() {
               </div>
               <button
                 type="button"
-                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening}
+                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || businessWomenOnlyBlocked}
                 onClick={handleProceedToSurvey}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
@@ -741,6 +775,9 @@ export default function PostPage() {
                   ? 'Pay & continue'
                   : 'Continue'}
               </button>
+              {businessWomenOnlyBlocked ? (
+                <p className="mt-2 w-full max-w-md text-center text-sm text-amber-700">This event is only for women.</p>
+              ) : null}
               {/* COMMENTED OUT: removed event full message */}
               {/* {eventFull && (
                 <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">Event is full. Better luck next time.</p>
@@ -867,6 +904,8 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             eventFull={eventFull}
+            isWomenOnly={(post as any)?.is_women_only}
+            womenOnlyBlocked={businessWomenOnlyBlocked}
             viewTicketHref={
               businessRegistered && user?.user_id
                 ? passes.length === 0

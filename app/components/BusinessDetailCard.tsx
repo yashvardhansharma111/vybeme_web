@@ -117,6 +117,8 @@ export function BusinessDetailCard({
   currentUserAvatar,
   currentUserName,
   profileCircleHref,
+  isWomenOnly,
+  womenOnlyBlocked,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -134,6 +136,8 @@ export function BusinessDetailCard({
   currentUserName?: string;
   /** When set (e.g. event ticket URL), profile circle links here instead of user profile. Profile link commented out as of now. */
   profileCircleHref?: string;
+  isWomenOnly?: boolean;
+  womenOnlyBlocked?: boolean;
 }) {
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
@@ -148,6 +152,7 @@ export function BusinessDetailCard({
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
   const planTitle = (post.title as string) || 'Event on vybeme';
+  const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -354,6 +359,13 @@ export function BusinessDetailCard({
               </button>
               <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
             </div>
+          ) : showWomenOnlyMessage ? (
+            <div className="flex flex-col items-center gap-2">
+              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+                Register
+              </button>
+              <p className="text-sm text-amber-700">This event is only for women.</p>
+            </div>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
@@ -461,6 +473,13 @@ export function BusinessDetailCard({
                     Register
                   </button>
                   <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
+                </div>
+              ) : showWomenOnlyMessage ? (
+                <div className="flex flex-col items-center gap-2">
+                  <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
+                    Register
+                  </button>
+                  <p className="text-sm text-amber-700">This event is only for women.</p>
                 </div>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
