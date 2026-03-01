@@ -11,7 +11,8 @@ function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') || '';
-  const redirect = searchParams.get('redirect') || '/';
+  // the location the caller asked us to land at after login/registration
+  const redirectParam = searchParams.get('redirect') || '/';
   const initialOtpId = searchParams.get('otp_id') || null;
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [otpId, setOtpId] = useState<string | null>(initialOtpId);
@@ -85,13 +86,26 @@ function VerifyOTPContent() {
         };
         setWebUser(auth);
         if (process.env.NODE_ENV === 'development') {
-          console.log('[verify-otp] auth stored, user_id=', auth.user_id, 'redirect param=', redirect);
+          console.log('[verify-otp] auth stored, user_id=', auth.user_id, 'redirect param=', redirectParam);
         }
+
+        // if the caller explicitly supplied a location to return to, honour it
+        const finalRedirect = redirectParam || '/';
+
         if (d.is_new_user) {
-          router.push(`/details?redirect=${encodeURIComponent(redirect)}`);
+          // new users must fill in profile details before being redirected
+          router.push(`/details?redirect=${encodeURIComponent(finalRedirect)}`);
           return;
         }
-        // Existing user: if business, send to dashboard; otherwise use redirect param
+
+        // existing user
+        if (finalRedirect && finalRedirect !== '/') {
+          // don't override a requested return location, even for businesses
+          router.push(finalRedirect);
+          return;
+        }
+
+        // if no explicit redirect (or it was just '/'), fall back to defaults
         try {
           const profile = await getCurrentUserProfile(auth.session_id);
           if (process.env.NODE_ENV === 'development') {
@@ -102,9 +116,9 @@ function VerifyOTPContent() {
             return;
           }
         } catch (_) {
-          // use redirect param if profile fetch fails
+          // ignore and continue to default push
         }
-        router.push(redirect);
+        router.push(finalRedirect);
       } else {
         setError((res as { message?: string }).message || 'Verification failed');
       }
