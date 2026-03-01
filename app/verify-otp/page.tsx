@@ -1,31 +1,36 @@
-'use client';
+"use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { AppHeader } from '../components/AppHeader';
-import { verifyOTP, resendOTP, setWebUser, getCurrentUserProfile } from '@/lib/api';
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AppHeader } from "../components/AppHeader";
+import {
+  verifyOTP,
+  resendOTP,
+  setWebUser,
+  getCurrentUserProfile,
+} from "@/lib/api";
 
 const OTP_LENGTH = 4;
 
 function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const phone = searchParams.get('phone') || '';
+  const phone = searchParams.get("phone") || "";
   // the location the caller asked us to land at after login/registration
-  const redirectParam = searchParams.get('redirect') || '/';
-  const initialOtpId = searchParams.get('otp_id') || null;
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const redirectParam = searchParams.get("redirect") || "/";
+  const initialOtpId = searchParams.get("otp_id") || null;
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [otpId, setOtpId] = useState<string | null>(initialOtpId);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const otpString = otp.join('');
+  const otpString = otp.join("");
   const isComplete = otpString.length === OTP_LENGTH;
 
   const updateDigit = useCallback((index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
+    const digit = value.replace(/\D/g, "").slice(-1);
     setOtp((prev) => {
       const next = [...prev];
       next[index] = digit;
@@ -38,28 +43,40 @@ function VerifyOTPContent() {
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
     if (!pasted) return;
-    const digits = pasted.split('');
+    const digits = pasted.split("");
     setOtp((prev) => {
       const next = [...prev];
-      digits.forEach((d, i) => { next[i] = d; });
+      digits.forEach((d, i) => {
+        next[i] = d;
+      });
       return next;
     });
     const focusIndex = Math.min(digits.length, OTP_LENGTH) - 1;
     setTimeout(() => inputRefs.current[focusIndex]?.focus(), 0);
   }, []);
 
-  const handleKeyDown = useCallback((index: number, e: React.KeyboardEvent<HTMLInputElement>, current: string) => {
-    if (e.key === 'Backspace' && !current && index > 0) {
-      setOtp((prev) => {
-        const next = [...prev];
-        next[index - 1] = '';
-        return next;
-      });
-      setTimeout(() => inputRefs.current[index - 1]?.focus(), 0);
-    }
-  }, []);
+  const handleKeyDown = useCallback(
+    (
+      index: number,
+      e: React.KeyboardEvent<HTMLInputElement>,
+      current: string,
+    ) => {
+      if (e.key === "Backspace" && !current && index > 0) {
+        setOtp((prev) => {
+          const next = [...prev];
+          next[index - 1] = "";
+          return next;
+        });
+        setTimeout(() => inputRefs.current[index - 1]?.focus(), 0);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -71,9 +88,13 @@ function VerifyOTPContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await verifyOTP(phone, otpString, otpId || '');
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[verify-otp] verifyOTP response:', { success: res.success, hasData: !!res.data, message: (res as { message?: string }).message });
+      const res = await verifyOTP(phone, otpString, otpId || "");
+      if (process.env.NODE_ENV === "development") {
+        console.log("[verify-otp] verifyOTP response:", {
+          success: res.success,
+          hasData: !!res.data,
+          message: (res as { message?: string }).message,
+        });
       }
       if (res.success && res.data) {
         const d = res.data;
@@ -85,12 +106,17 @@ function VerifyOTPContent() {
           is_new_user: d.is_new_user,
         };
         setWebUser(auth);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[verify-otp] auth stored, user_id=', auth.user_id, 'redirect param=', redirectParam);
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            "[verify-otp] auth stored, user_id=",
+            auth.user_id,
+            "redirect param=",
+            redirectParam,
+          );
         }
 
         // if the caller explicitly supplied a location to return to, honour it
-        const finalRedirect = redirectParam || '/';
+        const finalRedirect = redirectParam || "/";
 
         if (d.is_new_user) {
           // new users must fill in profile details before being redirected
@@ -99,7 +125,7 @@ function VerifyOTPContent() {
         }
 
         // existing user
-        if (finalRedirect && finalRedirect !== '/') {
+        if (finalRedirect && finalRedirect !== "/") {
           // don't override a requested return location, even for businesses
           router.push(finalRedirect);
           return;
@@ -108,11 +134,13 @@ function VerifyOTPContent() {
         // if no explicit redirect (or it was just '/'), fall back to defaults
         try {
           const profile = await getCurrentUserProfile(auth.session_id);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[verify-otp] getCurrentUserProfile:', { is_business: profile?.is_business });
+          if (process.env.NODE_ENV === "development") {
+            console.log("[verify-otp] getCurrentUserProfile:", {
+              is_business: profile?.is_business,
+            });
           }
           if (profile?.is_business) {
-            router.push('/clubs');
+            router.push("/clubs");
             return;
           }
         } catch (_) {
@@ -120,11 +148,14 @@ function VerifyOTPContent() {
         }
         router.push(finalRedirect);
       } else {
-        setError((res as { message?: string }).message || 'Verification failed');
+        setError(
+          (res as { message?: string }).message || "Verification failed",
+        );
       }
     } catch (e: unknown) {
-      if (process.env.NODE_ENV === 'development') console.warn('[verify-otp] submit error', e);
-      setError(e instanceof Error ? e.message : 'Verification failed');
+      if (process.env.NODE_ENV === "development")
+        console.warn("[verify-otp] submit error", e);
+      setError(e instanceof Error ? e.message : "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -138,11 +169,11 @@ function VerifyOTPContent() {
       const res = await resendOTP(phone);
       if (res.success && res.data?.otp_id) {
         setOtpId(res.data.otp_id);
-        setOtp(Array(OTP_LENGTH).fill(''));
+        setOtp(Array(OTP_LENGTH).fill(""));
         setTimeout(() => inputRefs.current[0]?.focus(), 0);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Resend failed');
+      setError(e instanceof Error ? e.message : "Resend failed");
     } finally {
       setResending(false);
     }
@@ -156,7 +187,7 @@ function VerifyOTPContent() {
           <p className="text-neutral-500">Missing phone. Go back to login.</p>
           <button
             type="button"
-            onClick={() => router.push('/login')}
+            onClick={() => router.push("/login")}
             className="ml-2 text-black underline"
           >
             Login
@@ -182,10 +213,12 @@ function VerifyOTPContent() {
               {otp.map((d, i) => (
                 <input
                   key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
+                  ref={(el) => {
+                    inputRefs.current[i] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
-                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                  autoComplete={i === 0 ? "one-time-code" : "off"}
                   maxLength={1}
                   value={d}
                   onChange={(e) => updateDigit(i, e.target.value)}
@@ -211,7 +244,7 @@ function VerifyOTPContent() {
               disabled={!isComplete || loading}
               className="mt-4 w-full rounded-xl bg-black py-3 font-medium text-white disabled:opacity-60"
             >
-              {loading ? 'Verifying…' : 'Next'}
+              {loading ? "Verifying…" : "Next"}
             </button>
           </form>
         </div>
@@ -222,14 +255,16 @@ function VerifyOTPContent() {
 
 export default function VerifyOTPPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
-        <AppHeader />
-        <div className="flex min-h-[50vh] items-center justify-center p-4">
-          <p className="text-neutral-500">Loading…</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
+          <AppHeader />
+          <div className="flex min-h-[50vh] items-center justify-center p-4">
+            <p className="text-neutral-500">Loading…</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <VerifyOTPContent />
     </Suspense>
   );

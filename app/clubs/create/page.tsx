@@ -19,6 +19,8 @@ const ADDITIONAL_DETAIL_OPTIONS = [
   { id: 'parking', label: 'Parking', placeholder: 'e.g. Available' },
   { id: 'f&b', label: 'F&B', placeholder: 'e.g. Post Run Coffee' },
   { id: 'links', label: 'Links', placeholder: 'https://...' },
+  // Strava link is only meaningful for running events; we show the option when category === 'Running'.
+  { id: 'strava_link', label: 'Strava Link', placeholder: 'https://www.strava.com/athletes/...' },
   { id: 'google_drive_link', label: 'Link for photos', placeholder: 'https://drive.google.com/...' },
   { id: 'additional_info', label: 'Additional Info', placeholder: 'Heading and description' },
 ];
@@ -185,6 +187,13 @@ export default function BusinessCreatePage() {
     setTicketImageFile(e.target.files?.[0] ?? null);
     e.target.value = '';
   };
+
+  // when category switches away from Running, drop any existing strava link rows
+  useEffect(() => {
+    if (category !== 'Running') {
+      setAdditionalDetails((prev) => prev.filter((d) => d.detail_type !== 'strava_link'));
+    }
+  }, [category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -497,7 +506,7 @@ export default function BusinessCreatePage() {
                   }}
                   className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
                 >
-                  {ADDITIONAL_DETAIL_OPTIONS.map((o) => (
+                  {(category === 'Running' ? ADDITIONAL_DETAIL_OPTIONS : ADDITIONAL_DETAIL_OPTIONS.filter(o => o.id !== 'strava_link')).map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
                 </select>
