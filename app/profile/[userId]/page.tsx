@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentUserId(getWebUser()?.user_id ?? null);
@@ -103,6 +104,46 @@ export default function ProfilePage() {
   const xHandle = stripHandle(social.x ?? social.twitter ?? '');
   const verified = profile.verified ?? false;
   const isOwnProfile = currentUserId && userId && currentUserId === userId;
+  const isBusinessProfile = profile.is_business === true;
+
+  const businessLatestLink =
+    typeof window !== 'undefined' && userId
+      ? `${window.location.origin}/go/business/${encodeURIComponent(userId)}`
+      : '';
+
+  const setStatus = (text: string) => {
+    setShareStatus(text);
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => setShareStatus(null), 1800);
+    }
+  };
+
+  const handleCopyLatestLink = () => {
+    if (!businessLatestLink) return;
+    if (!navigator.clipboard?.writeText) {
+      setStatus('Copy not supported on this browser');
+      return;
+    }
+    navigator.clipboard
+      .writeText(businessLatestLink)
+      .then(() => setStatus('Copied latest plan link'))
+      .catch(() => setStatus('Failed to copy link'));
+  };
+
+  const handleShareLatestLink = () => {
+    if (!businessLatestLink) return;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator
+        .share({
+          url: businessLatestLink,
+          title: `${name} on vybeme.`,
+          text: `Check out the latest event from ${name}.`,
+        })
+        .catch(() => handleCopyLatestLink());
+      return;
+    }
+    handleCopyLatestLink();
+  };
 
   const handleLogout = () => {
     setWebUser(null);
@@ -224,7 +265,25 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-gradient-to-br md:from-sky-100/90 md:via-sky-50/80 md:to-blue-100/90">
       <AppHeader />
       {isOwnProfile && (
-        <div className="mx-auto max-w-md px-4 pt-2 md:max-w-5xl md:px-6">
+        <div className="mx-auto flex max-w-md flex-wrap items-center gap-2 px-4 pt-2 md:max-w-5xl md:px-6">
+          {isBusinessProfile && (
+            <>
+              <button
+                type="button"
+                onClick={handleShareLatestLink}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                Share latest plan link
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyLatestLink}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                Copy link
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={handleLogout}
@@ -232,6 +291,7 @@ export default function ProfilePage() {
           >
             Logout
           </button>
+          {shareStatus && <span className="text-xs font-medium text-neutral-600">{shareStatus}</span>}
         </div>
       )}
       <main className="mx-auto max-w-md px-4 pb-8 pt-2 md:max-w-5xl md:grid md:grid-cols-2 md:gap-6 md:py-8 md:px-6">

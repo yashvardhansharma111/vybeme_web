@@ -9,7 +9,7 @@ import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import FormRenderer from '../../components/FormRenderer';
 import type { PostData } from '../../components/PostCard';
-import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, createTicketOrder, verifyTicketPayment, getUserTicket, submitFormResponse } from '@/lib/api';
+import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, getPlanRegistrationCount, createTicketOrder, verifyTicketPayment, getUserTicket, submitFormResponse } from '@/lib/api';
 
 const PENDING_BUSINESS_KEY = 'vybeme_pending_business_registration';
 const PAYMENT_VERIFIED_KEY = 'vybeme_payment_verified';
@@ -200,14 +200,24 @@ export default function PostPage() {
               }
             })
             .catch(() => {});
-          // COMMENTED OUT: removed 20 user limit check
-          // getRegistrations(postIdFromApi)
-          //   .then((r) => {
-          //     if (r.success && r.data && (r.data.total_registrations ?? 0) >= 20) setEventFull(true);
-          //     else setEventFull(false);
-          //   })
-          //   .catch(() => setEventFull(false));
-          setEventFull(false); // Always false since limit is removed
+          // If the plan has a registration_limit set, check current registrations and mark full
+          if ((p.registration_limit ?? null) !== null && p.registration_limit !== undefined) {
+            const limit = Number(p.registration_limit) || 0;
+            if (limit > 0) {
+              try {
+                const countRes = await getPlanRegistrationCount(postIdFromApi);
+                const count = (countRes?.data?.count as number) || 0;
+                setEventFull(count >= limit);
+              } catch (err) {
+                // on error, be conservative and assume not full
+                setEventFull(false);
+              }
+            } else {
+              setEventFull(false);
+            }
+          } else {
+            setEventFull(false);
+          }
         } else {
           setEventFull(false);
         }

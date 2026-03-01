@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShareMenu } from '@/app/components/ShareMenu';
 import FormBuilder, { FormField } from '@/app/components/FormBuilder';
 import FormSelector from '@/app/components/FormSelector';
-import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, createForm } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, updateBusinessPlan, updateBusinessPlanWithFiles, getBusinessPlanDetails, createForm } from '@/lib/api';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
 const MAX_MEDIA = 5;
@@ -54,6 +54,10 @@ export default function BusinessCreatePage() {
   const [showFormBuilder, setShowFormBuilder] = useState(false);
   const [savingForm, setSavingForm] = useState(false);
   const [registrationRequired, setRegistrationRequired] = useState(false); // whether we ask users to fill a survey/form
+  const [limitRegistrationEnabled, setLimitRegistrationEnabled] = useState(false);
+  const [registrationLimit, setRegistrationLimit] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editPlanId, setEditPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     if (formId) setRegistrationRequired(true);
@@ -68,6 +72,46 @@ export default function BusinessCreatePage() {
   useEffect(() => {
     setMounted(true);
     setUser(getWebUser());
+
+    // If URL contains ?plan_id=... or ?edit=..., load plan for editing
+    try {
+      if (typeof window !== 'undefined') {
+        const qs = new URLSearchParams(window.location.search);
+        const pid = qs.get('plan_id') || qs.get('edit');
+        if (pid) {
+          (async () => {
+            try {
+              const resp = await getBusinessPlanDetails(pid);
+              if (resp?.success && resp.data) {
+                const p = resp.data as any;
+                setEditMode(true);
+                setEditPlanId(pid);
+                setTitle(p.title ?? '');
+                setDescription(p.description ?? '');
+                setLocation(p.location_text ?? '');
+                setDate(p.date ? new Date(p.date).toISOString().slice(0, 10) : '');
+                setTime(p.time ?? '');
+                if (p.category_sub && p.category_sub.length > 0) setCategory(String(p.category_sub[0]));
+                if (p.passes && Array.isArray(p.passes) && p.passes.length > 0) {
+                  setTicketsEnabled(true);
+                  setPasses(p.passes.map((pp: any) => ({ name: pp.name ?? '', price: pp.price ?? 0 })));
+                }
+                setWomenOnly(!!p.is_women_only);
+                setAllowGuestList(!!p.allow_view_guest_list);
+                if (p.add_details) setAdditionalDetails(p.add_details.map((d: any) => ({ detail_type: d.detail_type ?? '', title: d.title ?? '', description: d.description ?? '' })));
+                if (p.form_id) setFormId(String(p.form_id));
+                if (p.registration_limit) {
+                  setLimitRegistrationEnabled(true);
+                  setRegistrationLimit(String(p.registration_limit));
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+          })();
+        }
+      }
+    } catch {}
   }, []);
 
   const loadProfile = useCallback(async () => {
@@ -190,6 +234,10 @@ export default function BusinessCreatePage() {
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
       if (formId) body.form_id = formId;
+      if (limitRegistrationEnabled && registrationLimit) {
+        const n = parseInt(registrationLimit, 10);
+        if (!Number.isNaN(n) && n > 0) body.registration_limit = n;
+      }
       if (mediaUrl.trim() && mediaFiles.length === 0) {
         body.media = [{ url: mediaUrl.trim(), type: 'image' }];
       }
@@ -228,9 +276,17 @@ export default function BusinessCreatePage() {
           if (v !== undefined && v !== null)
             formData.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
         });
-        res = await createBusinessPlanWithFiles(formData);
+        if (editMode && editPlanId) {
+          res = await updateBusinessPlanWithFiles(editPlanId, formData);
+        } else {
+          res = await createBusinessPlanWithFiles(formData);
+        }
       } else {
-        res = await createBusinessPlan(body);
+        if (editMode && editPlanId) {
+          res = await updateBusinessPlan(editPlanId, body);
+        } else {
+          res = await createBusinessPlan(body);
+        }
       }
 
       if (res.success && res.data?.post_id) {
@@ -507,6 +563,32 @@ export default function BusinessCreatePage() {
               Form attached: Your registration form is ready. Users will fill it when registering.
             </p>
           )}
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <span className="text-[16px] font-semibold text-black">Limit Registration</span>
+              {limitRegistrationEnabled && (
+                <p className="mt-2 text-sm text-neutral-600">Maximum number of attendees allowed to register for this event.</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={limitRegistrationEnabled}
+                onChange={(e) => setLimitRegistrationEnabled(e.target.checked)}
+                className="h-5 w-5 rounded"
+              />
+              {limitRegistrationEnabled && (
+                <input
+                  type="number"
+                  min={1}
+                  value={registrationLimit}
+                  onChange={(e) => setRegistrationLimit(e.target.value)}
+                  placeholder="Max attendees"
+                  className="ml-2 w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black"
+                />
+              )}
+            </div>
+          </div>
         </section>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}

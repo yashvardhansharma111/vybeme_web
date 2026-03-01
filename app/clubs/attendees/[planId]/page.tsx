@@ -34,6 +34,7 @@ export default function BusinessAttendeesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.user_id || !planId) return;
@@ -119,7 +120,7 @@ export default function BusinessAttendeesPage() {
     [user?.user_id, togglingId, stats]
   );
 
-  const handleDownloadAll = useCallback(() => {
+  const buildCsvExport = useCallback(() => {
     const escape = (v: string | null | undefined) => {
       const s = String(v ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
       return `"${s}"`;
@@ -136,18 +137,51 @@ export default function BusinessAttendeesPage() {
       escape(a.created_at ? new Date(a.created_at).toISOString() : null),
     ]);
     const csvBody = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const filename = `attendees-${planId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    return { csvBody, filename };
+  }, [attendees, planId]);
+
+  const handleDownloadAll = useCallback(() => {
+    const { csvBody, filename } = buildCsvExport();
     const BOM = '\uFEFF';
     const blob = new Blob([BOM + csvBody], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
-    a.setAttribute('download', `attendees-${planId}-${new Date().toISOString().slice(0, 10)}.csv`);
+    a.setAttribute('download', filename);
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 100);
-  }, [attendees, planId]);
+  }, [buildCsvExport]);
+
+  const handleShareAll = useCallback(async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const { csvBody, filename } = buildCsvExport();
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvBody], { type: 'text/csv;charset=utf-8;' });
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        const file = new File([blob], filename, { type: 'text/csv;charset=utf-8;' });
+        const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+        if (nav.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: 'Attendee list',
+            text: 'Post-event attendee list export.',
+            files: [file],
+          });
+          return;
+        }
+      }
+      handleDownloadAll();
+    } catch {
+      // User cancel or unsupported share target: no-op
+    } finally {
+      setSharing(false);
+    }
+  }, [buildCsvExport, handleDownloadAll, sharing]);
 
   const filteredAttendees = useMemo(() => {
     if (!searchQuery.trim()) return attendees;
@@ -209,13 +243,23 @@ export default function BusinessAttendeesPage() {
             </p>
           )}
           {filteredAttendees.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDownloadAll}
-              className="rounded-xl bg-[#1C1C1E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800"
-            >
-              Download all user data
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleShareAll}
+                disabled={sharing}
+                className="rounded-xl bg-[#4A3B69] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5a4a7a] disabled:opacity-60"
+              >
+                {sharing ? 'Sharing…' : 'Share all user data'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadAll}
+                className="rounded-xl bg-[#1C1C1E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800"
+              >
+                Download all user data
+              </button>
+            </div>
           )}
         </div>
 

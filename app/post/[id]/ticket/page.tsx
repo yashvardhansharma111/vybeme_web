@@ -296,7 +296,21 @@ export default function TicketPage() {
             </svg>
           </button>
           <h1 className="text-sm font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
-          <div className="w-9" />
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={downloading}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
+            aria-label="Download ticket"
+          >
+            {downloading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
+            ) : (
+              <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            )}
+          </button>
         </header>
 
         <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-3 whitespace-nowrap truncate">

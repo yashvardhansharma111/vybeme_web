@@ -340,6 +340,38 @@ export async function getYashvardhanTicket(plan_id: string, user_id: string) {
   return request<{ ticket: any }>(`/ticket/yashvardhan/ticket/${plan_id}/${user_id}`, { method: 'GET' });
 }
 
+export async function yasvardhanAdminListReports(admin_key: string, status?: string) {
+  const qs = new URLSearchParams({ admin_key });
+  if (status) qs.set('status', status);
+  return request<{ reports: any[] }>(`/yasvardhan/reports?${qs.toString()}`, { method: 'GET' });
+}
+
+export async function yasvardhanAdminUpdateReportStatus(admin_key: string, report_id: string, status: 'pending' | 'reviewed' | 'action_taken') {
+  return request<{ report_id: string; status: string }>(`/yasvardhan/reports/${encodeURIComponent(report_id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ admin_key, status }),
+  });
+}
+
+export async function yasvardhanAdminBanUser(admin_key: string, user_id: string, reason?: string) {
+  return request<any>(`/yasvardhan/ban/${encodeURIComponent(user_id)}`, {
+    method: 'POST',
+    body: JSON.stringify({ admin_key, reason }),
+  });
+}
+
+export async function yasvardhanAdminUnbanUser(admin_key: string, user_id: string) {
+  return request<any>(`/yasvardhan/unban/${encodeURIComponent(user_id)}`, {
+    method: 'POST',
+    body: JSON.stringify({ admin_key }),
+  });
+}
+
+export async function yasvardhanAdminListBannedUsers(admin_key: string) {
+  const qs = new URLSearchParams({ admin_key });
+  return request<{ users: any[] }>(`/yasvardhan/banned-users?${qs.toString()}`, { method: 'GET' });
+}
+
 /** Get attendee list for a plan (organizer only). Includes survey fields for export. */
 export async function getAttendeeList(plan_id: string, user_id: string) {
   return request<{
@@ -460,6 +492,27 @@ export async function createBusinessPlanWithFiles(formData: FormData): Promise<A
   return data;
 }
 
+/** Update business post with file uploads (multipart). Uses PUT to update existing post. */
+export async function updateBusinessPlanWithFiles(plan_id: string, formData: FormData): Promise<ApiResponse<{ post_id: string }>> {
+  const user = getStoredUser();
+  if (!user?.access_token) throw new Error('Not authenticated');
+  const url = `${BASE_URL}/business-post/update/${encodeURIComponent(plan_id)}`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${user.access_token}`,
+  };
+  const res = await fetch(url, { method: 'PUT', headers, body: formData });
+  const contentType = res.headers.get('content-type');
+  let data: ApiResponse<{ post_id: string }>;
+  if (contentType?.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(text || `Request failed ${res.status}`);
+  }
+  if (!res.ok) throw new Error(data.message || `Request failed ${res.status}`);
+  return data;
+}
+
 /** Update business post. */
 export async function updateBusinessPlan(plan_id: string, body: Record<string, unknown>) {
   return request<any>(`/business-post/update/${plan_id}`, {
@@ -500,6 +553,11 @@ export async function getRegistrations(plan_id: string) {
     `/business-post/registrations/${plan_id}`,
     { method: 'GET' }
   );
+}
+
+/** Get registration count for a plan (simple count). */
+export async function getPlanRegistrationCount(plan_id: string) {
+  return request<{ count: number }>(`/ticket/registration-count/${plan_id}`, { method: 'GET' });
 }
 
 export async function getFeed(user_id: string | null, limit = 30, offset = 0) {

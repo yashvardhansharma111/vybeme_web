@@ -6,6 +6,11 @@ import {
   getYashvardhanPlans,
   getYashvardhanAttendees,
   getYashvardhanTicket,
+  yasvardhanAdminBanUser,
+  yasvardhanAdminListBannedUsers,
+  yasvardhanAdminListReports,
+  yasvardhanAdminUnbanUser,
+  yasvardhanAdminUpdateReportStatus,
 } from '@/lib/api';
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 import QRCode from 'qrcode';
@@ -136,7 +141,7 @@ if (distance) items.push({ icon: 'location', label: distance });
   return items.slice(0, 4).map((item, i) => ({ ...item, icon: item.icon || iconKeys[i] }));
 }
 
-type View = 'plans' | 'attendees' | 'ticket';
+type View = 'plans' | 'attendees' | 'ticket' | 'reports';
 
 export default function YashvardhanPage() {
   const [view, setView] = useState<View>('plans');
@@ -164,6 +169,11 @@ export default function YashvardhanPage() {
   const downloadQueueRef = useRef<Array<{ user_id: string; name: string }>>([]);
   const processNextInQueueRef = useRef<() => void>(() => {});
   const downloadAllModeRef = useRef(false);
+
+  const [adminKey, setAdminKey] = useState('');
+  const [reports, setReports] = useState<any[]>([]);
+  const [bannedUsers, setBannedUsers] = useState<any[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   useEffect(() => {
     if (!ticket?.qr_code_hash) {
@@ -205,6 +215,48 @@ export default function YashvardhanPage() {
   useEffect(() => {
     loadPlans();
   }, [loadPlans]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('vybeme_admin_key') || '';
+    if (saved) setAdminKey(saved);
+  }, []);
+
+  const saveAdminKey = useCallback((k: string) => {
+    setAdminKey(k);
+    if (typeof window === 'undefined') return;
+    if (k) localStorage.setItem('vybeme_admin_key', k);
+    else localStorage.removeItem('vybeme_admin_key');
+  }, []);
+
+  const loadReports = useCallback(async () => {
+    if (!adminKey.trim()) {
+      setError('Admin key is required');
+      return;
+    }
+    setLoadingReports(true);
+    setError(null);
+    try {
+      const [rRes, bRes] = await Promise.all([
+        yasvardhanAdminListReports(adminKey.trim()),
+        yasvardhanAdminListBannedUsers(adminKey.trim()),
+      ]);
+      setReports(rRes.success ? (rRes.data?.reports ?? []) : []);
+      setBannedUsers(bRes.success ? (bRes.data?.users ?? []) : []);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load reports');
+    } finally {
+      setLoadingReports(false);
+    }
+  }, [adminKey]);
+
+  const bannedSet = useMemo(() => {
+    const s = new Set<string>();
+    bannedUsers.forEach((u: any) => {
+      if (u?.user_id) s.add(String(u.user_id));
+    });
+    return s;
+  }, [bannedUsers]);
 
   const onSelectPlan = useCallback(async (planId: string) => {
     setSelectedPlanId(planId);
@@ -442,10 +494,156 @@ export default function YashvardhanPage() {
     );
   }
 
+  if (view === 'reports') {
+    return (
+      <div className="min-h-screen bg-[#1C1C1E] p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => { setView('plans'); setError(null); }}
+            className="text-white/80 hover:text-white"
+          >
+            ← Back to events
+          </button>
+          <button
+            type="button"
+            onClick={loadReports}
+            disabled={loadingReports}
+            className="rounded-xl bg-[#8B7AB8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-60"
+          >
+            {loadingReports ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+
+        <h1 className="mb-4 text-xl font-semibold text-white">Reports</h1>
+        {error && <p className="mb-4 text-red-400">{error}</p>}
+
+        <div className="mb-4 rounded-xl bg-[#2C2C2E] p-4">
+          <label className="mb-2 block text-sm font-medium text-white/90">Admin key</label>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <input
+              value={adminKey}
+              onChange={(e) => saveAdminKey(e.target.value)}
+              placeholder="Enter ADMIN_KEY"
+              className="w-full rounded-lg bg-[#1C1C1E] px-3 py-2 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-[#8B7AB8]"
+            />
+            <button
+              type="button"
+              onClick={loadReports}
+              disabled={loadingReports}
+              className="rounded-xl bg-[#8B7AB8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-60"
+            >
+              Load
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-white/60">Use this to review reports within 24 hours and take action.</p>
+        </div>
+
+        <div className="space-y-2">
+          {reports.map((r: any) => {
+            const reportId = String(r.report_id ?? '');
+            const reportedUserId = String(r.reported_user_id ?? '');
+            const isBanned = bannedSet.has(reportedUserId);
+            return (
+              <div key={reportId || `${reportedUserId}-${r.created_at}`} className="rounded-xl bg-[#2C2C2E] p-4">
+                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">{r.reason || 'Report'}</p>
+                    <p className="mt-1 text-xs text-white/70">Status: {r.status || 'pending'}</p>
+                    <p className="mt-1 text-xs text-white/70">Reported user: {reportedUserId || '—'}</p>
+                    <p className="mt-1 text-xs text-white/70">Reporter: {r.reporter_id || '—'}</p>
+                    {r.plan_id ? <p className="mt-1 text-xs text-white/70">Plan/Post: {r.plan_id}</p> : null}
+                    {r.message ? <p className="mt-2 text-sm text-white/90 whitespace-pre-line">{r.message}</p> : null}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await yasvardhanAdminUpdateReportStatus(adminKey.trim(), reportId, 'reviewed');
+                          await loadReports();
+                        } catch (e: unknown) {
+                          setError(e instanceof Error ? e.message : 'Failed to update report');
+                        }
+                      }}
+                      disabled={!adminKey.trim() || loadingReports || !reportId}
+                      className="rounded-lg bg-[#1C1C1E] px-3 py-2 text-xs font-semibold text-white hover:bg-black/60 disabled:opacity-60"
+                    >
+                      Mark reviewed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await yasvardhanAdminUpdateReportStatus(adminKey.trim(), reportId, 'action_taken');
+                          await loadReports();
+                        } catch (e: unknown) {
+                          setError(e instanceof Error ? e.message : 'Failed to update report');
+                        }
+                      }}
+                      disabled={!adminKey.trim() || loadingReports || !reportId}
+                      className="rounded-lg bg-[#1C1C1E] px-3 py-2 text-xs font-semibold text-white hover:bg-black/60 disabled:opacity-60"
+                    >
+                      Mark action
+                    </button>
+                    {isBanned ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await yasvardhanAdminUnbanUser(adminKey.trim(), reportedUserId);
+                            await loadReports();
+                          } catch (e: unknown) {
+                            setError(e instanceof Error ? e.message : 'Failed to unban user');
+                          }
+                        }}
+                        disabled={!adminKey.trim() || loadingReports || !reportedUserId}
+                        className="rounded-lg bg-[#8B7AB8] px-3 py-2 text-xs font-semibold text-white hover:bg-[#9B8AC8] disabled:opacity-60"
+                      >
+                        Unban
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await yasvardhanAdminBanUser(adminKey.trim(), reportedUserId, `Reported: ${r.reason || 'reason not specified'}`);
+                            await loadReports();
+                          } catch (e: unknown) {
+                            setError(e instanceof Error ? e.message : 'Failed to ban user');
+                          }
+                        }}
+                        disabled={!adminKey.trim() || loadingReports || !reportedUserId}
+                        className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                      >
+                        Ban user
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {reports.length === 0 && !loadingReports ? <p className="text-white/70">No reports found.</p> : null}
+      </div>
+    );
+  }
+
   if (view === 'plans') {
     return (
       <div className="min-h-screen bg-[#1C1C1E] p-6">
-        <h1 className="mb-4 text-xl font-semibold text-white">Select Event</h1>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold text-white">Select Event</h1>
+          <button
+            type="button"
+            onClick={() => { setView('reports'); setError(null); }}
+            className="rounded-xl bg-[#2C2C2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3A3A3C]"
+          >
+            Reports
+          </button>
+        </div>
         {error && <p className="mb-4 text-red-400">{error}</p>}
         <ul className="space-y-2">
           {plans.map((p) => (
