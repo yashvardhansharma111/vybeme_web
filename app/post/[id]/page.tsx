@@ -354,6 +354,10 @@ export default function PostPage() {
   const authorName = post?.user?.name || post?.author?.name || 'Shreya';
 
   const handleBookEvent = useCallback(async () => {
+    if (eventFull) {
+      setError('This event has reached maximum capacity and registrations are now closed.');
+      return;
+    }
     if (!user?.user_id) {
       setPendingBusinessRegistration(postId, '');
       router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
@@ -378,7 +382,7 @@ export default function PostPage() {
     } else {
       setBusinessStep('tickets');
     }
-  }, [passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness]);
+  }, [eventFull, passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -934,6 +938,7 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             eventFull={eventFull}
+            actionError={error}
             isWomenOnly={(post as any)?.is_women_only}
             womenOnlyBlocked={businessWomenOnlyBlocked}
             viewTicketHref={

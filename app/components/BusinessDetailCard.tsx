@@ -109,16 +109,17 @@ export function BusinessDetailCard({
   post,
   authorName,
   onBookEvent,
-  registered = false,
-  eventFull = false,
+  registered,
+  eventFull,
+  actionError,
+  isWomenOnly,
+  womenOnlyBlocked,
   viewTicketHref,
   attendees,
   currentUserProfileHref,
   currentUserAvatar,
   currentUserName,
   profileCircleHref,
-  isWomenOnly,
-  womenOnlyBlocked,
 }: {
   post: BusinessDetailPost;
   authorName: string;
@@ -127,17 +128,16 @@ export function BusinessDetailCard({
   registered?: boolean;
   /** When true, event has reached max capacity (20 users); show disabled Register and full message */
   eventFull?: boolean;
+  actionError?: string | null;
+  isWomenOnly?: boolean;
+  womenOnlyBlocked?: boolean;
   viewTicketHref?: string;
-  selectedPassId?: string | null;
-  onSelectPass?: (passId: string) => void;
   attendees?: Array<{ name?: string; profile_image?: string | null }>;
   currentUserProfileHref?: string;
   currentUserAvatar?: string | null;
   currentUserName?: string;
   /** When set (e.g. event ticket URL), profile circle links here instead of user profile. Profile link commented out as of now. */
   profileCircleHref?: string;
-  isWomenOnly?: boolean;
-  womenOnlyBlocked?: boolean;
 }) {
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
@@ -354,10 +354,14 @@ export function BusinessDetailCard({
             </Link>
           ) : eventFull ? (
             <div className="flex flex-col items-center gap-2">
-              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+              <button
+                type="button"
+                onClick={onBookEvent}
+                className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed"
+              >
                 Register
               </button>
-              <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
+              <p className="text-sm text-neutral-500">{actionError || "It\u0027s full. Better luck next time."}</p>
             </div>
           ) : showWomenOnlyMessage ? (
             <div className="flex flex-col items-center gap-2">
@@ -469,10 +473,14 @@ export function BusinessDetailCard({
                 </Link>
               ) : eventFull ? (
                 <div className="flex flex-col items-center gap-2">
-                  <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
+                  <button
+                    type="button"
+                    onClick={onBookEvent}
+                    className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed"
+                  >
                     Register
                   </button>
-                  <p className="text-sm text-neutral-500">It&apos;s full. Better luck next time.</p>
+                  <p className="text-sm text-neutral-500">{actionError || "It\u0027s full. Better luck next time."}</p>
                 </div>
               ) : showWomenOnlyMessage ? (
                 <div className="flex flex-col items-center gap-2">
