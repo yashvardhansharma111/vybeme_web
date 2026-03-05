@@ -55,6 +55,9 @@ export default function BusinessEditPlanPage() {
   const [allowGuestList, setAllowGuestList] = useState(true);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
 
+  const [limitRegistrationEnabled, setLimitRegistrationEnabled] = useState(false);
+  const [registrationLimit, setRegistrationLimit] = useState('');
+
   // strip strava detail if category is changed away
   useEffect(() => {
     if (category !== 'Running') {
@@ -106,6 +109,7 @@ export default function BusinessEditPlanPage() {
             media?: Array<{ url?: string }>;
             passes?: Array<{ pass_id: string; name: string; price: number; media?: Array<{ url?: string }> }>;
             add_details?: Array<{ detail_type?: string; title?: string; description?: string }>;
+            registration_limit?: number | null;
           };
           setTitle(d.title ?? '');
           setDescription(d.description ?? '');
@@ -136,6 +140,14 @@ export default function BusinessEditPlanPage() {
               title: a.title ?? ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === a.detail_type)?.label ?? '',
               description: a.description ?? '',
             })));
+          }
+
+          if (d.registration_limit != null && Number(d.registration_limit) > 0) {
+            setLimitRegistrationEnabled(true);
+            setRegistrationLimit(String(d.registration_limit));
+          } else {
+            setLimitRegistrationEnabled(false);
+            setRegistrationLimit('');
           }
         }
       } catch {
@@ -235,6 +247,14 @@ export default function BusinessEditPlanPage() {
       if (location.trim()) body.location_text = location.trim();
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
+
+      if (limitRegistrationEnabled && registrationLimit) {
+        const n = parseInt(registrationLimit, 10);
+        if (!Number.isNaN(n) && n > 0) body.registration_limit = n;
+      } else {
+        // allow clearing the limit on edit
+        body.registration_limit = null;
+      }
       const resolvedMediaUrls: string[] = [];
       for (let i = 0; i < mediaUrls.length; i++) {
         const file = mediaFiles[i];
@@ -331,6 +351,44 @@ export default function BusinessEditPlanPage() {
             className="w-full rounded-xl bg-transparent text-[20px] font-bold text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Title"
           />
+        </section>
+
+        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <p className="text-[14px] font-bold uppercase tracking-wide text-black">Limit Registration</p>
+              {limitRegistrationEnabled ? (
+                <p className="mt-1 text-sm text-neutral-700">Maximum number of attendees allowed to register for this event.</p>
+              ) : (
+                <p className="mt-1 text-sm text-neutral-700">Unlimited registrations.</p>
+              )}
+            </div>
+            <input
+              type="checkbox"
+              checked={limitRegistrationEnabled}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setLimitRegistrationEnabled(on);
+                if (!on) setRegistrationLimit('');
+              }}
+              className="h-5 w-5 rounded"
+            />
+          </div>
+          {limitRegistrationEnabled ? (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={registrationLimit}
+                onChange={(e) => setRegistrationLimit(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="Max attendees"
+                className="w-40 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black"
+              />
+              {registrationLimit ? (
+                <span className="text-sm text-neutral-700">Max {registrationLimit} attendee{registrationLimit === '1' ? '' : 's'}</span>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
