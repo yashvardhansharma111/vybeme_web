@@ -472,7 +472,13 @@ export default function PostPage() {
       try {
         const orderRes = await createTicketOrder(postId, user.user_id, passId);
         if (!orderRes.success || !orderRes.data?.id) {
-          setError(orderRes.message || 'Failed to create order');
+          const msg = orderRes.message || 'Failed to create order';
+          if (/capacity|full/i.test(msg)) {
+            setEventFull(true);
+            setError('This event has reached maximum capacity and registrations are now closed.');
+          } else {
+            setError(msg);
+          }
           setPaymentOpening(false);
           return;
         }
@@ -544,7 +550,13 @@ export default function PostPage() {
         });
         rzp.open();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not start payment');
+        const msg = e instanceof Error ? e.message : 'Could not start payment';
+        if (/capacity|full/i.test(String(msg))) {
+          setEventFull(true);
+          setError('This event has reached maximum capacity and registrations are now closed.');
+        } else {
+          setError(msg);
+        }
         setPaymentOpening(false);
       }
       return;
@@ -776,7 +788,13 @@ export default function PostPage() {
               <button
                 type="button"
                 disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || businessWomenOnlyBlocked}
-                onClick={handleProceedToSurvey}
+                onClick={() => {
+                  if (eventFull) {
+                    setError('This event has reached maximum capacity and registrations are now closed.');
+                    return;
+                  }
+                  handleProceedToSurvey();
+                }}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
                 {paymentOpening
@@ -788,10 +806,12 @@ export default function PostPage() {
               {businessWomenOnlyBlocked ? (
                 <p className="mt-2 w-full max-w-md text-center text-sm text-amber-700">This event is only for women.</p>
               ) : null}
-              {/* COMMENTED OUT: removed event full message */}
-              {/* {eventFull && (
-                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">Event is full. Better luck next time.</p>
-              )} */}
+              {eventFull ? (
+                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">This event has reached maximum capacity.</p>
+              ) : null}
+              {error ? (
+                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">{error}</p>
+              ) : null}
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
