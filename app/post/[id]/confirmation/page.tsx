@@ -11,6 +11,20 @@ export default function RegistrationConfirmationPage() {
 
   const planId = params.id as string;
   const code = (searchParams.get('code') || '').toUpperCase();
+  const fromApp = searchParams.get('app') === '1';
+
+  React.useEffect(() => {
+    if (!fromApp) return;
+    if (!planId) return;
+    const t = setTimeout(() => {
+      try {
+        window.location.href = `vybeme://business-plan/${encodeURIComponent(planId)}`;
+      } catch {
+        // ignore
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [fromApp, planId]);
 
   const handleClose = () => {
     router.push(`/post/${planId}`);

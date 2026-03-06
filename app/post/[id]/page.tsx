@@ -460,9 +460,9 @@ export default function PostPage() {
         if (regId) setRegistrationId(regId);
         if (checkinCode) setConfirmationCode(checkinCode);
         if (isFreeNoPasses && checkinCode) {
-          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
         } else {
-          router.push(`/post/${postId}/ticket`);
+          router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Registration failed');
@@ -537,7 +537,7 @@ export default function PostPage() {
               } else {
                 // No form: skip survey and go to ticket immediately
                 setBusinessStep('detail');
-                router.push(`/post/${postId}/ticket`);
+                router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
               }
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Payment verification failed');
@@ -626,9 +626,9 @@ export default function PostPage() {
           null;
         if (checkinCode) setConfirmationCode(checkinCode);
         if (isFreeNoPasses && checkinCode) {
-          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}`);
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
         } else {
-          router.push(`/post/${postId}/ticket`);
+          router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
         }
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
@@ -897,7 +897,7 @@ export default function PostPage() {
                         setGender('');
                         setRunningExperience('');
                         setWhatBringsYou('');
-                        router.push(`/post/${postId}/ticket`);
+                        router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
                       } catch (e: unknown) {
                         setError(e instanceof Error ? e.message : 'Submission failed');
                       } finally {

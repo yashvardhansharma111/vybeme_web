@@ -108,6 +108,7 @@ export default function TicketPage() {
   const searchParams = useSearchParams();
   const planId = params.id as string;
   const fromTickets = searchParams.get('from') === 'tickets';
+  const fromApp = searchParams.get('app') === '1';
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +128,19 @@ export default function TicketPage() {
   }, [ticket?.qr_code_hash]);
 
   const user = getWebUser();
+
+  useEffect(() => {
+    if (!fromApp) return;
+    if (!planId) return;
+    const t = setTimeout(() => {
+      try {
+        window.location.href = `vybeme://business-plan/${encodeURIComponent(planId)}`;
+      } catch {
+        // ignore
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [fromApp, planId]);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)');
