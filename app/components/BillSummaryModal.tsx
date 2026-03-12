@@ -72,7 +72,7 @@ export default function BillSummaryModal({
               <span className="font-semibold text-neutral-900">{formatINR(ticketFare)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-neutral-600">Platform Fee ({platformFeePercent}%)</span>
+              <span className="text-neutral-600">Platform Fee + GST</span>
               <span className="font-semibold text-neutral-900">{formatINR(platformFee)}</span>
             </div>
             <div className="h-px w-full bg-neutral-200" />
