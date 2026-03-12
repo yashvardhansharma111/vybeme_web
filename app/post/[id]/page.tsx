@@ -8,6 +8,7 @@ import { EventDetailCard, type EventDetailPost } from '../../components/EventDet
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import FormRenderer from '../../components/FormRenderer';
+import BillSummaryModal from '../../components/BillSummaryModal';
 import type { PostData } from '../../components/PostCard';
 import { getPost, createJoinRequest, getWebUser, getCurrentUserProfile, getPostImageUrlOrPlaceholder, getUserProfile, registerForBusinessEvent, getGuestList, getRegistrations, getPlanRegistrationCount, createTicketOrder, verifyTicketPayment, getUserTicket, submitFormResponse } from '@/lib/api';
 
@@ -107,6 +108,7 @@ export default function PostPage() {
   const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [eventFull, setEventFull] = useState(false);
   const [paymentOpening, setPaymentOpening] = useState(false);
+  const [showBillSummary, setShowBillSummary] = useState(false);
   const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
   const [paymentVerifiedForPassId, setPaymentVerifiedForPassId] = useState<string | null>(null);
   const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
@@ -684,6 +686,7 @@ export default function PostPage() {
   const isTicketsStep = !!(post && isBusiness && businessStep === 'tickets');
   const isSurveyStep = !!(post && isBusiness && businessStep === 'survey');
   const showAppHeader = !isBusinessDetailView && !isTicketsStep && !isSurveyStep;
+  const selectedPassPrice = selectedPassId ? (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) : 0;
 
   return (
     <div className={`min-h-screen ${isTicketsStep || isBusinessDetailView ? 'bg-white' : 'bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200'} ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
@@ -797,16 +800,31 @@ export default function PostPage() {
                     setError('This event has reached maximum capacity and registrations are now closed.');
                     return;
                   }
+                  if (selectedPassPrice > 0) {
+                    setShowBillSummary(true);
+                    return;
+                  }
                   handleProceedToSurvey();
                 }}
                 className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
               >
                 {paymentOpening
                   ? 'Opening payment…'
-                  : selectedPassId && (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) > 0
+                  : selectedPassPrice > 0
                   ? 'Pay & continue'
                   : 'Continue'}
               </button>
+              <BillSummaryModal
+                open={showBillSummary}
+                ticketFare={Number(selectedPassPrice) || 0}
+                platformFeePercent={10}
+                proceeding={paymentOpening}
+                onClose={() => setShowBillSummary(false)}
+                onProceed={() => {
+                  setShowBillSummary(false);
+                  handleProceedToSurvey();
+                }}
+              />
               {businessWomenOnlyBlocked ? (
                 <p className="mt-2 w-full max-w-md text-center text-sm text-amber-700">This event is only for women.</p>
               ) : null}
