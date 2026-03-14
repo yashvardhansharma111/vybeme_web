@@ -114,6 +114,7 @@ export function BusinessDetailCard({
   actionError,
   isWomenOnly,
   womenOnlyBlocked,
+  isCancelled,
   viewTicketHref,
   attendees,
   currentUserProfileHref,
@@ -131,6 +132,7 @@ export function BusinessDetailCard({
   actionError?: string | null;
   isWomenOnly?: boolean;
   womenOnlyBlocked?: boolean;
+  isCancelled?: boolean;
   viewTicketHref?: string;
   attendees?: Array<{ name?: string; profile_image?: string | null }>;
   currentUserProfileHref?: string;
@@ -153,6 +155,7 @@ export function BusinessDetailCard({
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
   const planTitle = (post.title as string) || 'Event on vybeme';
   const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
+  const showCancelledMessage = !!isCancelled;
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -370,6 +373,13 @@ export function BusinessDetailCard({
               </button>
               <p className="text-sm text-amber-700">This event is only for women.</p>
             </div>
+          ) : showCancelledMessage ? (
+            <div className="flex flex-col items-center gap-2">
+              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+                Register
+              </button>
+              <p className="text-sm text-red-600">This event has been cancelled.</p>
+            </div>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
               Register
@@ -488,6 +498,13 @@ export function BusinessDetailCard({
                     Register
                   </button>
                   <p className="text-sm text-amber-700">This event is only for women.</p>
+                </div>
+              ) : showCancelledMessage ? (
+                <div className="flex flex-col items-center gap-2">
+                  <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
+                    Register
+                  </button>
+                  <p className="text-sm text-red-600">This event has been cancelled.</p>
                 </div>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">

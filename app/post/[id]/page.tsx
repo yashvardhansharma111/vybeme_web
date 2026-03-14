@@ -112,6 +112,7 @@ export default function PostPage() {
   const [triggerPaymentAfterLogin, setTriggerPaymentAfterLogin] = useState(false);
   const [paymentVerifiedForPassId, setPaymentVerifiedForPassId] = useState<string | null>(null);
   const [guestList, setGuestList] = useState<Array<{ name?: string; profile_image?: string | null }>>([]);
+  const [isCancelled, setIsCancelled] = useState(false);
   // Registration survey (replaces payment)
   const [ageRange, setAgeRange] = useState('');
   const [gender, setGender] = useState('');
@@ -172,6 +173,11 @@ export default function PostPage() {
           }
         }
         const imageUrl = getPostImageUrlOrPlaceholder(p as { media?: Array<{ url: string }>; image?: string | null });
+        
+        // Check if post is cancelled
+        const postStatus = (p.post_status as string) || 'published';
+        setIsCancelled(postStatus === 'deleted');
+        
         setPost({
           ...p,
           post_id: postIdFromApi,
@@ -959,6 +965,7 @@ export default function PostPage() {
             actionError={error}
             isWomenOnly={(post as any)?.is_women_only}
             womenOnlyBlocked={businessWomenOnlyBlocked}
+            isCancelled={isCancelled}
             viewTicketHref={
               businessRegistered && user?.user_id
                 ? passes.length === 0
