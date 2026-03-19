@@ -769,103 +769,76 @@ export default function PostPage() {
           </div>
         )}
         {post && isBusiness && businessStep === 'tickets' ? (
-          <div className="relative min-h-[100dvh] flex flex-col bg-white">
-            {/* Back button top left */}
-            <div className="absolute left-4 top-4 z-10">
+          <div className="min-h-[100dvh] w-full bg-white px-4 py-4 md:flex md:items-center md:justify-center">
+            <div className="mx-auto flex w-full max-w-sm flex-col rounded-3xl bg-neutral-100 p-3 shadow-sm">
               <button
                 type="button"
                 onClick={() => setBusinessStep('detail')}
-                className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
+                className="mb-3 inline-flex w-fit items-center gap-1 text-xs font-medium text-neutral-700 hover:text-neutral-900"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
               </button>
-            </div>
-            {/* Event details + ticket selection */}
-            <div className="flex flex-1 flex-col items-center overflow-y-auto pt-14 px-4 pb-28">
-              {/* Event details: Title, Date | Time, Location */}
-              <div className="w-full max-w-md text-left mb-6">
-                <h1 className="text-xl font-bold text-neutral-900">{post.title ?? 'Event'}</h1>
-                <p className="mt-1 text-sm text-neutral-700">
+
+              <div className="mb-3 text-left">
+                <h1 className="text-sm font-bold text-neutral-900">{post.title ?? 'Event'}</h1>
+                <p className="mt-0.5 text-[11px] text-neutral-700">
                   {formatEventDateAndTime(post.date, post.time) || '—'}
                 </p>
                 {post.location_text ? (
-                  <p className="mt-1 text-sm text-neutral-700">{post.location_text}</p>
+                  <p className="mt-0.5 text-[11px] text-neutral-700">{post.location_text}</p>
                 ) : null}
               </div>
-              {/* Ticket selection in light grey container */}
-              <div className="w-full max-w-md rounded-2xl bg-neutral-100 p-4 shadow-sm">
-                <h2 className="mb-4 text-lg font-bold text-neutral-900">Select Passes</h2>
-                {passes.length === 0 ? (
-                  <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {passes.map((pass) => {
-                      const isSelected = selectedPassId === pass.pass_id;
-                      const ticketImageUrl = pass.media?.[0]?.url ?? eventFirstImageUrl;
-                      const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
-                      const cardStyle = ticketImageUrl
-                        ? { backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url(${ticketImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' as const }
-                        : { background: ticketGradient };
-                      return (
-                        <button
-                          key={pass.pass_id}
-                          type="button"
-                          onClick={() => setSelectedPassId(pass.pass_id)}
-                          className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-white transition-all ${
-                            isSelected
-                              ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
-                              : 'opacity-95 hover:opacity-100'
-                          }`}
-                          style={cardStyle}
-                        >
-                          <div className="flex flex-1 items-center gap-3 pr-3">
-                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
-                              {isSelected ? (
-                                <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              ) : null}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-base font-bold">{pass.name}</p>
-                              {pass.description ? (
-                                <p className="mt-1.5 line-clamp-2 text-[13px] text-white/90 whitespace-pre-line">{pass.description}</p>
-                              ) : null}
-                            </div>
+
+              <h2 className="mb-2 text-base font-bold text-neutral-900">Select Tickets</h2>
+              {passes.length === 0 ? (
+                <p className="text-sm text-neutral-600">No ticket types. You can still register.</p>
+              ) : (
+                <div className="space-y-2">
+                  {passes.map((pass) => {
+                    const isSelected = selectedPassId === pass.pass_id;
+                    const ticketImageUrl = pass.media?.[0]?.url ?? eventFirstImageUrl;
+                    const ticketGradient = 'linear-gradient(135deg, #09606D, #075057, #D2ECF2)';
+                    const cardStyle = ticketImageUrl
+                      ? { backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.62), rgba(0,0,0,0.42)), url(${ticketImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' as const }
+                      : { background: ticketGradient };
+                    return (
+                      <button
+                        key={pass.pass_id}
+                        type="button"
+                        onClick={() => setSelectedPassId(pass.pass_id)}
+                        className={`flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-white transition-all ${
+                          isSelected
+                            ? 'ring-2 ring-white/70 ring-offset-1 shadow-md'
+                            : 'opacity-95 hover:opacity-100'
+                        }`}
+                        style={cardStyle}
+                      >
+                        <div className="flex flex-1 items-center gap-2.5 pr-2">
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${isSelected ? 'border-white bg-white/25' : 'border-white/40'}`}>
+                            {isSelected ? (
+                              <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : null}
                           </div>
-                          <p className="text-lg font-extrabold shrink-0">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <BillSummaryModal
-                open={showBillSummary}
-                ticketFare={Number(selectedPassPrice) || 0}
-                platformFeePercent={10}
-                proceeding={paymentOpening}
-                onClose={() => setShowBillSummary(false)}
-                onProceed={() => {
-                  setShowBillSummary(false);
-                  handleProceedToSurvey();
-                }}
-              />
-              {businessWomenOnlyBlocked ? (
-                <p className="mt-2 w-full max-w-md text-center text-sm text-amber-700">This event is only for women.</p>
-              ) : null}
-              {eventFull ? (
-                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">This event has reached maximum capacity.</p>
-              ) : null}
-              {error ? (
-                <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">{error}</p>
-              ) : null}
-            </div>
-            <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-neutral-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <div className="mx-auto w-full max-w-md">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold">{pass.name}</p>
+                            {pass.description ? (
+                              <p className="mt-1 line-clamp-2 whitespace-pre-line text-[11px] text-white/90">{pass.description}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="shrink-0 text-base font-extrabold">{pass.price === 0 ? 'Free' : `₹${pass.price}`}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-3">
                 <button
                   type="button"
                   disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || businessWomenOnlyBlocked}
@@ -880,7 +853,7 @@ export default function PostPage() {
                     }
                     handleProceedToSurvey();
                   }}
-                  className="w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
+                  className="w-full rounded-[20px] bg-[#1C1C1E] py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl"
                 >
                   {paymentOpening
                     ? 'Opening payment…'
@@ -889,7 +862,29 @@ export default function PostPage() {
                     : 'Continue'}
                 </button>
               </div>
+
+              {businessWomenOnlyBlocked ? (
+                <p className="mt-3 text-center text-sm text-amber-700">This event is only for women.</p>
+              ) : null}
+              {eventFull ? (
+                <p className="mt-3 text-center text-sm text-red-600">This event has reached maximum capacity.</p>
+              ) : null}
+              {error ? (
+                <p className="mt-3 text-center text-sm text-red-600">{error}</p>
+              ) : null}
             </div>
+
+            <BillSummaryModal
+              open={showBillSummary}
+              ticketFare={Number(selectedPassPrice) || 0}
+              platformFeePercent={10}
+              proceeding={paymentOpening}
+              onClose={() => setShowBillSummary(false)}
+              onProceed={() => {
+                setShowBillSummary(false);
+                handleProceedToSurvey();
+              }}
+            />
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
           (() => {
@@ -997,6 +992,7 @@ export default function PostPage() {
               plan_id: post.plan_id ?? post.post_id ?? (post as { id?: string }).id,
               title: post.title ?? '',
               description: post.description ?? '',
+              created_at: (post as { created_at?: string }).created_at,
               media: post.media,
               image: post.image,
               user: post.user,

@@ -3,7 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import type { ComponentType } from 'react';
+import { FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import { HiOutlineLocationMarker, HiOutlineCalendar, HiOutlineShare, HiOutlinePhotograph } from 'react-icons/hi';
+import { getUserProfile } from '@/lib/api';
 
 export interface BusinessDetailPost {
   plan_id?: string;
@@ -16,6 +20,7 @@ export interface BusinessDetailPost {
   location_text?: string;
   date?: string | Date;
   time?: string;
+  created_at?: string;
   add_details?: Array<{ detail_type?: string; title: string; description?: string }>;
   passes?: Array<{ pass_id: string; name: string; price: number; description?: string }>;
   [key: string]: unknown;
@@ -92,6 +97,37 @@ function formatDayAndTime(date: string | Date | undefined, time: string | undefi
   return timeStr ? `${dateStr} | ${timeStr} onwards` : dateStr;
 }
 
+function formatOrganizerCreatedAt(createdAt: string | Date | undefined): string {
+  if (!createdAt) return '';
+  const d = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('en-IN', {
+    weekday: 'long',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+type OrganizerSocials = {
+  instagram?: string;
+  x?: string;
+  whatsapp?: string;
+  youtube?: string;
+};
+
+function normalizeSocialLink(value: string | undefined, type: 'instagram' | 'x' | 'whatsapp' | 'youtube'): string | null {
+  const raw = (value ?? '').trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  if (type === 'instagram') return `https://instagram.com/${raw.replace(/^@/, '')}`;
+  if (type === 'x') return `https://x.com/${raw.replace(/^@/, '')}`;
+  if (type === 'whatsapp') return `https://wa.me/${raw.replace(/\D/g, '')}`;
+  if (type === 'youtube') return raw.startsWith('@') ? `https://youtube.com/${raw}` : `https://youtube.com/${raw.replace(/^@/, '@')}`;
+  return null;
+}
+
 function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
   if (post.media?.length) {
@@ -149,6 +185,7 @@ export function BusinessDetailCard({
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [shareSnackbar, setShareSnackbar] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
+  const [organizerSocials, setOrganizerSocials] = useState<OrganizerSocials | null>(null);
   const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
@@ -156,6 +193,7 @@ export function BusinessDetailCard({
   const planTitle = (post.title as string) || 'Event on vybeme';
   const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
   const showCancelledMessage = !!isCancelled;
+  const organizerCreatedLabel = formatOrganizerCreatedAt(post.created_at ?? post.date);
 
   useEffect(() => {
     if (images.length <= 1) return;
@@ -164,6 +202,38 @@ export function BusinessDetailCard({
     }, CAROUSEL_INTERVAL_MS);
     return () => clearInterval(t);
   }, [images.length]);
+
+  useEffect(() => {
+    if (!authorId) {
+      setOrganizerSocials(null);
+      return;
+    }
+    let alive = true;
+    getUserProfile(authorId)
+      .then((res) => {
+        if (!alive || !res.success || !res.data) return;
+        const social = (res.data.social_media ?? {}) as Record<string, string | undefined>;
+        setOrganizerSocials({
+          instagram: normalizeSocialLink(social.instagram, 'instagram') ?? undefined,
+          x: normalizeSocialLink(social.x ?? social.twitter, 'x') ?? undefined,
+          whatsapp: normalizeSocialLink(social.whatsapp, 'whatsapp') ?? undefined,
+          youtube: normalizeSocialLink(social.youtube, 'youtube') ?? undefined,
+        });
+      })
+      .catch(() => {
+        if (alive) setOrganizerSocials(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [authorId]);
+
+  const socialLinks = [
+    organizerSocials?.instagram ? { href: organizerSocials.instagram, label: 'Instagram', Icon: FaInstagram } : null,
+    organizerSocials?.x ? { href: organizerSocials.x, label: 'X', Icon: FaXTwitter } : null,
+    organizerSocials?.whatsapp ? { href: organizerSocials.whatsapp, label: 'WhatsApp', Icon: FaWhatsapp } : null,
+    organizerSocials?.youtube ? { href: organizerSocials.youtube, label: 'YouTube', Icon: FaYoutube } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; Icon: ComponentType<{ className?: string }> }>;
 
   const copyAndSnackbar = useCallback(() => {
     if (!planUrl) return;
@@ -262,6 +332,7 @@ export function BusinessDetailCard({
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+                  {organizerCreatedLabel ? <p className="truncate text-[11px] text-[#6B7280]">{organizerCreatedLabel}</p> : null}
                 </div>
               </Link>
             ) : (
@@ -271,6 +342,7 @@ export function BusinessDetailCard({
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
+                  {organizerCreatedLabel ? <p className="truncate text-[11px] text-[#6B7280]">{organizerCreatedLabel}</p> : null}
                 </div>
               </>
             )}
@@ -329,6 +401,25 @@ export function BusinessDetailCard({
                   <p className="text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
                 </div>
               )}
+            </div>
+          )}
+          {socialLinks.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-[#6B7280]">Follow {authorName}</p>
+              <div className="mt-2 flex items-center gap-2">
+                {socialLinks.map(({ href, label, Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] transition-opacity hover:opacity-75"
+                    aria-label={label}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
           {addDetails.length > 0 && (
@@ -396,7 +487,7 @@ export function BusinessDetailCard({
       <div className="hidden md:flex min-h-screen flex-col pt-14">
         <div className="flex flex-1 min-h-0">
           <div className="flex w-[40%] flex-col gap-4 p-6 overflow-y-auto bg-white">
-            <div className="flex justify-center">
+            <div className="flex justify-start">
               <div className="rounded-full border border-neutral-200 bg-white pl-2 pr-4 py-2 shadow-2xl inline-flex items-center gap-3 max-w-[220px] min-w-0">
                 {profileHref ? (
                   <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3 transition-opacity hover:opacity-90 overflow-hidden">
@@ -405,6 +496,7 @@ export function BusinessDetailCard({
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
+                      {organizerCreatedLabel ? <p className="truncate text-[11px] text-neutral-500">{organizerCreatedLabel}</p> : null}
                     </div>
                   </Link>
                 ) : (
@@ -414,6 +506,7 @@ export function BusinessDetailCard({
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm font-semibold text-neutral-900">{authorName}</p>
+                      {organizerCreatedLabel ? <p className="truncate text-[11px] text-neutral-500">{organizerCreatedLabel}</p> : null}
                     </div>
                   </>
                 )}
@@ -428,6 +521,25 @@ export function BusinessDetailCard({
                 </div>
               )}
             </div>
+            {socialLinks.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-neutral-500">Follow {authorName}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  {socialLinks.map(({ href, label, Icon }) => (
+                    <a
+                      key={`desktop-${label}`}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-900 transition-opacity hover:opacity-75"
+                      aria-label={label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex w-[60%] flex-col overflow-y-auto bg-white px-8 py-8">
             <h1 className="text-2xl font-extrabold text-neutral-900">{post.title}</h1>
