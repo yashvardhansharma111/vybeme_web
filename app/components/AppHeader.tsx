@@ -66,7 +66,7 @@ export function AppHeader() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-neutral-100 bg-white px-4 md:px-6">
-      <a href="https://www.vybeme.in" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-neutral-900">
+      <a href="https://www.app.weknd.in" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-neutral-900">
         vybeme.
       </a>
 
@@ -105,6 +105,15 @@ export function AppHeader() {
               >
                 My Tickets
               </Link>
+              {profile?.is_business && (
+                <Link
+                  href="/clubs"
+                  onClick={() => setDropdownOpen(false)}
+                  className="block px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                >
+                  Business Portal
+                </Link>
+              )}
               {user?.user_id && (
                 <Link
                   href={`/profile/${user.user_id}`}

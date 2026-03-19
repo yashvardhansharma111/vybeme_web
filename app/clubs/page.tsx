@@ -35,12 +35,17 @@ interface PlanWithCount extends Plan {
   registrationCount?: number;
 }
 
-/** Equal-width action pills: flex-1 basis-0 so every pill matches row width */
+/** Per-action fixed-width pills so labels can vary by action */
 const pillBase =
-  'flex h-9 min-w-0 flex-1 basis-0 items-center justify-center gap-1 rounded-full px-1 text-[11px] font-medium leading-tight sm:text-xs';
+  'inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium leading-tight whitespace-nowrap sm:text-[11px]';
 const pillPrimary = `${pillBase} bg-neutral-800 text-white hover:bg-neutral-700`;
 const pillOutline = `${pillBase} border border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50`;
 const pillDanger = `${pillBase} border border-red-200 bg-white text-red-600 hover:bg-red-50`;
+const pillWidthRegistration = 'w-[108px]';
+const pillWidthEdit = 'w-[72px]';
+const pillWidthDuplicate = 'w-[92px]';
+const pillWidthShare = 'w-[78px]';
+const pillWidthCancel = 'w-[112px]';
 
 function IconRegistration({ className }: { className?: string }) {
   return (
@@ -135,25 +140,25 @@ function EventCard({
       </div>
 
       <div className="mt-3 flex w-full flex-wrap gap-2 sm:flex-nowrap">
-        <Link href={`/clubs/registration/${p.plan_id}`} className={`${pillPrimary} no-underline`}>
+        <Link href={`/clubs/registration/${p.plan_id}`} className={`${pillPrimary} ${pillWidthRegistration} no-underline`}>
           <IconRegistration className="shrink-0 text-white" />
           <span className="truncate">Registration</span>
         </Link>
-        <Link href={`/clubs/plan/${p.plan_id}/edit`} className={`${pillOutline} no-underline`}>
+        <Link href={`/clubs/plan/${p.plan_id}/edit`} className={`${pillOutline} ${pillWidthEdit} no-underline`}>
           <IconPencil className="shrink-0" />
           <span className="truncate">Edit</span>
         </Link>
-        <Link href={`/clubs/create?duplicate=${p.plan_id}`} className={`${pillOutline} no-underline`}>
+        <Link href={`/clubs/create?duplicate=${p.plan_id}`} className={`${pillOutline} ${pillWidthDuplicate} no-underline`}>
           <IconDuplicate className="shrink-0" />
           <span className="truncate">Duplicate</span>
         </Link>
-        <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} className="flex min-w-0 flex-1 basis-0">
-          <button type="button" className={`${pillOutline} w-full`}>
+        <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} className="flex shrink-0">
+          <button type="button" className={`${pillOutline} ${pillWidthShare}`}>
             <IconShare className="shrink-0" />
             <span className="truncate">Share</span>
           </button>
         </ShareMenu>
-        <button type="button" onClick={() => onCancelEvent(p)} className={pillDanger}>
+        <button type="button" onClick={() => onCancelEvent(p)} className={`${pillDanger} ${pillWidthCancel}`}>
           <IconTrash className="shrink-0" />
           <span className="truncate">Cancel Event</span>
         </button>

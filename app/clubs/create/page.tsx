@@ -587,7 +587,11 @@ export default function BusinessCreatePage() {
                       const id = e.target.value;
                       const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
                       const next = [...additionalDetails];
-                      next[i] = { detail_type: id, title: opt?.label ?? '', description: next[i].description };
+                      next[i] = {
+                        detail_type: id,
+                        title: id === 'additional_info' ? '' : (opt?.label ?? ''),
+                        description: next[i].description,
+                      };
                       setAdditionalDetails(next);
                     }}
                     className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
@@ -612,7 +616,7 @@ export default function BusinessCreatePage() {
                           next[i] = { ...next[i], title: e.target.value };
                           setAdditionalDetails(next);
                         }}
-                        placeholder="Heading"
+                        placeholder="header"
                         className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
                       />
                       <input
@@ -623,7 +627,7 @@ export default function BusinessCreatePage() {
                           next[i] = { ...next[i], description: e.target.value };
                           setAdditionalDetails(next);
                         }}
-                        placeholder="Description"
+                        placeholder="field"
                         className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
                       />
                     </>

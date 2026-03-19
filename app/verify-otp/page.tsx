@@ -203,6 +203,21 @@ function VerifyOTPContent() {
       <AppHeader />
       <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col items-center justify-center p-6 md:py-12">
         <div className="w-full rounded-2xl bg-white p-6 shadow-lg md:shadow-xl">
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                const query =
+                  redirectParam && redirectParam !== '/'
+                    ? `?redirect=${encodeURIComponent(redirectParam)}`
+                    : '';
+                router.push(`/login${query}`);
+              }}
+              className="inline-flex items-center text-sm font-medium text-neutral-700 underline hover:text-neutral-900"
+            >
+              ← Back
+            </button>
+          </div>
           <h1 className="text-center text-xl font-semibold text-neutral-900">
             Enter OTP
           </h1>

@@ -137,7 +137,6 @@ export default function PostPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
 
   const user = getWebUser();
-  const openedFromBusinessHome = searchParams.get('from') === 'clubs';
   const isBusiness = post ? (post as PostData).type === 'business' : false;
   const isOwnEvent = !!(user?.user_id && post?.user_id && user.user_id === post.user_id);
   const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url?: string }> }>; media?: Array<{ url?: string }> })?.passes ?? [];
@@ -1050,15 +1049,6 @@ export default function PostPage() {
           </p>
         )}
       </main>
-      {openedFromBusinessHome && isBusiness && businessStep === 'detail' ? (
-        <button
-          type="button"
-          onClick={() => router.push('/clubs')}
-          className="fixed left-4 top-4 z-40 rounded-full bg-white/95 px-3 py-2 text-sm font-medium text-neutral-800 shadow-md hover:bg-white"
-        >
-          Back to Business Home
-        </button>
-      ) : null}
     </div>  
   );
 }
