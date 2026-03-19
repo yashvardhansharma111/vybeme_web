@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
+import { WekndLoadingScreen } from '../../components/WekndLoadingScreen';
 import { ShareMenu } from '../../components/ShareMenu';
 import { EventDetailCard, type EventDetailPost } from '../../components/EventDetailCard';
 import { BusinessDetailCard } from '../../components/BusinessDetailCard';
@@ -705,14 +706,7 @@ export default function PostPage() {
   }, [businessStep]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
-        <AppHeader />
-        <div className="flex min-h-[50vh] items-center justify-center p-4">
-          <p className="text-neutral-500">Loading…</p>
-        </div>
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
 
   if (error && !post) {
@@ -736,7 +730,9 @@ export default function PostPage() {
   const isBusinessDetailView = !!(post && isBusiness && businessStep === 'detail');
   const isTicketsStep = !!(post && isBusiness && businessStep === 'tickets');
   const isSurveyStep = !!(post && isBusiness && businessStep === 'survey');
-  const showAppHeader = !isBusinessDetailView && !isTicketsStep && !isSurveyStep;
+  // Show the standard navbar on the tickets step so content doesn't look "floating".
+  // Keep the custom sticky back bar as-is for the survey step.
+  const showAppHeader = !isBusinessDetailView && !isSurveyStep;
   const selectedPassPrice = selectedPassId ? (passes.find((p) => p.pass_id === selectedPassId)?.price ?? 0) : 0;
 
   return (
@@ -769,7 +765,7 @@ export default function PostPage() {
           </div>
         )}
         {post && isBusiness && businessStep === 'tickets' ? (
-          <div className="min-h-[100dvh] w-full bg-white px-4 py-4 md:flex md:items-center md:justify-center">
+          <div className="min-h-[calc(100dvh-3.5rem)] w-full bg-white px-4 py-4 md:flex md:items-center md:justify-center">
             <div className="mx-auto flex w-full max-w-sm flex-col rounded-3xl bg-neutral-100 p-3 shadow-sm">
               <button
                 type="button"

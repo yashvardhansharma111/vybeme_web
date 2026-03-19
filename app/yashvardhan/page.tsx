@@ -13,6 +13,7 @@ import {
   yasvardhanAdminUpdateReportStatus,
 } from '@/lib/api';
 import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 import QRCode from 'qrcode';
 import dynamic from 'next/dynamic';
 import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
@@ -487,11 +488,7 @@ export default function YashvardhanPage() {
   const overlapAmount = 40;
 
   if (loading && view === 'plans' && plans.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#1C1C1E]">
-        <p className="text-white/90">Loading events…</p>
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
 
   if (view === 'reports') {

@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import FormBuilder, { FormField } from '@/app/components/FormBuilder';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 import FormSelector from '@/app/components/FormSelector';
 import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, updateBusinessPlan, updateBusinessPlanWithFiles, getBusinessPlanDetails, createForm } from '@/lib/api';
+import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
+import { FaPersonRunning } from 'react-icons/fa6';
+import { IoMdShirt } from 'react-icons/io';
+import { GiRunningShoe } from 'react-icons/gi';
+import { MdFastfood } from 'react-icons/md';
+import { PiLinkSimpleBold } from 'react-icons/pi';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
 const MAX_MEDIA = 5;
@@ -24,6 +31,34 @@ const ADDITIONAL_DETAIL_OPTIONS = [
   { id: 'additional_info', label: 'Additional Info', placeholder: 'Heading and description' },
 ];
 
+const CATEGORY_ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  Running: FaPersonRunning,
+  Sports: FaBasketballBall,
+  'Fitness/Training': FaDumbbell,
+  'Social/Community': FaGlassCheers,
+};
+
+const DETAIL_ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  distance: GiRunningShoe,
+  starting_point: FaFlagCheckered,
+  dress_code: IoMdShirt,
+  music_type: FaMusic,
+  parking: FaGlassCheers,
+  'f&b': MdFastfood,
+  links: PiLinkSimpleBold,
+  strava_link: PiLinkSimpleBold,
+  google_drive_link: PiLinkSimpleBold,
+  additional_info: FaMusic,
+};
+
+function getCategoryIcon(category: string): ComponentType<{ className?: string }> {
+  return CATEGORY_ICON_MAP[category] ?? FaMusic;
+}
+
+function getDetailIcon(detailType: string): ComponentType<{ className?: string }> {
+  return DETAIL_ICON_MAP[detailType] ?? FaMusic;
+}
+
 export default function BusinessCreatePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -31,6 +66,7 @@ export default function BusinessCreatePage() {
   const [profile, setProfile] = useState<{ is_business?: boolean; business_id?: string } | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [ticketImageFile, setTicketImageFile] = useState<File | null>(null);
   const [mediaUrl, setMediaUrl] = useState('');
@@ -49,6 +85,14 @@ export default function BusinessCreatePage() {
   const [shareCopied, setShareCopied] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Description textarea: grow up to 6 lines, then clamp and allow internal scrolling.
+  // Fixed line-height => deterministic max height.
+  const DESCRIPTION_LINE_HEIGHT_PX = 20;
+  const DESCRIPTION_MIN_LINES = 3;
+  const DESCRIPTION_MAX_LINES = 6;
+  const descriptionMinHeight = DESCRIPTION_LINE_HEIGHT_PX * DESCRIPTION_MIN_LINES;
+  const descriptionMaxHeight = DESCRIPTION_LINE_HEIGHT_PX * DESCRIPTION_MAX_LINES;
   
   // Form-related state
   const [formId, setFormId] = useState<string | null>(null);
@@ -138,6 +182,15 @@ export default function BusinessCreatePage() {
     if (!mounted) return;
     if (!user?.user_id) router.replace('/login');
   }, [mounted, user?.user_id, router]);
+
+  // Auto-expand description textarea up to max height.
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const nextHeight = Math.min(el.scrollHeight, descriptionMaxHeight);
+    el.style.height = `${Math.max(descriptionMinHeight, nextHeight)}px`;
+  }, [description, descriptionMaxHeight, descriptionMinHeight]);
 
   const addPass = () => setPasses((prev) => [...prev, { name: '', price: 0 }]);
   const updatePass = (i: number, field: 'name' | 'price', value: string | number) => {
@@ -329,11 +382,7 @@ export default function BusinessCreatePage() {
   };
 
   if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F7]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
   if (!user?.user_id) return null;
 
@@ -360,10 +409,12 @@ export default function BusinessCreatePage() {
         {/* Description (no limit) */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <textarea
+            ref={descriptionRef}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
+            style={{ minHeight: descriptionMinHeight, maxHeight: descriptionMaxHeight }}
+            className="w-full resize-none overflow-y-auto rounded-xl bg-transparent text-[14px] leading-[20px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Join the run club for another 5k..."
           />
         </section>
@@ -468,9 +519,15 @@ export default function BusinessCreatePage() {
                 key={c}
                 type="button"
                 onClick={() => setCategory(c)}
-                className={`rounded-full px-5 py-2.5 text-[14px] font-semibold ${category === c ? 'bg-[#1C1C1E] text-white' : 'bg-[#E5E5E5] text-black'}`}
+                className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold ${
+                  category === c ? 'bg-[#1C1C1E] text-white' : 'bg-[#E5E5E5] text-black'
+                }`}
               >
-                {c}
+                {(() => {
+                  const Icon = getCategoryIcon(c);
+                  return <Icon className="h-4 w-4 shrink-0" aria-hidden />;
+                })()}
+                <span>{c}</span>
               </button>
             ))}
           </div>
@@ -506,40 +563,93 @@ export default function BusinessCreatePage() {
           )}
         </section>
 
-        {/* Additional Details — distance default; no label dropdown text */}
+        {/* Additional Info */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
-          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Details</p>
+          <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Additional Info</p>
           {additionalDetails.map((d, i) => {
-            const option = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === (d.detail_type || 'distance'));
+            const detailType = d.detail_type || 'distance';
+            const option = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === detailType);
+            const Icon = getDetailIcon(detailType);
+            const isAdditionalInfo = detailType === 'additional_info';
             return (
-              <div key={i} className="mb-3 flex min-w-0 flex-wrap gap-2 sm:flex-nowrap">
-                <select
-                  value={d.detail_type || 'distance'}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
-                    const next = [...additionalDetails];
-                    next[i] = { detail_type: id, title: opt?.label ?? '', description: next[i].description };
-                    setAdditionalDetails(next);
-                  }}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
+              <div
+                key={i}
+                className="mb-3 grid grid-cols-[42px_1fr_auto] items-start gap-2 rounded-2xl bg-[#E5E5EA] p-2.5"
+              >
+                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-white/60">
+                  <Icon className="h-5 w-5 text-[#1C1C1E]" aria-hidden />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <select
+                    value={detailType}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
+                      const next = [...additionalDetails];
+                      next[i] = { detail_type: id, title: opt?.label ?? '', description: next[i].description };
+                      setAdditionalDetails(next);
+                    }}
+                    className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
+                  >
+                    {(category === 'Running'
+                      ? ADDITIONAL_DETAIL_OPTIONS
+                      : ADDITIONAL_DETAIL_OPTIONS.filter((o) => o.id !== 'strava_link')
+                    ).map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {isAdditionalInfo ? (
+                    <>
+                      <input
+                        type="text"
+                        value={d.title}
+                        onChange={(e) => {
+                          const next = [...additionalDetails];
+                          next[i] = { ...next[i], title: e.target.value };
+                          setAdditionalDetails(next);
+                        }}
+                        placeholder="Heading"
+                        className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
+                      />
+                      <input
+                        type="text"
+                        value={d.description}
+                        onChange={(e) => {
+                          const next = [...additionalDetails];
+                          next[i] = { ...next[i], description: e.target.value };
+                          setAdditionalDetails(next);
+                        }}
+                        placeholder="Description"
+                        className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
+                      />
+                    </>
+                  ) : (
+                    <input
+                      type="text"
+                      value={d.description}
+                      onChange={(e) => {
+                        const next = [...additionalDetails];
+                        next[i] = { ...next[i], description: e.target.value };
+                        setAdditionalDetails(next);
+                      }}
+                      placeholder={option?.placeholder ?? 'e.g. 5k'}
+                      className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
+                    />
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="shrink-0 text-black/70"
+                  aria-label="Remove row"
                 >
-                  {(category === 'Running' ? ADDITIONAL_DETAIL_OPTIONS : ADDITIONAL_DETAIL_OPTIONS.filter(o => o.id !== 'strava_link')).map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={d.description}
-                  onChange={(e) => {
-                    const next = [...additionalDetails];
-                    next[i] = { ...next[i], description: e.target.value };
-                    setAdditionalDetails(next);
-                  }}
-                  placeholder={option?.placeholder ?? 'e.g. 5k'}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
-                />
-                <button type="button" onClick={() => setAdditionalDetails((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-black/70" aria-label="Remove row">×</button>
+                  ×
+                </button>
               </div>
             );
           })}

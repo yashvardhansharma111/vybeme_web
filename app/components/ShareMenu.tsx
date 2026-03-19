@@ -34,9 +34,11 @@ export function ShareMenu({ postId, title, useGoPostUrl = false, children, class
   }, [postUrl, title]);
 
   return (
-    <div className={`relative inline-block ${className ?? ''}`}>
+    <div className={`relative ${className ?? 'inline-block'}`}>
       {children ? (
-        <div onClick={handleShare}>{children}</div>
+        <div className="h-full w-full" onClick={handleShare} role="presentation">
+          {children}
+        </div>
       ) : (
         <button
           type="button"

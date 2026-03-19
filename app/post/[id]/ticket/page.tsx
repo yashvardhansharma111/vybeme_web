@@ -6,6 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { IoLocationSharp } from 'react-icons/io5';
 import { getWebUser, getUserTicket } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 import QRCode from 'qrcode';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
@@ -117,11 +118,7 @@ export default function TicketPage() {
   }, [loadTicket]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#8B7AB8]">
-        <p className="text-white/90">Loading ticket…</p>
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
 
   if (!user?.user_id) {

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
+import { WekndLoadingScreen } from '../../components/WekndLoadingScreen';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
 import { getUserProfile, getUserStats, getWebUser, setWebUser } from '@/lib/api';
 
@@ -70,14 +71,7 @@ export default function ProfilePage() {
   }, [userId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200">
-        <AppHeader />
-        <div className="flex min-h-[50vh] items-center justify-center p-4">
-          <p className="text-neutral-500">Loading…</p>
-        </div>
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
 
   if (error || !profile) {

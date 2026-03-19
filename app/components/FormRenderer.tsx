@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getForm } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 interface FormField {
   field_id: string;
@@ -67,7 +68,7 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
     }
   };
 
-  if (loading) return <p className="text-neutral-500">Loading form…</p>;
+  if (loading) return <WekndLoadingScreen className="min-h-[220px] rounded-2xl" />;
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { getWebUser, getCurrentUserProfile, getUserPlans, scanQRCode } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 const SCAN_COOLDOWN_MS = 2000;
 
@@ -186,11 +187,7 @@ function BusinessScanContent() {
   }, []);
 
   if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F2F2F7]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
   if (!user?.user_id) return null;
   if (!loading && profile && !profile.is_business) return null;
@@ -217,8 +214,12 @@ function BusinessScanContent() {
         </div>
         <div className="mx-auto max-w-lg px-4 py-6">
           <p className="mb-3 text-sm text-[#8E8E93]">Select an event, then open the scanner.</p>
-          {loading || plans.length === 0 ? (
-            <p className="text-[#8E8E93]">{loading ? 'Loading events…' : 'No events yet.'}</p>
+          {loading ? (
+            <div className="overflow-hidden rounded-2xl">
+              <WekndLoadingScreen className="min-h-[220px]" />
+            </div>
+          ) : plans.length === 0 ? (
+            <p className="text-[#8E8E93]">No events yet.</p>
           ) : (
             <>
               <label className="block text-xs font-semibold uppercase tracking-wide text-[#8E8E93]">Event</label>
@@ -336,13 +337,7 @@ function BusinessScanContent() {
 
 export default function BusinessScanPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F2F2F7]">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
-        </div>
-      }
-    >
+    <Suspense fallback={<WekndLoadingScreen />}>
       <BusinessScanContent />
     </Suspense>
   );

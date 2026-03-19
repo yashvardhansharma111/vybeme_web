@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getUserForms } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 export interface FormSelectorProps {
   userId: string;
@@ -65,9 +66,7 @@ export default function FormSelector({
 
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {loadingForms ? (
-            <div className="text-center py-8">
-              <p className="text-neutral-600">Loading forms...</p>
-            </div>
+            <WekndLoadingScreen className="min-h-[200px] rounded-xl" />
           ) : error ? (
             <div className="bg-red-50 rounded-lg p-4 text-red-600 text-sm mb-4">{error}</div>
           ) : forms.length === 0 ? (

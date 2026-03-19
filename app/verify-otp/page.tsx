@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "../components/AppHeader";
+import { WekndLoadingScreen } from "../components/WekndLoadingScreen";
 import {
   verifyOTP,
   resendOTP,
@@ -255,16 +256,7 @@ function VerifyOTPContent() {
 
 export default function VerifyOTPPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
-          <AppHeader />
-          <div className="flex min-h-[50vh] items-center justify-center p-4">
-            <p className="text-neutral-500">Loading…</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<WekndLoadingScreen />}>
       <VerifyOTPContent />
     </Suspense>
   );

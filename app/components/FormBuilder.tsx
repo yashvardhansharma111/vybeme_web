@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 export interface FormField {
   field_id: string;
@@ -19,7 +19,7 @@ export interface FormBuilderProps {
   loading?: boolean;
 }
 
-const FIELD_TYPES: Array<'text' | 'email' | 'phone' | 'number' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'date'> = [
+const FIELD_TYPES: FormField['type'][] = [
   'text',
   'email',
   'phone',
@@ -28,208 +28,180 @@ const FIELD_TYPES: Array<'text' | 'email' | 'phone' | 'number' | 'select' | 'tex
   'textarea',
   'checkbox',
   'radio',
-  'date'
+  'date',
 ];
 
+const TYPE_LABELS: Record<FormField['type'], string> = {
+  text: 'Short Answer',
+  email: 'Email',
+  phone: 'Phone',
+  number: 'Number',
+  select: 'Dropdown',
+  textarea: 'Paragraph',
+  checkbox: 'Checkbox',
+  radio: 'Multiple choice',
+  date: 'Date',
+};
+
+function normalizeFieldsForSave(fields: FormField[]): FormField[] {
+  return fields.map((f, i) => {
+    const needsOptions = ['select', 'radio', 'checkbox'].includes(f.type);
+    const opts = f.options?.filter(Boolean) ?? [];
+    return {
+      ...f,
+      label: f.label.trim() || `Question ${i + 1}`,
+      order: i,
+      placeholder: f.placeholder ?? '',
+      options: needsOptions && opts.length === 0 ? ['Option 1', 'Option 2'] : opts,
+    };
+  });
+}
+
 export default function FormBuilder({ onSave, onCancel, initialFields = [], loading = false }: FormBuilderProps) {
-  const [fields, setFields] = useState<FormField[]>(initialFields.length > 0 ? initialFields : []);
+  const [fields, setFields] = useState<FormField[]>(
+    initialFields.length > 0 ? initialFields : []
+  );
 
   const addField = () => {
     const newField: FormField = {
-      field_id: `field_${Date.now()}_${Math.random()}`,
-      label: `Field ${fields.length + 1}`,
+      field_id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      label: '',
       type: 'text',
       placeholder: '',
       options: [],
       required: false,
-      order: fields.length
+      order: fields.length,
     };
-    setFields([...fields, newField]);
+    setFields((prev) => [...prev, newField]);
   };
 
-  const updateField = (index: number, field: Partial<FormField>) => {
-    const updated = [...fields];
-    updated[index] = { ...updated[index], ...field };
-    setFields(updated);
+  const updateField = (index: number, patch: Partial<FormField>) => {
+    setFields((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      return next;
+    });
   };
 
   const deleteField = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index));
+    setFields((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const moveFieldUp = (index: number) => {
-    if (index === 0) return;
-    const updated = [...fields];
-    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-    setFields(updated);
-  };
-
-  const moveFieldDown = (index: number) => {
-    if (index === fields.length - 1) return;
-    const updated = [...fields];
-    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-    setFields(updated);
-  };
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (fields.length === 0) {
-      alert('Please add at least one field');
+      alert('Please add at least one question');
       return;
     }
-    onSave(fields);
-  };
+    onSave(normalizeFieldsForSave(fields));
+  }, [fields, onSave]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl max-h-[90vh] rounded-2xl bg-white overflow-y-auto">
-        <div className="border-b border-neutral-200 p-4 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-lg font-bold text-black">Form Builder</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-[#0a0a0a] shadow-2xl ring-1 ring-white/10">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
+          <h2 className="text-base font-semibold text-white">Form</h2>
           <button
+            type="button"
             onClick={onCancel}
-            className="rounded-full p-2 hover:bg-neutral-100 text-black"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
             aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        <div className="p-6">
-          {/* Fields List */}
-          <div className="space-y-4 mb-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="space-y-3">
             {fields.map((field, index) => (
-              <div key={field.field_id} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {/* Label */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1">Field Label</label>
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateField(index, { label: e.target.value })}
-                      placeholder="e.g., Full Name"
-                      className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-black"
+              <div
+                key={field.field_id}
+                className="relative rounded-2xl bg-[#1a1a1a] p-3 pr-12 ring-1 ring-white/10"
+              >
+                <button
+                  type="button"
+                  onClick={() => deleteField(index)}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                  aria-label="Delete question"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                     />
-                  </div>
+                  </svg>
+                </button>
 
-                  {/* Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-1">Field Type</label>
-                    <select
-                      value={field.type}
-                      onChange={(e) => updateField(index, { type: e.target.value as any })}
-                      className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-black"
-                    >
-                      {FIELD_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Placeholder */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-black mb-1">Placeholder (optional)</label>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-2">
                   <input
                     type="text"
-                    value={field.placeholder || ''}
-                    onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                    placeholder="e.g., Enter your full name"
-                    className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-black"
+                    value={field.label}
+                    onChange={(e) => updateField(index, { label: e.target.value })}
+                    placeholder="Add a question"
+                    className="min-w-0 flex-1 rounded-xl border border-white/15 bg-[#0d0d0d] px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none focus:ring-0"
                   />
+                  <select
+                    value={field.type}
+                    onChange={(e) => updateField(index, { type: e.target.value as FormField['type'] })}
+                    className="w-full shrink-0 rounded-xl border border-white/15 bg-[#0d0d0d] px-3 py-2.5 text-sm text-white sm:w-[160px] [color-scheme:dark]"
+                  >
+                    {FIELD_TYPES.map((t) => (
+                      <option key={t} value={t} className="bg-[#1a1a1a]">
+                        {TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Options for select/radio/checkbox */}
-                {['select', 'radio', 'checkbox'].includes(field.type) && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-black mb-2">Options (comma-separated)</label>
-                    <input
-                      type="text"
-                      value={field.options?.join(', ') || ''}
-                      onChange={(e) => {
-                        const opts = e.target.value.split(',').map((o) => o.trim()).filter(Boolean);
-                        updateField(index, { options: opts });
-                      }}
-                      placeholder="Option 1, Option 2, Option 3"
-                      className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-black"
-                    />
-                  </div>
-                )}
-
-                {/* Required Toggle */}
-                <div className="flex items-center gap-3 mb-4">
-                  <input
-                    type="checkbox"
-                    id={`required_${field.field_id}`}
-                    checked={field.required}
-                    onChange={(e) => updateField(index, { required: e.target.checked })}
-                    className="h-4 w-4 rounded"
-                  />
-                  <label htmlFor={`required_${field.field_id}`} className="text-sm font-medium text-black cursor-pointer">
-                    Make this field required
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-between gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => moveFieldUp(index)}
-                      disabled={index === 0}
-                      className="px-3 py-1 text-sm rounded border border-neutral-300 text-black hover:bg-neutral-100 disabled:opacity-50"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveFieldDown(index)}
-                      disabled={index === fields.length - 1}
-                      className="px-3 py-1 text-sm rounded border border-neutral-300 text-black hover:bg-neutral-100 disabled:opacity-50"
-                    >
-                      ↓
-                    </button>
-                  </div>
+                <div className="mt-3 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => deleteField(index)}
-                    className="px-3 py-1 text-sm rounded bg-red-50 text-red-600 hover:bg-red-100"
+                    role="switch"
+                    aria-checked={field.required}
+                    onClick={() => updateField(index, { required: !field.required })}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                      field.required ? 'bg-white' : 'bg-white/20'
+                    }`}
                   >
-                    Delete
+                    <span
+                      className={`pointer-events-none absolute top-0.5 left-0.5 h-5 w-5 rounded-full shadow transition-transform ${
+                        field.required ? 'translate-x-5 bg-black' : 'translate-x-0 bg-white'
+                      }`}
+                    />
                   </button>
+                  <span className="text-sm text-white/90">Required</span>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Add Field Button */}
           <button
             type="button"
             onClick={addField}
-            className="w-full py-2 px-4 mb-6 rounded-lg border-2 border-dashed border-neutral-300 text-black hover:bg-neutral-50 font-medium"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2a2a2a] py-2.5 text-sm font-medium text-white hover:bg-[#333]"
           >
-            + Add Field
+            <span className="text-lg leading-none">+</span>
+            Add question
           </button>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-end border-t border-neutral-200 pt-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2 rounded-full border border-black text-black hover:bg-neutral-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={loading}
-              className="px-6 py-2 rounded-full bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : 'Save Form'}
-            </button>
-          </div>
+        <div className="flex shrink-0 gap-2 border-t border-white/10 px-4 py-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-full border border-white/20 py-2.5 text-sm font-medium text-white hover:bg-white/10"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={loading}
+            className="flex-1 rounded-full bg-white py-2.5 text-sm font-semibold text-black hover:bg-white/90 disabled:opacity-50"
+          >
+            {loading ? 'Saving…' : 'Save form'}
+          </button>
         </div>
       </div>
     </div>

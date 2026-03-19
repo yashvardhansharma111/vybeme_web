@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AppHeader } from '../../../components/AppHeader';
+import { WekndLoadingScreen } from '../../../components/WekndLoadingScreen';
 
 const APP_SCHEME = 'vybeme';
 const FALLBACK_DELAY_MS = 2500;
@@ -46,23 +47,21 @@ export default function GoPostPage() {
     return () => clearTimeout(timeoutId);
   }, [id, router]);
 
+  if (!triedApp) {
+    return <WekndLoadingScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
       <AppHeader />
       <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-        {triedApp ? (
-          <>
-            <p className="text-lg font-medium text-neutral-800">Opening in app…</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              If the app doesn’t open, you’ll be taken to the post in a moment.
-            </p>
-            <a href={`/post/${id}`} className="mt-6 text-base font-semibold text-neutral-700 underline">
-              Continue on web instead
-            </a>
-          </>
-        ) : (
-          <p className="text-neutral-600">Redirecting…</p>
-        )}
+        <p className="text-lg font-medium text-neutral-800">Opening in app…</p>
+        <p className="mt-2 text-sm text-neutral-500">
+          If the app doesn’t open, you’ll be taken to the post in a moment.
+        </p>
+        <a href={`/post/${id}`} className="mt-6 text-base font-semibold text-neutral-700 underline">
+          Continue on web instead
+        </a>
       </main>
     </div>
   );

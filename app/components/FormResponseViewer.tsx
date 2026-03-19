@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getFormResponse } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 interface FormField {
   field_id: string;
@@ -62,9 +63,7 @@ export default function FormResponseViewer({
 
         <div className="p-6">
           {loading ? (
-            <div className="text-center py-8">
-              <p className="text-neutral-600">Loading form response...</p>
-            </div>
+            <WekndLoadingScreen className="min-h-[200px] rounded-xl" />
           ) : error ? (
             <div className="bg-yellow-50 rounded-lg p-4 text-yellow-700 text-sm">
               {error}

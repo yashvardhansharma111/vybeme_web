@@ -7,6 +7,7 @@ import { Footer } from './components/Footer';
 import { PostCard } from './components/PostCard';
 import { BusinessCard } from './components/BusinessCard';
 import { getWebUser, getFeed, formatFeedData, type FormattedPost } from '@/lib/api';
+import { WekndLoadingScreen } from './components/WekndLoadingScreen';
 
 export default function Home() {
   const user = getWebUser();
@@ -54,9 +55,7 @@ export default function Home() {
         </div>
 
         {loading && posts.length === 0 ? (
-          <div className="flex min-h-[200px] items-center justify-center">
-            <p className="text-neutral-500">Loading feed…</p>
-          </div>
+          <WekndLoadingScreen className="min-h-[min(70vh,520px)] rounded-2xl" />
         ) : error && posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 px-4 py-8">
             <p className="text-red-600">{error}</p>

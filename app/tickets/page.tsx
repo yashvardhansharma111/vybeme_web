@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, getTicketsByUser, setWebUser } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 export default function TicketsPage() {
   const router = useRouter();
@@ -73,11 +74,7 @@ export default function TicketsPage() {
   };
 
   if (!mounted || !user?.user_id) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 flex items-center justify-center">
-        <p className="text-neutral-500">Redirecting…</p>
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
 
   return (
@@ -107,9 +104,7 @@ export default function TicketsPage() {
         </p>
 
         {loading ? (
-          <div className="mt-8 flex justify-center">
-            <p className="text-neutral-500">Loading…</p>
-          </div>
+          <WekndLoadingScreen className="mt-8 min-h-[min(55vh,420px)] rounded-2xl" />
         ) : tickets.length === 0 ? (
           <p className="mt-8 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
         ) : (

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, getAttendeeList } from '@/lib/api';
 import FormResponseViewer from '@/app/components/FormResponseViewer';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 interface Attendee {
   registration_id: string;
@@ -138,11 +139,7 @@ export default function BusinessRegistrationPage() {
   }, [attendees]);
 
   if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
   if (!user?.user_id || !planId) return null;
   if (!loading && profile && !profile.is_business) return null;
@@ -204,7 +201,7 @@ export default function BusinessRegistrationPage() {
 
         {/* List – no check-in toggle */}
         {loading ? (
-          <p className="text-sm text-neutral-500">Loading…</p>
+          <WekndLoadingScreen className="min-h-[240px] rounded-2xl" />
         ) : filteredAttendees.length === 0 ? (
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
             <p className="text-neutral-500">{searchQuery ? 'No attendees match your search' : 'No attendees yet'}</p>

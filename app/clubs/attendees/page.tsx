@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getWebUser, getCurrentUserProfile, getUserPlans } from '@/lib/api';
+import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 
 interface Plan {
   plan_id: string;
@@ -68,11 +69,7 @@ export default function BusinessAttendeesIndexPage() {
   }, [mounted, loading, profile, router]);
 
   if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F2F2F7]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-700" />
-      </div>
-    );
+    return <WekndLoadingScreen />;
   }
   if (!user?.user_id) return null;
   if (!loading && profile && !profile.is_business) return null;
@@ -93,7 +90,7 @@ export default function BusinessAttendeesIndexPage() {
           <div className="w-14" />
         </div>
         {loading ? (
-          <p className="text-sm text-neutral-500">Loading events…</p>
+          <WekndLoadingScreen className="min-h-[220px] rounded-2xl" />
         ) : plans.length === 0 ? (
           <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
             <p className="text-neutral-500">No business events yet.</p>
