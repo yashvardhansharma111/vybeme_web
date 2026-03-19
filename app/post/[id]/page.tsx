@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
 import { ShareMenu } from '../../components/ShareMenu';
 import { EventDetailCard, type EventDetailPost } from '../../components/EventDetailCard';
@@ -42,6 +42,19 @@ function formatEventDateAndTime(date: string | Date | undefined, time: string | 
   const dateStr = formatEventDateOnly(date);
   const timeStr = formatTimeAMPM(time);
   return timeStr ? `${dateStr} | ${timeStr}` : dateStr;
+}
+
+function buildRsvpCode(name?: string | null, seed?: string | null): string {
+  const cleanName = (name ?? 'Guest').replace(/[^a-zA-Z0-9 ]/g, '').trim();
+  const firstWord = cleanName.split(/\s+/)[0] || 'Guest';
+  const namePart = firstWord.slice(0, 10).toUpperCase();
+  const source = seed && seed.trim() ? seed.trim() : `${Date.now()}_${Math.random()}`;
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) | 0;
+  }
+  const randomPart = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(-4);
+  return `${namePart}-${randomPart}`;
 }
 
 function getPendingBusinessRegistration(): { planId: string; passId: string } | null {
@@ -91,6 +104,7 @@ function clearPaymentVerified() {
 export default function PostPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const postId = params.id as string;
   const [post, setPost] = useState<PostData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +136,9 @@ export default function PostPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
 
   const user = getWebUser();
+  const openedFromBusinessHome = searchParams.get('from') === 'clubs';
   const isBusiness = post ? (post as PostData).type === 'business' : false;
+  const isOwnEvent = !!(user?.user_id && post?.user_id && user.user_id === post.user_id);
   const passes = (post as { passes?: Array<{ pass_id: string; name: string; price: number; description?: string; media?: Array<{ url?: string }> }>; media?: Array<{ url?: string }> })?.passes ?? [];
   const isWomenOnlyBusiness = !!(isBusiness && (post as any)?.is_women_only);
   const currentUserGender = ((currentUserProfile?.gender ?? '') as string).trim().toLowerCase();
@@ -384,13 +400,33 @@ export default function PostPage() {
       if ((post as any).form_id) {
         setBusinessStep('survey');
       } else {
-        // No form configured; remain on detail
-        setBusinessStep('detail');
+        // No ticket + no form: directly complete RSVP flow.
+        setBusinessRegistering(true);
+        try {
+          const res = await registerForBusinessEvent(postId, user.user_id, undefined, undefined, {});
+          clearPaymentVerified();
+          setBusinessRegistered(true);
+          setBusinessStep('detail');
+          const regId = (res?.data as any)?.registration?.registration_id ?? (res as any)?.registration?.registration_id ?? null;
+          if (regId) setRegistrationId(regId);
+          const checkinCode =
+            (res?.data as any)?.registration?.checkin_code ??
+            (res as any)?.data?.registration?.checkin_code ??
+            (res as any)?.registration?.checkin_code ??
+            null;
+          const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+          setConfirmationCode(resolvedCode);
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Registration failed');
+        } finally {
+          setBusinessRegistering(false);
+        }
       }
     } else {
       setBusinessStep('tickets');
     }
-  }, [eventFull, passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness]);
+  }, [eventFull, passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness, currentUserProfile?.name]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -466,9 +502,10 @@ export default function PostPage() {
           null;
         const regId = (res?.data as any)?.registration?.registration_id ?? (res as any)?.registration?.registration_id ?? null;
         if (regId) setRegistrationId(regId);
-        if (checkinCode) setConfirmationCode(checkinCode);
-        if (isFreeNoPasses && checkinCode) {
-          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
+        const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+        setConfirmationCode(resolvedCode);
+        if (isFreeNoPasses) {
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
         } else {
           router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
         }
@@ -632,16 +669,17 @@ export default function PostPage() {
           (res as any)?.data?.registration?.checkin_code ??
           (res as any)?.registration?.checkin_code ??
           null;
-        if (checkinCode) setConfirmationCode(checkinCode);
-        if (isFreeNoPasses && checkinCode) {
-          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(checkinCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
+        const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+        setConfirmationCode(resolvedCode);
+        if (isFreeNoPasses) {
+          router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
         } else {
           router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
         }
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
       .finally(() => setBusinessRegistering(false));
-  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router]);
+  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router, currentUserProfile?.name]);
 
   // If we land on the survey step but the plan has no form configured, auto-submit registration.
   useEffect(() => {
@@ -973,10 +1011,10 @@ export default function PostPage() {
             onBookEvent={handleBookEvent}
             registered={businessRegistered}
             eventFull={eventFull}
-            actionError={error}
+            actionError={isOwnEvent ? 'You cannot register for your own event' : error}
             isWomenOnly={(post as any)?.is_women_only}
             womenOnlyBlocked={businessWomenOnlyBlocked}
-            isCancelled={isCancelled}
+            isCancelled={isCancelled || isOwnEvent}
             viewTicketHref={
               businessRegistered && user?.user_id
                 ? passes.length === 0
@@ -1020,6 +1058,15 @@ export default function PostPage() {
           </p>
         )}
       </main>
+      {openedFromBusinessHome && isBusiness && businessStep === 'detail' ? (
+        <button
+          type="button"
+          onClick={() => router.push('/clubs')}
+          className="fixed left-4 top-4 z-40 rounded-full bg-white/95 px-3 py-2 text-sm font-medium text-neutral-800 shadow-md hover:bg-white"
+        >
+          Back to Business Home
+        </button>
+      ) : null}
     </div>  
   );
 }

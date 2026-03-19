@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from '@/app/components/AppHeader';
 import { ShareMenu } from '@/app/components/ShareMenu';
-import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations, updateProfile } from '@/lib/api';
+import { getWebUser, getCurrentUserProfile, getUserPlans, getRegistrations, updateProfile, updateBusinessPlan } from '@/lib/api';
 
 interface Plan {
   plan_id: string;
@@ -38,10 +38,12 @@ function EventCard({
   plan: p,
   formatEventDate,
   formatEventTime,
+  onCancelEvent,
 }: {
   plan: PlanWithCount;
   formatEventDate: (date: string | undefined) => string;
   formatEventTime: (time: string | undefined) => string;
+  onCancelEvent: (plan: PlanWithCount) => void;
 }) {
   return (
     <li className="rounded-lg border border-neutral-100 bg-neutral-50/50 p-3">
@@ -85,6 +87,12 @@ function EventCard({
           Edit
         </Link>
         <Link
+          href={`/clubs/create?duplicate=${p.plan_id}`}
+          className="inline-flex shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Duplicate
+        </Link>
+        <Link
           href={`/clubs/scan?plan=${p.plan_id}`}
           className="inline-flex shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
         >
@@ -93,6 +101,13 @@ function EventCard({
         <div className="shrink-0">
           <ShareMenu postId={p.plan_id} title={p.title ?? 'Event'} />
         </div>
+        <button
+          type="button"
+          onClick={() => onCancelEvent(p)}
+          className="inline-flex shrink-0 items-center justify-center rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+        >
+          Cancel Event
+        </button>
       </div>
     </li>
   );
@@ -107,6 +122,8 @@ export default function BusinessPage() {
   const [loading, setLoading] = useState(true);
   const [enablingBusiness, setEnablingBusiness] = useState(false);
   const [enableError, setEnableError] = useState<string | null>(null);
+  const [cancelingPlanId, setCancelingPlanId] = useState<string | null>(null);
+  const [confirmCancelPlan, setConfirmCancelPlan] = useState<PlanWithCount | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -190,6 +207,22 @@ export default function BusinessPage() {
     }
   }, [user?.session_id]);
 
+  const handleCancelConfirmed = useCallback(async () => {
+    if (!confirmCancelPlan?.plan_id) return;
+    setCancelingPlanId(confirmCancelPlan.plan_id);
+    try {
+      const res = await updateBusinessPlan(confirmCancelPlan.plan_id, { post_status: 'deleted' });
+      if (res?.success) {
+        setPlans((prev) => prev.filter((p) => p.plan_id !== confirmCancelPlan.plan_id));
+      }
+    } catch (err) {
+      console.warn('[business] cancel event failed', err);
+    } finally {
+      setCancelingPlanId(null);
+      setConfirmCancelPlan(null);
+    }
+  }, [confirmCancelPlan]);
+
   if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
@@ -257,6 +290,7 @@ export default function BusinessPage() {
                     plan={p}
                     formatEventDate={formatEventDate}
                     formatEventTime={formatEventTime}
+                    onCancelEvent={setConfirmCancelPlan}
                   />
                 ))}
               </ul>
@@ -265,6 +299,33 @@ export default function BusinessPage() {
         </div>
         )}
       </div>
+      {confirmCancelPlan ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <p className="text-base font-semibold text-neutral-900">Cancel Event</p>
+            <p className="mt-2 text-sm text-neutral-600">
+              the event will be cancelled and the collected amount will be refunded to the registrants
+            </p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmCancelPlan(null)}
+                className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              >
+                Keep Event
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelConfirmed}
+                disabled={cancelingPlanId === confirmCancelPlan.plan_id}
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {cancelingPlanId === confirmCancelPlan.plan_id ? 'Cancelling…' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

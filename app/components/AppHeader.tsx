@@ -81,16 +81,21 @@ export function AppHeader() {
           <button
             type="button"
             onClick={() => setDropdownOpen((o) => !o)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 bg-neutral-100 ring-2 ring-transparent transition hover:ring-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+            className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white pl-3 pr-1 py-1 ring-2 ring-transparent transition hover:ring-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-400"
             aria-label="Profile and tickets"
           >
-            {profile?.profile_image ? (
-              <Image src={profile.profile_image} alt="" width={36} height={36} className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-sm font-semibold text-neutral-500">
-                {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
-              </span>
-            )}
+            <span className="max-w-[120px] truncate text-sm font-medium text-neutral-700">
+              {profile?.name ?? 'Profile'}
+            </span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-neutral-100">
+              {profile?.profile_image ? (
+                <Image src={profile.profile_image} alt="" width={32} height={32} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-neutral-500">
+                  {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
+                </span>
+              )}
+            </span>
           </button>
 
           {dropdownOpen && (

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ShareMenu } from '@/app/components/ShareMenu';
 import FormBuilder, { FormField } from '@/app/components/FormBuilder';
 import FormSelector from '@/app/components/FormSelector';
 import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, updateBusinessPlan, updateBusinessPlanWithFiles, getBusinessPlanDetails, createForm } from '@/lib/api';
@@ -47,6 +46,7 @@ export default function BusinessCreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [planLivePostId, setPlanLivePostId] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState<Array<{ detail_type: string; title: string; description: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -79,20 +79,26 @@ export default function BusinessCreatePage() {
     try {
       if (typeof window !== 'undefined') {
         const qs = new URLSearchParams(window.location.search);
-        const pid = qs.get('plan_id') || qs.get('edit');
+        const duplicateFrom = qs.get('duplicate');
+        const pid = qs.get('plan_id') || qs.get('edit') || duplicateFrom;
         if (pid) {
           (async () => {
             try {
               const resp = await getBusinessPlanDetails(pid);
               if (resp?.success && resp.data) {
                 const p = resp.data as any;
-                setEditMode(true);
-                setEditPlanId(pid);
+                if (!duplicateFrom) {
+                  setEditMode(true);
+                  setEditPlanId(pid);
+                } else {
+                  setEditMode(false);
+                  setEditPlanId(null);
+                }
                 setTitle(p.title ?? '');
                 setDescription(p.description ?? '');
                 setLocation(p.location_text ?? '');
-                setDate(p.date ? new Date(p.date).toISOString().slice(0, 10) : '');
-                setTime(p.time ?? '');
+                setDate(duplicateFrom ? '' : (p.date ? new Date(p.date).toISOString().slice(0, 10) : ''));
+                setTime(duplicateFrom ? '' : (p.time ?? ''));
                 if (p.category_sub && p.category_sub.length > 0) setCategory(String(p.category_sub[0]));
                 if (p.passes && Array.isArray(p.passes) && p.passes.length > 0) {
                   setTicketsEnabled(true);
@@ -307,6 +313,18 @@ export default function BusinessCreatePage() {
       setError(err instanceof Error ? err.message : 'Failed to create post');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleShareLink = async () => {
+    if (!planLivePostId || typeof window === 'undefined') return;
+    const shareUrl = `${window.location.origin}/post/${planLivePostId}`;
+    try {
+      await navigator.clipboard?.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1200);
+    } catch {
+      // no-op
     }
   };
 
@@ -693,30 +711,26 @@ export default function BusinessCreatePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Plan is live">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
-              <p className="text-2xl font-bold text-[#1C1C1E]">Plan is live!</p>
-              <p className="mt-2 text-sm text-neutral-600">Your event is published. Share it or view as a user would see it.</p>
+              <p className="text-2xl font-bold text-[#1C1C1E]">{title || 'Event'} is Live</p>
+              <p className="mt-2 text-sm text-neutral-600">Your event is published</p>
             </div>
             <div className="mt-6 flex flex-col gap-3">
-              <div className="w-full">
-                <ShareMenu
-                  postId={planLivePostId}
-                  title={title || 'Event'}
-                  className="block w-full"
-                >
-                  <button
-                    type="button"
-                    className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
-                  >
-                    Share
-                  </button>
-                </ShareMenu>
-              </div>
+              <button
+                type="button"
+                onClick={handleShareLink}
+                className="w-full rounded-full border-2 border-[#1C1C1E] bg-white py-3 font-bold text-[#1C1C1E]"
+              >
+                Share Link
+              </button>
+              {shareCopied ? (
+                <p className="text-center text-sm font-medium text-green-700">Link Copied</p>
+              ) : null}
               <Link
-                href={`/post/${planLivePostId}`}
+                href={`/post/${planLivePostId}?from=clubs`}
                 className="flex w-full items-center justify-center rounded-full bg-[#1C1C1E] py-3 font-bold text-white no-underline"
                 onClick={() => setPlanLivePostId(null)}
               >
-                Go to Plan
+                View Event
               </Link>
               <button
                 type="button"

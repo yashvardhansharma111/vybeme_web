@@ -378,7 +378,7 @@ export function BusinessDetailCard({
               <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
                 Register
               </button>
-              <p className="text-sm text-red-600">This event has been cancelled.</p>
+              <p className="text-sm text-red-600">{actionError || 'This event has been cancelled.'}</p>
             </div>
           ) : onBookEvent ? (
             <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
@@ -504,7 +504,7 @@ export function BusinessDetailCard({
                   <button type="button" disabled className="inline-flex items-center justify-center rounded-full bg-neutral-400 px-8 py-3 text-sm font-bold text-white shadow-xl cursor-not-allowed">
                     Register
                   </button>
-                  <p className="text-sm text-red-600">This event has been cancelled.</p>
+                  <p className="text-sm text-red-600">{actionError || 'This event has been cancelled.'}</p>
                 </div>
               ) : onBookEvent ? (
                 <button type="button" onClick={onBookEvent} className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-bold text-white shadow-xl hover:bg-neutral-800">
