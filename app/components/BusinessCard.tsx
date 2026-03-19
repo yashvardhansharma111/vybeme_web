@@ -11,9 +11,11 @@ export interface BusinessPlan {
   description: string;
   media?: Array<{ url: string; type?: string }>;
   image?: string | null;
+  created_at?: string | Date;
   category_main?: string;
   category_sub?: string[];
   tags?: string[];
+  add_details?: Array<{ detail_type: string; title?: string; description?: string; heading?: string }>;
   passes?: Array<{ pass_id: string; name: string; price: number; description?: string }>;
   user?: { user_id?: string; name?: string; profile_image?: string };
   location_text?: string;
@@ -36,6 +38,33 @@ function getMainImage(plan: BusinessPlan): string | null {
   return null;
 }
 
+function getTimingFromTime(time: string | undefined): string | null {
+  if (!time || !String(time).trim()) return null;
+  const s = String(time).trim().toLowerCase();
+  const hourMatch = s.match(/(\d{1,2})\s*:\s*(\d{2})?\s*(am|pm)?|(\d{1,2})\s*(am|pm)/i);
+  let hour = 12;
+  if (hourMatch) {
+    const h = parseInt(hourMatch[1] || hourMatch[4] || '12', 10);
+    const pm = (hourMatch[3] || hourMatch[5] || '').toLowerCase() === 'pm';
+    hour = h === 12 ? (pm ? 12 : 0) : pm ? h + 12 : h;
+  } else {
+    if (s.includes('morning')) return 'Morning';
+    if (s.includes('afternoon')) return 'Afternoon';
+    if (s.includes('evening')) return 'Evening';
+    if (s.includes('night')) return 'Night';
+    return null;
+  }
+  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 20) return 'Evening';
+  return 'Night';
+}
+
+function capitalizeLabel(label: string): string {
+  if (!label) return '';
+  return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+}
+
 export function BusinessCard({
   plan,
   user,
@@ -47,115 +76,146 @@ export function BusinessCard({
   const mainImage = getMainImage(plan);
   const organizerName = user?.name ?? plan.user?.name ?? 'Organizer';
   const organizerAvatar = user?.avatar ?? user?.profile_image ?? plan.user?.profile_image;
-  const timeText =
-    user?.time ??
-    (plan.date ? new Date(plan.date).toLocaleDateString() : '') ??
-    (plan.time ?? '');
-  const mainTag = plan.category_main ? [plan.category_main] : [];
-  const subTags = plan.category_sub ?? plan.tags ?? [];
-  const tags = mainTag.length > 0 ? [...mainTag, ...subTags.filter((t) => t !== plan.category_main)] : subTags;
-  const passes = plan.passes ?? [];
-  const hasFreePass = passes.some((p) => Number(p.price) === 0);
-  const prices = passes.filter((p) => Number(p.price) > 0).map((p) => p.price);
-  const minPrice = hasFreePass ? 0 : (prices.length > 0 ? Math.min(...prices) : null);
+  const timeText = (() => {
+    const created = plan.created_at ?? plan.date;
+    if (created) {
+      const d = typeof created === 'string' ? new Date(created) : created;
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+    return user?.time ?? plan.time ?? '';
+  })();
+
+  const getDetailLabel = (d: { title?: string; description?: string; heading?: string } | undefined) =>
+    d ? (d.description || d.title || d.heading || '').trim() : '';
+  const detailByType = (type: string) => plan.add_details?.find((d) => d.detail_type === type);
+  const distanceLabel = getDetailLabel(detailByType('distance'));
+  const fbLabel = getDetailLabel(detailByType('f&b'));
+
+  const cardTags: Array<{ type: 'additional' | 'category' | 'day' | 'timing'; label: string; icon: string }> = [];
+  const additionalOrder: Array<{ getLabel: () => string }> = [
+    { getLabel: () => distanceLabel },
+    { getLabel: () => fbLabel },
+    { getLabel: () => getDetailLabel(detailByType('dress_code')) },
+    { getLabel: () => getDetailLabel(detailByType('music_type')) },
+  ];
+  for (const { getLabel } of additionalOrder) {
+    const label = getLabel();
+    if (label) cardTags.push({ type: 'additional', label, icon: '⚙' });
+  }
+  if (plan.category_main) {
+    cardTags.push({ type: 'category', label: capitalizeLabel(plan.category_main), icon: '🏷' });
+  } else {
+    const firstSub = plan.category_sub?.find((sub) => sub && String(sub).trim());
+    if (firstSub) cardTags.push({ type: 'category', label: capitalizeLabel(firstSub), icon: '🏷' });
+  }
+  if (plan.date) {
+    try {
+      const d = typeof plan.date === 'string' ? new Date(plan.date) : plan.date;
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long' });
+      if (dayLabel) cardTags.push({ type: 'day', label: dayLabel, icon: '📅' });
+    } catch {
+      // ignore invalid date
+    }
+  }
+  const timingSlot = getTimingFromTime(plan.time);
+  if (timingSlot) cardTags.push({ type: 'timing', label: timingSlot, icon: '🕒' });
+  const tagsToShow = cardTags.slice(0, 4);
+
   const showInteracted = attendeesCount > 0 || interactedUsers.length > 0;
   const displayUsers = interactedUsers.slice(0, 3);
-  const extraCount = Math.max(0, attendeesCount - displayUsers.length) || (displayUsers.length === 0 ? attendeesCount : 0);
+  const extraCount = Math.max(0, attendeesCount - 3);
 
   const cardContent = (
     <>
-      {/* Image behind - full card */}
-      <div className="absolute inset-0 overflow-hidden rounded-[20px]">
-        {mainImage ? (
-          <Image
-            src={mainImage}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 400px) 100vw, 400px"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-[20px] bg-[#E5E5EA]">
-            <svg className="h-12 w-12 text-[#8E8E93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-            </svg>
-          </div>
-        )}
+      <div className="absolute inset-0 overflow-hidden rounded-[24px] bg-white">
+        <div className="relative h-[85%] w-full overflow-hidden">
+          {mainImage ? (
+            <Image
+              src={mainImage}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 480px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[#E5E5EA]">
+              <svg className="h-12 w-12 text-[#8E8E93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <div className="h-[15%] bg-white" />
       </div>
 
-      {/* Organizer pill - on border, top-left */}
-      <div className="absolute left-2.5 top-0 z-10 -translate-y-1/2 rounded-[18px] bg-white/95 px-2 py-1.5 shadow-md">
-        <div className="flex max-w-[28%] items-center gap-1.5">
-          <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-            {organizerAvatar ? (
-              <Image src={organizerAvatar} alt="" fill className="object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-[#8E8E93]">
-                {organizerName.charAt(0)}
-              </span>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[11px] font-bold text-[#1C1C1E]">{organizerName}</p>
-            {timeText && <p className="text-[10px] text-[#888]">{timeText}</p>}
-          </div>
+      <div className="absolute -top-5 left-2.5 z-10 flex max-w-[48%] items-center rounded-[22px] bg-white px-2.5 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
+          {organizerAvatar ? (
+            <Image src={organizerAvatar} alt="" fill className="object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#8E8E93]">
+              {organizerName.charAt(0)}
+            </span>
+          )}
+        </div>
+        <div className="ml-2 min-w-0">
+          <p className="truncate text-sm font-bold text-[#1C1C1E]">{organizerName}</p>
+          {timeText && <p className="truncate text-[11px] text-[#8E8E93]">{timeText}</p>}
         </div>
       </div>
 
-      {/* Interacted pill - top-right on image */}
       {showInteracted && (
-        <div className="absolute right-3 top-2.5 z-10 flex items-center gap-1 rounded-[20px] bg-white/90 px-2 py-1">
+        <div className="absolute -top-2.5 right-5 z-10 flex items-center rounded-[14px] bg-white/95 px-1.5 py-1 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
           {displayUsers.length > 0 ? (
             displayUsers.map((u, i) => (
               <div
                 key={u.id ?? i}
-                className="relative h-6 w-6 overflow-hidden rounded-full border-2 border-white/95 bg-[#E5E5EA]"
+                className={`relative h-5 w-5 overflow-hidden rounded-full border-[1.5px] border-white/95 bg-[#E5E5EA] ${i > 0 ? '-ml-2.5' : ''}`}
+                style={{ zIndex: 3 - i }}
               >
-                {(u.profile_image ?? u.avatar) ? (
+                {u.profile_image ?? u.avatar ? (
                   <Image src={(u.profile_image ?? u.avatar)!} alt="" fill className="object-cover" />
                 ) : (
                   <span className="flex h-full w-full items-center justify-center text-[10px] text-[#8E8E93]">?</span>
                 )}
               </div>
             ))
-          ) : null}
-          {(extraCount > 0 || displayUsers.length === 0) && (
-            <span className="text-xs font-semibold text-[#1C1C1E]">
-              +{extraCount > 0 ? extraCount : attendeesCount}
-            </span>
+          ) : (
+            <span className="mr-1 text-sm">👥</span>
           )}
+          {extraCount > 0 && <span className="ml-1 text-[11px] font-semibold text-[#1C1C1E]">+{extraCount}</span>}
         </div>
       )}
 
-      {/* White content overlay - fixed height same as app (208px content area) */}
-      <div className="absolute inset-x-0 bottom-0 h-[208px] flex flex-col rounded-t-[24px] bg-white px-4 pt-3.5 pb-4">
-        <h2 className="mb-1 truncate text-xl font-bold text-[#1C1C1E]">{plan.title}</h2>
-        <div className="h-[60px] shrink-0 overflow-hidden">
-          <p className="line-clamp-3 text-sm leading-5 text-[#3C3C43] whitespace-pre-line">{plan.description}</p>
-        </div>
-        {(minPrice != null || tags.length > 0) && (
-          <div className="mb-2 flex flex-wrap gap-2">
-            {minPrice != null && (
-              <span className="inline-flex items-center rounded-[14px] bg-[#EFEFEF] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]">
-                {minPrice === 0 ? 'Free' : `₹${minPrice}`}
-              </span>
-            )}
-            {tags.slice(0, 3).map((tag, i) => (
+      <div className="absolute bottom-[7px] left-[7px] right-[7px] rounded-2xl bg-white px-3.5 pb-3 pt-3">
+        <h2 className="mb-1 text-xl font-bold text-[#1C1C1E]">{plan.title}</h2>
+        <p className="mb-2 line-clamp-4 text-sm leading-5 text-[#3C3C43]">{plan.description}</p>
+
+        {tagsToShow.length > 0 && (
+          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+            {tagsToShow.map((tag, i) => (
               <span
-                key={i}
-                className="inline-flex items-center rounded-[14px] bg-[#EFEFEF] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]"
+                key={`${tag.type}-${i}-${tag.label}`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-[14px] bg-[#EFEFEF] px-3 py-1.5 text-[13px] font-medium text-[#1C1C1E]"
               >
-                {tag}
+                <span className="text-[11px]">{tag.icon}</span>
+                {tag.label}
               </span>
             ))}
           </div>
         )}
-        <div className="mt-auto flex shrink-0 items-center gap-2">
+
+        <div className="mt-1 flex min-h-11 items-center justify-between gap-2.5">
           {planHref ? (
             <Link
               href={planHref}
               onClick={(e) => e.stopPropagation()}
-              className="flex-1 rounded-xl bg-[#1C1C1E] py-3 text-center text-base font-bold text-white no-underline"
+              className="h-11 max-w-[65%] flex-1 rounded-full bg-[#1C1C1E] px-6 py-2.5 text-center text-base font-bold text-white no-underline"
             >
               Register
             </Link>
@@ -166,20 +226,11 @@ export function BusinessCard({
                 e.stopPropagation();
                 onRegister?.();
               }}
-              className="flex-1 rounded-xl bg-[#1C1C1E] py-3 text-base font-bold text-white"
+              className="h-11 max-w-[65%] flex-1 rounded-full bg-[#1C1C1E] px-6 py-2.5 text-base font-bold text-white"
             >
               Register
             </button>
           )}
-          <button
-            type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E5E5EA] text-[#1C1C1E]"
-            aria-label="Repost"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
           <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E5E5EA] text-[#1C1C1E]" aria-label="Share">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -192,8 +243,8 @@ export function BusinessCard({
 
   if (planHref) {
     return (
-      <Link href={planHref} className="block w-full overflow-visible rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
-        <div className="relative h-[400px] w-full overflow-visible rounded-[20px]">
+      <Link href={planHref} className="block w-full overflow-visible rounded-[24px]">
+        <div className="relative h-[430px] w-full overflow-visible rounded-[24px] shadow-[0_4px_16px_rgba(0,0,0,0.12)] sm:h-[450px] md:h-[400px]">
           {cardContent}
         </div>
       </Link>
@@ -201,7 +252,7 @@ export function BusinessCard({
   }
 
   return (
-    <div className="relative h-[400px] w-full overflow-visible rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+    <div className="relative h-[430px] w-full overflow-visible rounded-[24px] shadow-[0_4px_16px_rgba(0,0,0,0.12)] sm:h-[450px] md:h-[400px]">
       {cardContent}
     </div>
   );

@@ -72,7 +72,7 @@ export default function Home() {
           <>
             {/* Business cards — same look as app (hero + list) */}
             {businessPosts.length > 0 && (
-              <section className="flex flex-col gap-6">
+              <section className="flex flex-col gap-12">
                 {businessPosts.map((p) => (
                   <div key={p.post_id} className="w-full px-2">
                     <BusinessCard
@@ -83,9 +83,11 @@ export default function Home() {
                         description: p.description,
                         media: p.media,
                         image: p.image,
+                        created_at: p.created_at,
                         category_main: (p as any).category_main,
                         category_sub: p.category_sub ?? p.tags,
                         tags: p.tags,
+                        add_details: (p as any).add_details,
                         passes: (p as any).passes,
                         location_text: (p as any).location_text,
                         date: (p as any).date,
