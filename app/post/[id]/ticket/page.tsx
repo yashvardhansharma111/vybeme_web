@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import html2canvas from 'html2canvas';
 import { FaCalendarCheck, FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
 import { FaPersonRunning } from 'react-icons/fa6';
 import { IoLocationSharp } from 'react-icons/io5';
@@ -14,7 +13,6 @@ import { MdFastfood } from 'react-icons/md';
 import { PiLinkSimpleBold } from 'react-icons/pi';
 import { HiOutlineTag } from 'react-icons/hi';
 import { getWebUser, getUserTicket } from '@/lib/api';
-import { sanitizeOklabForHtml2Canvas } from '@/lib/html2canvas-oklab-fix';
 import QRCode from 'qrcode';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
@@ -112,9 +110,7 @@ export default function TicketPage() {
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const ticketContentRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -175,37 +171,6 @@ export default function TicketPage() {
   useEffect(() => {
     loadTicket();
   }, [loadTicket]);
-
-  const handleDownloadImage = useCallback(async () => {
-    const el = ticketContentRef.current;
-    if (!el) return;
-    setDownloading(true);
-    try {
-      const canvas = await html2canvas(el, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: null,
-        logging: false,
-        windowWidth: el.scrollWidth,
-        windowHeight: el.scrollHeight,
-        onclone: sanitizeOklabForHtml2Canvas,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      const planPart = (planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40);
-      const uniquePart = (ticket?.ticket_number || ticket?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30);
-      a.download = `vybeme-ticket-${planPart}-${uniquePart}.png`;
-      a.setAttribute('download', a.download);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDownloading(false);
-    }
-  }, [planId, ticket?.ticket_number, ticket?.user_id]);
 
   const pillItems = useMemo(() => {
     const iconKeys: string[] = ['music', 'location', 'fb', 'starting-point'];
@@ -310,21 +275,7 @@ export default function TicketPage() {
             </svg>
           </button>
           <h1 className="text-sm font-semibold text-white/98 whitespace-nowrap">Booking Confirmed</h1>
-          <button
-            type="button"
-            onClick={handleDownloadImage}
-            disabled={downloading}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1C1C1E] shadow-md hover:bg-white disabled:opacity-60"
-            aria-label="Download ticket"
-          >
-            {downloading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#1C1C1E] border-t-transparent" />
-            ) : (
-              <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            )}
-          </button>
+          <div className="h-9 w-9" aria-hidden />
         </header>
 
         <p className="shrink-0 text-center text-[10px] font-medium text-[#1C1C1E] px-4 pb-3 whitespace-nowrap truncate">
@@ -336,10 +287,7 @@ export default function TicketPage() {
           {/* Ticket and button container with unified spacing */}
           <div className="flex flex-col items-center px-4 py-4 gap-4">
             {/* Ticket card wrapper for download */}
-            <div
-  ref={ticketContentRef}
-  className="relative w-full max-w-[340px] py-5"
->
+            <div className="relative w-full max-w-[340px] py-5">
 
               {/* Ticket card */}
               <div className="relative z-[2]">

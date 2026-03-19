@@ -11,7 +11,18 @@ export default function TicketsPage() {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<ReturnType<typeof getWebUser>>(null);
   const [profile, setProfile] = useState<{ name?: string; profile_image?: string | null } | null>(null);
-  const [tickets, setTickets] = useState<Array<{ ticket_id: string; ticket_number: string; plan: { plan_id: string; title?: string } | null }>>([]);
+  const [tickets, setTickets] = useState<Array<{
+    ticket_id: string;
+    ticket_number: string;
+    plan: {
+      plan_id: string;
+      title?: string;
+      date?: string;
+      time?: string;
+      media?: Array<{ url?: string; type?: string }>;
+      image?: string | null;
+    } | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,6 +65,13 @@ export default function TicketsPage() {
     router.replace('/login');
   }, [router]);
 
+  const formatDateTime = (date?: string, time?: string) => {
+    const dateStr = date ? new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    const timeStr = (time || '').trim();
+    if (dateStr && timeStr) return `${dateStr} | ${timeStr}`;
+    return dateStr || timeStr || '—';
+  };
+
   if (!mounted || !user?.user_id) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 flex items-center justify-center">
@@ -95,15 +113,29 @@ export default function TicketsPage() {
         ) : tickets.length === 0 ? (
           <p className="mt-8 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
         ) : (
-          <ul className="mt-6 space-y-2">
+          <ul className="mt-6 space-y-3">
             {tickets.map((t) => (
               <li key={t.ticket_id}>
                 <Link
                   href={`/post/${t.plan?.plan_id ?? ''}/ticket?from=tickets`}
-                  className="block rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm transition hover:bg-neutral-50"
+                  className="block rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition hover:bg-neutral-50"
                 >
-                  <p className="truncate font-medium text-neutral-900">{t.plan?.title ?? 'Event'}</p>
-                  <p className="mt-0.5 text-xs text-neutral-500">Ticket #{t.ticket_number}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+                      {(t.plan?.media?.[0]?.url || t.plan?.image) ? (
+                        <img
+                          src={(t.plan?.media?.[0]?.url || t.plan?.image) as string}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xl font-bold text-neutral-900">{t.plan?.title ?? 'Event'}</p>
+                      <p className="mt-0.5 text-sm text-neutral-600">{formatDateTime(t.plan?.date, t.plan?.time)}</p>
+                    </div>
+                    <span className="shrink-0 text-2xl leading-none text-neutral-400">›</span>
+                  </div>
                 </Link>
               </li>
             ))}

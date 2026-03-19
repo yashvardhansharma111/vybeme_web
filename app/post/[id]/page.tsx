@@ -659,6 +659,13 @@ export default function PostPage() {
     return () => clearTimeout(id);
   }, [businessStep, post, handleSubmitRegistration]);
 
+  // Open "Select Passes" from top every time.
+  useEffect(() => {
+    if (businessStep === 'tickets' && typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [businessStep]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900">
@@ -724,7 +731,7 @@ export default function PostPage() {
           </div>
         )}
         {post && isBusiness && businessStep === 'tickets' ? (
-          <div className="relative min-h-[100dvh] flex flex-col bg-white overflow-y-auto">
+          <div className="relative min-h-[100dvh] flex flex-col bg-white">
             {/* Back button top left */}
             <div className="absolute left-4 top-4 z-10">
               <button
@@ -739,7 +746,7 @@ export default function PostPage() {
               </button>
             </div>
             {/* Event details + ticket selection */}
-            <div className="flex flex-1 flex-col items-center pt-14 pb-8 px-4">
+            <div className="flex flex-1 flex-col items-center overflow-y-auto pt-14 px-4 pb-28">
               {/* Event details: Title, Date | Time, Location */}
               <div className="w-full max-w-md text-left mb-6">
                 <h1 className="text-xl font-bold text-neutral-900">{post.title ?? 'Event'}</h1>
@@ -798,28 +805,6 @@ export default function PostPage() {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || businessWomenOnlyBlocked}
-                onClick={() => {
-                  if (eventFull) {
-                    setError('This event has reached maximum capacity and registrations are now closed.');
-                    return;
-                  }
-                  if (selectedPassPrice > 0) {
-                    setShowBillSummary(true);
-                    return;
-                  }
-                  handleProceedToSurvey();
-                }}
-                className="mt-6 w-full max-w-md rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
-              >
-                {paymentOpening
-                  ? 'Opening payment…'
-                  : selectedPassPrice > 0
-                  ? 'Pay & continue'
-                  : 'Continue'}
-              </button>
               <BillSummaryModal
                 open={showBillSummary}
                 ticketFare={Number(selectedPassPrice) || 0}
@@ -840,6 +825,32 @@ export default function PostPage() {
               {error ? (
                 <p className="mt-2 text-center text-sm text-red-600 w-full max-w-md">{error}</p>
               ) : null}
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-neutral-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="mx-auto w-full max-w-md">
+                <button
+                  type="button"
+                  disabled={(passes.length > 0 && !selectedPassId) || paymentOpening || businessWomenOnlyBlocked}
+                  onClick={() => {
+                    if (eventFull) {
+                      setError('This event has reached maximum capacity and registrations are now closed.');
+                      return;
+                    }
+                    if (selectedPassPrice > 0) {
+                      setShowBillSummary(true);
+                      return;
+                    }
+                    handleProceedToSurvey();
+                  }}
+                  className="w-full rounded-[25px] bg-[#1C1C1E] py-4 text-base font-bold text-white disabled:opacity-60 shadow-xl"
+                >
+                  {paymentOpening
+                    ? 'Opening payment…'
+                    : selectedPassPrice > 0
+                    ? 'Pay & continue'
+                    : 'Continue'}
+                </button>
+              </div>
             </div>
           </div>
         ) : post && isBusiness && businessStep === 'survey' ? (
