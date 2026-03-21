@@ -54,16 +54,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-200 md:bg-neutral-200">
       <AppHeader />
-      <main className="mx-auto max-w-md flex flex-col gap-6 pb-12 md:max-w-2xl">
-        {/* Hero copy when no feed or above feed */}
-        <div className="px-4 pt-6 text-center">
-          <h1 className="text-2xl font-bold text-neutral-900 md:text-3xl">
-            Find people for your plans
-          </h1>
-          <p className="mt-2 max-w-sm text-neutral-600">
-            Discover plans, join events, and connect with others.
-          </p>
-        </div>
+      <main className="mx-auto max-w-md flex flex-col gap-6 pb-12 md:max-w-2xl pt-12">
 
         {error && posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 px-4 py-8">

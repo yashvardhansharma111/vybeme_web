@@ -162,6 +162,39 @@ function detailRowLabel(detail: { detail_type?: string; title?: string }): strin
   return (detail.title || '').trim() || 'Detail';
 }
 
+/** Only these four tags appear in the description / quick-info box (mobile + desktop). */
+const DESCRIPTION_BOX_DETAIL_ORDER = ['distance', 'starting_point', 'f&b', 'dress_code'] as const;
+
+type AddDetailRow = { detail_type?: string; title: string; description?: string };
+
+function normalizeToDescriptionBoxKey(d: AddDetailRow): (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number] | null {
+  const dt = (d.detail_type || '').trim().toLowerCase();
+  if (dt === 'f and b') return 'f&b';
+  if ((DESCRIPTION_BOX_DETAIL_ORDER as readonly string[]).includes(dt)) return dt as (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number];
+  const title = (d.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const map: Record<string, (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number]> = {
+    distance: 'distance',
+    'starting point': 'starting_point',
+    starting_point: 'starting_point',
+    'f&b': 'f&b',
+    'f and b': 'f&b',
+    'dress code': 'dress_code',
+    dress_code: 'dress_code',
+  };
+  return map[title] ?? null;
+}
+
+/** Pick at most the four allowed tags, in fixed order; ignores music, parking, links, etc. */
+function getDescriptionBoxDetails(addDetails: AddDetailRow[] | undefined): AddDetailRow[] {
+  if (!addDetails?.length) return [];
+  const byKey = new Map<(typeof DESCRIPTION_BOX_DETAIL_ORDER)[number], AddDetailRow>();
+  for (const d of addDetails) {
+    const key = normalizeToDescriptionBoxKey(d);
+    if (key && !byKey.has(key)) byKey.set(key, { ...d, detail_type: key });
+  }
+  return DESCRIPTION_BOX_DETAIL_ORDER.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
+}
+
 function DetailRowIcon({ detailType }: { detailType?: string }) {
   const Icon = MOBILE_DETAIL_ICONS[detailType || ''] ?? FaMusic;
   return <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-neutral-700" aria-hidden />;
@@ -252,9 +285,10 @@ export function BusinessDetailCard({
   const [organizerSocials, setOrganizerSocials] = useState<OrganizerSocials | null>(null);
   const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
+  const descriptionBoxDetails = getDescriptionBoxDetails(addDetails);
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
-  const planTitle = (post.title as string) || 'Event on vybeme';
+  const planTitle = (post.title as string) || 'Event on weknd';
   const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
   const showCancelledMessage = !!isCancelled;
   const organizerCreatedLabel = formatOrganizerCreatedAt(post.created_at ?? post.date);
@@ -365,7 +399,7 @@ export function BusinessDetailCard({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-white max-md:min-h-0 max-md:h-full md:min-h-screen">
-      {/* Desktop: top bar – profile leftmost (sticky), then vybeme., Download app right */}
+      {/* Desktop: top bar – profile leftmost (sticky), then weknd., Download app right */}
       <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
         <div className="flex items-center gap-4">
           {(profileCircleHref ?? currentUserProfileHref) ? (
@@ -377,7 +411,7 @@ export function BusinessDetailCard({
           ) : null}
           {/* Profile link: commented out as of now — profile circle links to ticket when profileCircleHref is passed */}
           <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
-            vybeme.
+            weknd.
           </Link>
         </div>
        
@@ -578,10 +612,10 @@ export function BusinessDetailCard({
               )}
             </div>
 
-            {addDetails.length > 0 && (
+            {descriptionBoxDetails.length > 0 && (
               <div className="space-y-4 rounded-2xl bg-[#F2F2F7] p-4">
-                {addDetails.map((detail, i) => (
-                  <div key={i} className="flex gap-3">
+                {descriptionBoxDetails.map((detail, i) => (
+                  <div key={`${detail.detail_type ?? detail.title}-${i}`} className="flex gap-3">
                     <DetailRowIcon detailType={detail.detail_type} />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -787,11 +821,11 @@ export function BusinessDetailCard({
                 <p className="text-sm font-semibold text-neutral-800">{post.location_text}</p>
               </div>
             )}
-            {addDetails.length > 0 && (
+            {descriptionBoxDetails.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-3">
-                {addDetails.slice(0, 4).map((detail, i) => (
-                  <div key={i} className="min-w-[200px] rounded-xl bg-neutral-100 px-4 py-3">
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{detail.title}</p>
+                {descriptionBoxDetails.map((detail, i) => (
+                  <div key={`${detail.detail_type ?? detail.title}-d-${i}`} className="min-w-[200px] rounded-xl bg-neutral-100 px-4 py-3">
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{detailRowLabel(detail)}</p>
                     {detail.description ? (
                       <p className="mt-1 text-sm font-semibold text-neutral-800 whitespace-pre-line">
                         {renderDetailDescription(detail.description, 'text-neutral-900 underline break-all')}

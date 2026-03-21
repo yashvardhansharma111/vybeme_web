@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostOgData } from '@/lib/og-post';
 
-const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
+const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.weknd.in';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -9,9 +9,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const url = `${WEB_BASE}/go/post/${id}`;
   if (!post) {
     return {
-      title: 'vybeme. — Find people for your plans',
+      title: 'weknd. — Find people for your plans',
       description: '',
-      openGraph: { title: 'vybeme.', description: '', url, type: 'website' },
+      openGraph: { title: 'weknd.', description: '', url, type: 'website' },
     };
   }
   const ogDescription = post.description
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: post.title,
     description: ogDescription,
     url,
-    siteName: 'vybeme.',
+    siteName: 'weknd.',
     type: 'website',
     locale: 'en_IN',
   };

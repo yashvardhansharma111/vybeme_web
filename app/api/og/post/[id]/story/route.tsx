@@ -27,7 +27,7 @@ export async function GET(
             fontFamily: 'system-ui, sans-serif',
           }}
         >
-          <div style={{ fontSize: 56, fontWeight: 700, color: '#1c1917' }}>vybeme.</div>
+          <div style={{ fontSize: 56, fontWeight: 700, color: '#1c1917' }}>weknd.</div>
           <div style={{ fontSize: 28, color: '#57534e', marginTop: 16 }}>Find people for your plans</div>
         </div>
       ),
@@ -52,7 +52,7 @@ export async function GET(
           fontFamily: 'system-ui, sans-serif',
         }}
       >
-        {/* Top bar: user pill top-left, vybeme. top-right */}
+        {/* Top bar: user pill top-left, weknd. top-right */}
         <div
           style={{
             display: 'flex',
@@ -90,7 +90,7 @@ export async function GET(
               <span style={{ fontSize: 16, color: '#71717a' }}>{timeLabel}</span>
             </div>
           </div>
-          <span style={{ fontSize: 28, fontWeight: 700, color: '#18181b' }}>vybeme.</span>
+          <span style={{ fontSize: 28, fontWeight: 700, color: '#18181b' }}>weknd.</span>
         </div>
 
         {/* Main image - fills most of the card */}

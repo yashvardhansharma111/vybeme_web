@@ -26,9 +26,9 @@ export function Footer() {
             </a>
           </div>
         </div>
-        {/* Right: vybeme. + tagline + branch + copyright */}
+        {/* Right: weknd. + tagline + branch + copyright */}
         <div className="text-left md:text-right">
-          <p className="text-lg font-bold text-neutral-900">vybeme.</p>
+          <p className="text-lg font-bold text-neutral-900">weknd.</p>
           <p className="mt-1 text-sm text-neutral-600">people, for all your plans</p>
           <p className="mt-1 text-sm text-neutral-500">@Branch vybelabs</p>
           <p className="mt-3 text-xs text-neutral-400">All rights reserved</p>

@@ -1,5 +1,5 @@
 /**
- * Web API client for vybeme backend.
+ * Web API client for weknd backend.
  * Uses localStorage with 10-day expiry for auth persistence.
  */
 

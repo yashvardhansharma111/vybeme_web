@@ -403,7 +403,7 @@ export default function YashvardhanPage() {
     const t = ticketForDownload;
     if (!el || !t) return;
     const planId = t.plan?.plan_id ?? selectedPlanId ?? 'ticket';
-    const filename = downloadAllFilename ?? `vybeme-ticket-${(planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40)}-${(t?.ticket_number || t?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30)}.png`;
+    const filename = downloadAllFilename ?? `weknd-ticket-${(planId || 'event').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 40)}-${(t?.ticket_number || t?.user_id || `ticket-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').slice(0, 30)}.png`;
     html2canvas(el, {
       useCORS: true,
       scale: 2,

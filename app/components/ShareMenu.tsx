@@ -23,7 +23,7 @@ export function ShareMenu({ postId, title, useGoPostUrl = false, children, class
 
   const handleShare = useCallback(() => {
     if (!postUrl) return;
-    const shareTitle = title || 'Event on vybeme.';
+    const shareTitle = title || 'Event on weknd.';
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({ url: postUrl, title: shareTitle }).catch(() => {
         navigator.clipboard?.writeText(postUrl);

@@ -130,7 +130,7 @@ export default function ProfilePage() {
       navigator
         .share({
           url: businessLatestLink,
-          title: `${name} on vybeme.`,
+          title: `${name} on weknd.`,
           text: `Check out the latest event from ${name}.`,
         })
         .catch(() => handleCopyLatestLink());

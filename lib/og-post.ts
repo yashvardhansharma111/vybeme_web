@@ -28,12 +28,12 @@ export async function getPostOgData(id: string): Promise<PostOgData | null> {
     const data = json?.data;
     if (!data) return null;
 
-    const title = data.title || 'Event on Vybeme';
-    const description = (data.description || 'Check out this event on Vybeme.').slice(0, 200);
+    const title = data.title || 'Event on Weknd';
+    const description = (data.description || 'Check out this event on Weknd.').slice(0, 200);
     const rawImage = data.media?.[0]?.url ?? data.image ?? null;
     const imageUrl = toAbsoluteImageUrl(rawImage);
 
-    let authorName = 'Vybeme';
+    let authorName = 'Weknd';
     const userId = data.user_id ?? data.business_id;
     if (userId) {
       try {

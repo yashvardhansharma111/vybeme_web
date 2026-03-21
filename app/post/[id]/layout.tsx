@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostOgData } from '@/lib/og-post';
 
-const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
+const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.weknd.in';
 
 // Ensure metadata (and og:image) is generated on each request so WhatsApp/crawlers get fresh tags
 export const dynamic = 'force-dynamic';
@@ -14,17 +14,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const shareImageUrl = `${WEB_BASE}/api/og/post/${id}?v=5`;
   if (!post) {
     return {
-      title: 'vybeme. — Find people for your plans',
-      description: 'Check out this plan on vybeme.',
+      title: 'weknd. — Find people for your plans',
+      description: 'Check out this plan on weknd.',
       openGraph: {
-        title: 'vybeme.',
-        description: 'Check out this plan on vybeme.',
+        title: 'weknd.',
+        description: 'Check out this plan on weknd.',
         url,
         type: 'website',
-        siteName: 'vybeme.',
-        images: [{ url: shareImageUrl, width: 1200, height: 1260, alt: 'vybeme.' }],
+        siteName: 'weknd.',
+        images: [{ url: shareImageUrl, width: 1200, height: 1260, alt: 'weknd.' }],
       },
-      twitter: { card: 'summary_large_image', title: 'vybeme.', images: [shareImageUrl] },
+      twitter: { card: 'summary_large_image', title: 'weknd.', images: [shareImageUrl] },
     };
   }
   // og:description — longer text for WhatsApp/subtitle (recommended ~155 chars)
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: post.title,
     description: ogDescription,
     url,
-    siteName: 'vybeme.',
+    siteName: 'weknd.',
     type: 'website',
     locale: 'en_IN',
   };
