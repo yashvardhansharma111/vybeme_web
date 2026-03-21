@@ -681,22 +681,6 @@ export default function PostPage() {
       .finally(() => setBusinessRegistering(false));
   }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router, currentUserProfile?.name]);
 
-  // If we land on the survey step but the plan has no form configured, auto-submit registration.
-  useEffect(() => {
-    if (!post || businessStep !== 'survey') return;
-    // If a custom form is present, do not auto-submit here (FormRenderer will handle it)
-    if ((post as any).form_id) return;
-    // Otherwise auto-complete registration (avoid double-run)
-    const id = setTimeout(() => {
-      try {
-        handleSubmitRegistration();
-      } catch {
-        // swallow
-      }
-    }, 120);
-    return () => clearTimeout(id);
-  }, [businessStep, post, handleSubmitRegistration]);
-
   // Open "Select Passes" from top every time.
   useEffect(() => {
     if (businessStep === 'tickets' && typeof window !== 'undefined') {
@@ -886,25 +870,130 @@ export default function PostPage() {
             const selectedPass = selectedPassId ? passes.find((p) => p.pass_id === selectedPassId) : undefined;
             const isPaidPass = selectedPass && selectedPass.price > 0;
             const needsPayment = isPaidPass && paymentVerifiedForPassId !== selectedPassId;
+            const planFormId = (post as { form_id?: string | null }).form_id;
+            const appSuffix =
+              typeof window !== 'undefined' && window.location.search.includes('app=1') ? '&app=1' : '';
 
-            // simplified question for events without any ticket types
+            const goBackFromSurvey = () => {
+              if (passes.length > 0) setBusinessStep('tickets');
+              else setBusinessStep('detail');
+            };
+
+            // Custom form attached to the event — always show it (free, paid, with or without passes)
+            if (planFormId) {
+              return (
+                <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
+                  <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
+                    <button type="button" onClick={goBackFromSurvey} className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back
+                    </button>
+                  </div>
+                  <div className="p-6 flex-1">
+                    {needsPayment ? (
+                      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <p className="text-sm font-medium text-amber-800">Paid tickets require payment first.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setBusinessStep('tickets');
+                          }}
+                          className="mt-3 w-full rounded-full bg-[#1C1C1E] px-4 py-3 text-sm font-bold text-white"
+                        >
+                          Back to tickets — Pay &amp; continue
+                        </button>
+                      </div>
+                    ) : null}
+                    <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
+                    <p className="mb-6 text-sm text-neutral-600">Complete the registration form to finish your booking.</p>
+                    <FormRenderer
+                      formId={String(planFormId)}
+                      planId={postId}
+                      userId={user?.user_id}
+                      registrationId={registrationId}
+                      onSubmit={async (responses) => {
+                        setBusinessRegistering(true);
+                        setError(null);
+                        try {
+                          let regId = registrationId;
+                          let checkinFromRegister: string | null = null;
+                          if (!regId) {
+                            const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
+                            const r = await registerForBusinessEvent(postId, user!.user_id, passId, undefined, {} as any);
+                            const reg = (r?.data as any)?.registration ?? (r as any)?.registration;
+                            regId = reg?.registration_id ?? null;
+                            checkinFromRegister = reg?.checkin_code ?? null;
+                            if (regId) setRegistrationId(regId);
+                          }
+                          if (!regId) throw new Error('Could not determine registration id');
+                          await submitFormResponse({
+                            form_id: String(planFormId),
+                            registration_id: regId,
+                            plan_id: postId,
+                            user_id: user!.user_id,
+                            responses,
+                          });
+                          setBusinessRegistered(true);
+                          setBusinessStep('detail');
+                          setSelectedPassId(null);
+                          setPaymentVerifiedForPassId(null);
+                          setAgeRange('');
+                          setGender('');
+                          setRunningExperience('');
+                          setWhatBringsYou('');
+
+                          const isFreeNoPasses = passes.length === 0;
+                          const resolvedCode =
+                            checkinFromRegister ||
+                            buildRsvpCode(currentUserProfile?.name, `${regId}_${postId}`);
+                          setConfirmationCode(resolvedCode);
+                          if (isFreeNoPasses) {
+                            router.push(
+                              `/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${appSuffix}`
+                            );
+                          } else {
+                            router.push(`/post/${postId}/ticket${appSuffix ? `?${appSuffix.slice(1)}` : ''}`);
+                          }
+                        } catch (e: unknown) {
+                          setError(e instanceof Error ? e.message : 'Submission failed');
+                        } finally {
+                          setBusinessRegistering(false);
+                        }
+                      }}
+                    />
+                    {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+                  </div>
+                </div>
+              );
+            }
+
+            // No custom form: optional legacy coffee prompt only when there are no ticket types
             if (passes.length === 0) {
               return (
-                <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col items-center justify-center p-6">
-                  <p className="text-lg font-bold text-neutral-900 text-center">
+                <div className="flex min-h-screen flex-col items-center justify-center rounded-2xl bg-white p-6 shadow-xl">
+                  <p className="text-center text-lg font-bold text-neutral-900">
                     Would you like to join us in a post-run coffee at Paragon?
                   </p>
                   <div className="mt-6 flex gap-4">
                     <button
                       type="button"
-                      onClick={() => { setWhatBringsYou('yes'); handleSubmitRegistration(); }}
+                      onClick={() => {
+                        setWhatBringsYou('yes');
+                        handleSubmitRegistration();
+                      }}
                       className="rounded-full bg-[#1C1C1E] px-6 py-3 text-sm font-bold text-white"
                     >
                       Yes
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setWhatBringsYou('no'); handleSubmitRegistration(); }}
+                      onClick={() => {
+                        setWhatBringsYou('no');
+                        handleSubmitRegistration();
+                      }}
                       className="rounded-full border border-[#1C1C1E] px-6 py-3 text-sm font-bold text-[#1C1C1E]"
                     >
                       No
@@ -915,70 +1004,16 @@ export default function PostPage() {
             }
 
             return (
-          <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
-            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
-              <button type="button" onClick={() => setBusinessStep('tickets')} className="flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                Back
-              </button>
-            </div>
-            <div className="p-6 flex-1">
-            {needsPayment ? (
-              <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
-                <p className="text-sm font-medium text-amber-800">Paid tickets require payment. Please complete payment on the event page first.</p>
-                <button type="button" onClick={() => { setError(null); setBusinessStep('tickets'); }} className="mt-3 w-full rounded-full bg-[#1C1C1E] px-4 py-3 text-sm font-bold text-white">Back to tickets — Pay & continue</button>
-              </div>
-            ) : null}
-            <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
-                <p className="mb-6 text-sm text-neutral-600">Please complete the registration form to finish booking.</p>
-                {(post as any).form_id ? (
-                  <FormRenderer
-                    formId={(post as any).form_id}
-                    planId={postId}
-                    userId={user?.user_id}
-                    registrationId={registrationId}
-                    onSubmit={async (responses) => {
-                      setBusinessRegistering(true);
-                      setError(null);
-                      try {
-                        // Ensure registration exists: if none, create via registerForBusinessEvent (server allows update when already exists)
-                        let regId = registrationId;
-                        if (!regId) {
-                          const passId = passes.length > 0 ? selectedPassId ?? undefined : undefined;
-                          const r = await registerForBusinessEvent(postId, user!.user_id, passId, undefined, {} as any);
-                          regId = (r?.data as any)?.registration?.registration_id ?? (r as any)?.registration?.registration_id ?? null;
-                          if (regId) setRegistrationId(regId);
-                        }
-                        if (!regId) throw new Error('Could not determine registration id');
-                        await submitFormResponse({ form_id: (post as any).form_id, registration_id: regId, plan_id: postId, user_id: user!.user_id, responses });
-                        // After successful form submission, navigate to ticket/confirmation same as other flow
-                        setBusinessRegistered(true);
-                        setBusinessStep('detail');
-                        setSelectedPassId(null);
-                        setPaymentVerifiedForPassId(null);
-                        setAgeRange('');
-                        setGender('');
-                        setRunningExperience('');
-                        setWhatBringsYou('');
-                        router.push(`/post/${postId}/ticket${window?.location?.search?.includes('app=1') ? '?app=1' : ''}`);
-                      } catch (e: unknown) {
-                        setError(e instanceof Error ? e.message : 'Submission failed');
-                      } finally {
-                        setBusinessRegistering(false);
-                      }
-                    }}
-                  />
-                ) : null}
-            {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-            </div>
-            <div className="fixed bottom-0 left-0 right-0 flex justify-center pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 pointer-events-none z-10">
-              <div className="pointer-events-auto">
-                <button type="button" disabled={businessRegistering || needsPayment} onClick={handleSubmitRegistration} className="inline-flex items-center justify-center rounded-full bg-[#1C1C1E] px-8 py-3 text-sm font-bold text-white disabled:opacity-60 shadow-xl">
-                  {businessRegistering ? 'Completing…' : 'Complete registration'}
+              <div className="flex min-h-screen flex-col items-center justify-center rounded-2xl bg-white p-6 shadow-xl">
+                <p className="text-center text-neutral-600">Nothing to complete here. Go back to the event.</p>
+                <button
+                  type="button"
+                  onClick={() => setBusinessStep('tickets')}
+                  className="mt-4 rounded-full bg-[#1C1C1E] px-6 py-3 text-sm font-bold text-white"
+                >
+                  Back
                 </button>
               </div>
-            </div>
-          </div>
             );
           })()
         ) : post && isBusiness ? (

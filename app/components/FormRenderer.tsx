@@ -13,6 +13,30 @@ interface FormField {
   required?: boolean;
 }
 
+/** Map legacy / alternate API types to renderer types */
+function normalizeFieldType(type: string): string {
+  const t = (type || 'text').toLowerCase().trim();
+  if (t === 'dropdown' || t === 'choice' || t === 'single_choice') return 'select';
+  if (t === 'multichoice' || t === 'multi_choice' || t === 'multiple_choice') return 'checkbox';
+  return t;
+}
+
+function normalizeField(f: any): FormField {
+  const type = normalizeFieldType(f.type);
+  let options = Array.isArray(f.options) ? f.options.map(String) : [];
+  if ((type === 'select' || type === 'radio' || type === 'checkbox') && options.length === 0) {
+    options = ['Option 1', 'Option 2'];
+  }
+  return {
+    field_id: f.field_id,
+    label: f.label || 'Question',
+    type,
+    placeholder: f.placeholder,
+    options,
+    required: !!f.required,
+  };
+}
+
 interface Props {
   formId: string;
   planId: string;
@@ -38,9 +62,11 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
         if (!mounted) return;
         if (res.success && res.data) {
           setFormName(res.data.name ?? null);
-          setFields(Array.isArray(res.data.fields) ? res.data.fields : []);
+          const raw = Array.isArray(res.data.fields) ? res.data.fields : [];
+          const normalized = raw.map(normalizeField);
+          setFields(normalized);
           const initial: Record<string, any> = {};
-          (res.data.fields || []).forEach((f: any) => {
+          normalized.forEach((f) => {
             initial[f.field_id] = f.type === 'checkbox' ? [] : '';
           });
           setValues(initial);
@@ -78,12 +104,27 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
         <div key={f.field_id}>
           <label className="mb-2 block text-sm font-medium text-neutral-800">{f.label}{f.required ? ' *' : ''}</label>
           {f.type === 'textarea' ? (
-            <textarea value={values[f.field_id] || ''} onChange={(e) => setValue(f.field_id, e.target.value)} rows={3} className="w-full rounded-xl border px-3 py-2" />
+            <textarea value={values[f.field_id] || ''} onChange={(e) => setValue(f.field_id, e.target.value)} rows={3} className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-neutral-900 shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-400/30" />
           ) : f.type === 'select' ? (
-            <select value={values[f.field_id] || ''} onChange={(e) => setValue(f.field_id, e.target.value)} className="w-full rounded-xl border px-3 py-2">
-              <option value="">Select</option>
-              {(f.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
+            <div className="relative">
+              <select
+                value={values[f.field_id] || ''}
+                onChange={(e) => setValue(f.field_id, e.target.value)}
+                className="block w-full appearance-none rounded-xl border border-neutral-300 bg-white py-3 pl-3 pr-10 text-base text-neutral-900 shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-400/30"
+              >
+                <option value="">Choose an option</option>
+                {(f.options || []).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500" aria-hidden>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </div>
           ) : f.type === 'radio' ? (
             <div className="flex flex-col gap-2">{(f.options || []).map((opt) => (
               <label key={opt} className="inline-flex items-center gap-2"><input type="radio" name={f.field_id} checked={values[f.field_id] === opt} onChange={() => setValue(f.field_id, opt)} /> {opt}</label>
@@ -97,7 +138,7 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
               }} /> {opt}</label>
             ))}</div>
           ) : (
-            <input value={values[f.field_id] || ''} onChange={(e) => setValue(f.field_id, e.target.value)} placeholder={f.placeholder || ''} type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : 'text'} className="w-full rounded-xl border px-3 py-2" />
+            <input value={values[f.field_id] || ''} onChange={(e) => setValue(f.field_id, e.target.value)} placeholder={f.placeholder || ''} type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : f.type === 'date' ? 'date' : f.type === 'phone' ? 'tel' : 'text'} className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-neutral-900 shadow-sm focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-400/30" />
           )}
         </div>
       ))}

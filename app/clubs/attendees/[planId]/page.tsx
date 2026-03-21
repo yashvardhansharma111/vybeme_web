@@ -199,6 +199,9 @@ export default function BusinessAttendeesPage() {
     return <WekndLoadingScreen />;
   }
   if (!user?.user_id || !planId) return null;
+  if (loading) {
+    return <WekndLoadingScreen />;
+  }
   if (!loading && profile && !profile.is_business) return null;
 
   return (
@@ -261,9 +264,7 @@ export default function BusinessAttendeesPage() {
         </div>
 
         {/* List */}
-        {loading ? (
-          <WekndLoadingScreen className="min-h-[240px] rounded-2xl" />
-        ) : filteredAttendees.length === 0 ? (
+        {filteredAttendees.length === 0 ? (
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
             <p className="text-neutral-500">{searchQuery ? 'No attendees match your search' : 'No attendees yet'}</p>
           </div>

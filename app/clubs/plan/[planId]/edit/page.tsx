@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import FormBuilder, { type FormField } from '@/app/components/FormBuilder';
+import { RegistrationFormPreview } from '@/app/components/RegistrationFormPreview';
 import FormSelector from '@/app/components/FormSelector';
 import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 import {
@@ -13,6 +14,8 @@ import {
   updateBusinessPlan,
   uploadImageFile,
   createForm,
+  updateForm,
+  getForm,
 } from '@/lib/api';
 import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
 import { FaPersonRunning } from 'react-icons/fa6';
@@ -22,6 +25,7 @@ import { MdFastfood } from 'react-icons/md';
 import { PiLinkSimpleBold } from 'react-icons/pi';
 
 const CATEGORIES = ['Running', 'Sports', 'Fitness/Training', 'Social/Community'];
+const MAX_MEDIA = 5;
 
 const ADDITIONAL_DETAIL_OPTIONS = [
   { id: 'distance', label: 'Distance', placeholder: 'e.g. 5k' },
@@ -86,8 +90,17 @@ export default function BusinessEditPlanPage() {
   const [profile, setProfile] = useState<{ is_business?: boolean; business_id?: string } | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const postImagesFileInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaFilesRef = useRef<(File | null)[]>([null]);
   const [mediaUrls, setMediaUrls] = useState<string[]>(['']);
   const [mediaFiles, setMediaFiles] = useState<(File | null)[]>([null]);
+
+  const DESCRIPTION_LINE_HEIGHT_PX = 20;
+  const DESCRIPTION_MIN_LINES = 3;
+  const DESCRIPTION_MAX_LINES = 6;
+  const descriptionMinHeight = DESCRIPTION_LINE_HEIGHT_PX * DESCRIPTION_MIN_LINES;
+  const descriptionMaxHeight = DESCRIPTION_LINE_HEIGHT_PX * DESCRIPTION_MAX_LINES;
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -98,6 +111,10 @@ export default function BusinessEditPlanPage() {
   const [formId, setFormId] = useState<string | null>(null);
   const [showFormSelector, setShowFormSelector] = useState(false);
   const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [formBuilderMountKey, setFormBuilderMountKey] = useState(0);
+  const [formBuilderInitialFields, setFormBuilderInitialFields] = useState<FormField[]>([]);
+  const [formBuilderMode, setFormBuilderMode] = useState<'create' | 'edit'>('create');
+  const [formPreviewTick, setFormPreviewTick] = useState(0);
   const [savingForm, setSavingForm] = useState(false);
   const [womenOnly, setWomenOnly] = useState(false);
   const [allowGuestList, setAllowGuestList] = useState(true);
@@ -116,6 +133,19 @@ export default function BusinessEditPlanPage() {
   useEffect(() => {
     if (formId) setRegistrationRequired(true);
   }, [formId]);
+
+  useEffect(() => {
+    mediaFilesRef.current = mediaFiles;
+  }, [mediaFiles]);
+
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const nextHeight = Math.min(el.scrollHeight, descriptionMaxHeight);
+    el.style.height = `${Math.max(descriptionMinHeight, nextHeight)}px`;
+  }, [description, descriptionMaxHeight, descriptionMinHeight]);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -240,36 +270,73 @@ export default function BusinessEditPlanPage() {
   };
   const removePass = (i: number) => setPasses((prev) => prev.filter((_, idx) => idx !== i));
 
-  const addPostImage = () => {
-    setMediaUrls((prev) => [...prev, '']);
-    setMediaFiles((prev) => [...prev, null]);
-  };
-  const updatePostImageUrl = (i: number, url: string) => {
-    setMediaUrls((prev) => {
-      const next = [...prev];
-      next[i] = url;
-      return next;
+  const postMediaFilledCount = (urls: string[], files: (File | null)[]) =>
+    urls.reduce((n, url, i) => n + ((url?.trim() || files[i]) ? 1 : 0), 0);
+
+  const onPostMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = '';
+    if (!picked.length) return;
+    setMediaUrls((prevU) => {
+      const prevF = mediaFilesRef.current;
+      let room = MAX_MEDIA - postMediaFilledCount(prevU, prevF);
+      const nu = [...prevU];
+      const nf = [...prevF];
+      for (const file of picked) {
+        if (room <= 0) break;
+        nu.push('');
+        nf.push(file);
+        room--;
+      }
+      setMediaFiles(nf);
+      return nu;
     });
   };
-  const setPostImageFile = (i: number, file: File | null) => {
-    setMediaFiles((prev) => {
-      const next = [...prev];
-      while (next.length <= i) next.push(null);
-      next[i] = file;
-      return next;
-    });
-  };
+
   const removePostImage = (i: number) => {
-    setMediaUrls((prev) => {
-      const next = prev.filter((_, idx) => idx !== i);
-      return next.length === 0 ? [''] : next;
+    setMediaUrls((prevU) => {
+      const prevF = mediaFilesRef.current;
+      let nextU = prevU.filter((_, idx) => idx !== i);
+      let nextF = prevF.filter((_, idx) => idx !== i);
+      if (nextU.length === 0) {
+        nextU = [''];
+        nextF = [null];
+      }
+      setMediaFiles(nextF);
+      return nextU;
     });
-    setMediaFiles((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const handleFormSelectorSelect = (selectedFormId: string) => {
     setFormId(selectedFormId);
     setShowFormSelector(false);
+    setFormPreviewTick((t) => t + 1);
+  };
+
+  const openFormBuilderNew = () => {
+    setFormBuilderMode('create');
+    setFormBuilderInitialFields([]);
+    setFormBuilderMountKey((k) => k + 1);
+    setShowFormBuilder(true);
+  };
+
+  const openFormBuilderEdit = async () => {
+    if (!formId) {
+      openFormBuilderNew();
+      return;
+    }
+    setFormBuilderMode('edit');
+    try {
+      const res = await getForm(formId);
+      const raw = res.success && res.data && Array.isArray((res.data as { fields?: FormField[] }).fields)
+        ? (res.data as { fields: FormField[] }).fields
+        : [];
+      setFormBuilderInitialFields(raw);
+    } catch {
+      setFormBuilderInitialFields([]);
+    }
+    setFormBuilderMountKey((k) => k + 1);
+    setShowFormBuilder(true);
   };
 
   const handleFormBuilderSave = async (fields: FormField[]) => {
@@ -279,21 +346,37 @@ export default function BusinessEditPlanPage() {
     }
     setSavingForm(true);
     try {
-      const res = await createForm({
-        user_id: user.user_id,
-        name: `Form ${new Date().toLocaleDateString()}`,
-        description: 'Custom registration form',
-        fields,
-      });
-      if (res.success && res.data?.form_id) {
-        setFormId(res.data.form_id);
-        setShowFormBuilder(false);
-        setError(null);
+      if (formBuilderMode === 'edit' && formId) {
+        const res = await updateForm(formId, {
+          name: `Form ${new Date().toLocaleDateString()}`,
+          description: 'Custom registration form',
+          fields,
+        });
+        if (res.success) {
+          setShowFormBuilder(false);
+          setFormPreviewTick((t) => t + 1);
+          setError(null);
+        } else {
+          setError('Failed to update form');
+        }
       } else {
-        setError('Failed to create form');
+        const res = await createForm({
+          user_id: user.user_id,
+          name: `Form ${new Date().toLocaleDateString()}`,
+          description: 'Custom registration form',
+          fields,
+        });
+        if (res.success && res.data?.form_id) {
+          setFormId(res.data.form_id);
+          setShowFormBuilder(false);
+          setFormPreviewTick((t) => t + 1);
+          setError(null);
+        } else {
+          setError('Failed to create form');
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create form');
+      setError(err instanceof Error ? err.message : 'Failed to save form');
     } finally {
       setSavingForm(false);
     }
@@ -425,7 +508,7 @@ export default function BusinessEditPlanPage() {
   return (
     <div className="min-h-screen bg-[#F5F5F7]">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E5EA] bg-[#F5F5F7] px-4 py-3 sm:px-6 md:px-8">
-        <Link href="/clubs" className="text-[15px] text-neutral-700 hover:text-neutral-900 sm:text-base">← Back</Link>
+        <Link href="/clubs" className="text-[15px] text-neutral-900 sm:text-base">← Back</Link>
         <h1 className="text-[17px] font-semibold text-[#1C1C1E] sm:text-lg">Edit Post</h1>
         <div className="w-10 sm:w-12" />
       </header>
@@ -442,120 +525,67 @@ export default function BusinessEditPlanPage() {
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <p className="text-[14px] font-bold uppercase tracking-wide text-black">Limit Registration</p>
-              {limitRegistrationEnabled ? (
-                <p className="mt-1 text-sm text-neutral-700">Maximum number of attendees allowed to register for this event.</p>
-              ) : (
-                <p className="mt-1 text-sm text-neutral-700">Unlimited registrations.</p>
-              )}
-            </div>
-            <input
-              type="checkbox"
-              checked={limitRegistrationEnabled}
-              onChange={(e) => {
-                const on = e.target.checked;
-                setLimitRegistrationEnabled(on);
-                if (!on) setRegistrationLimit('');
-              }}
-              className="h-5 w-5 rounded"
-            />
-          </div>
-          {limitRegistrationEnabled ? (
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                value={registrationLimit}
-                onChange={(e) => setRegistrationLimit(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="Max attendees"
-                className="w-40 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black"
-              />
-              {registrationLimit ? (
-                <span className="text-sm text-neutral-700">Max {registrationLimit} attendee{registrationLimit === '1' ? '' : 's'}</span>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-
-        <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <textarea
+            ref={descriptionRef}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-xl bg-transparent text-[14px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
+            style={{ minHeight: descriptionMinHeight, maxHeight: descriptionMaxHeight }}
+            className="w-full resize-none overflow-y-auto rounded-xl bg-transparent text-[14px] leading-[20px] text-black placeholder:text-neutral-600 placeholder:opacity-100"
             placeholder="Join the run club for another 5k..."
           />
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <p className="mb-2 text-[14px] font-bold uppercase tracking-wide text-black">Post images</p>
-          {mediaUrls.map((url, i) => {
-            const file = mediaFiles[i] ?? null;
-            const previewSrc = file ? URL.createObjectURL(file) : (url.trim() || null);
-            return (
-              <div key={i} className="mb-3 flex flex-wrap items-start gap-2">
-                {previewSrc ? (
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-200">
+          <input
+            ref={postImagesFileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={onPostMediaChange}
+            className="sr-only"
+            aria-label="Choose images to upload"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {mediaUrls.map((url, i) => {
+              const file = mediaFiles[i] ?? null;
+              if (!url.trim() && !file) return null;
+              const previewSrc = file ? URL.createObjectURL(file) : url.trim();
+              return (
+                <div key={`post-slot-${i}`} className="relative">
+                  <div className="h-20 w-20 overflow-hidden rounded-xl bg-neutral-200">
                     <img src={previewSrc} alt="" className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => { setPostImageFile(i, null); updatePostImageUrl(i, ''); }}
-                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                      aria-label="Remove image"
-                    >
-                      ×
-                    </button>
                   </div>
-                ) : null}
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex gap-2 items-center flex-wrap">
-                    <input
-                      type="url"
-                      value={url}
-                      onChange={(e) => updatePostImageUrl(i, e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-black"
-                      placeholder="Paste image URL or upload below"
-                    />
-                    {mediaUrls.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removePostImage(i)}
-                        className="shrink-0 rounded-full p-1.5 text-neutral-600 hover:bg-neutral-300 hover:text-black"
-                        aria-label="Remove image"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      id={`post-image-file-${i}`}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) setPostImageFile(i, f);
-                        e.target.value = '';
-                      }}
-                    />
-                    <label
-                      htmlFor={`post-image-file-${i}`}
-                      className="cursor-pointer rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-neutral-50"
-                    >
-                      Upload from device
-                    </label>
-                    {file && <span className="text-xs text-neutral-600 truncate">{file.name}</span>}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePostImage(i)}
+                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
                 </div>
-              </div>
-            );
-          })}
-          <button type="button" onClick={addPostImage} className="text-sm font-semibold text-black">
-            + Add another image
-          </button>
+              );
+            })}
+            {postMediaFilledCount(mediaUrls, mediaFiles) < MAX_MEDIA && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => postImagesFileInputRef.current?.click()}
+                  className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#E5E5E5] text-black/70 hover:border-[#1C1C1E] hover:bg-black/5 hover:text-black"
+                  aria-label="Add image"
+                />
+                <button
+                  type="button"
+                  onClick={() => postImagesFileInputRef.current?.click()}
+                  className="rounded-lg border border-[#1C1C1E] bg-white px-4 py-2 text-sm font-semibold text-[#1C1C1E] hover:bg-[#1C1C1E] hover:text-white"
+                >
+                  Upload images
+                </button>
+              </>
+            )}
+          </div>
         </section>
 
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
@@ -625,87 +655,76 @@ export default function BusinessEditPlanPage() {
             <input type="checkbox" checked={ticketsEnabled} onChange={(e) => setTicketsEnabled(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           {ticketsEnabled && (
-            <div className="mt-3 space-y-4">
-              {passes.map((p, i) => (
-                <div key={i} className="rounded-xl border border-[#E5E5EA] bg-white p-3 space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={p.name}
-                      onChange={(e) => updatePass(i, 'name', e.target.value)}
-                      placeholder="Ticket name"
-                      className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
-                    />
-                    <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-[#F5F5F7] px-2 py-1">
+            <div className="mt-3 space-y-2">
+              {passes.map((p, i) => {
+                const ticketUrl = (p.mediaUrl ?? '').trim();
+                const ticketFile = p.mediaFile ?? null;
+                const ticketPreview = ticketFile ? URL.createObjectURL(ticketFile) : (ticketUrl || null);
+                return (
+                  <div key={i} className="space-y-2">
+                    <div className="flex gap-2">
                       <input
-                        type="number"
-                        min={0}
-                        value={p.price || ''}
-                        onChange={(e) => updatePass(i, 'price', e.target.value)}
-                        placeholder="Price"
-                        className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
+                        type="text"
+                        value={p.name}
+                        onChange={(e) => updatePass(i, 'name', e.target.value)}
+                        placeholder="Ticket name"
+                        className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
                       />
-                      {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
+                      <div className="flex w-28 shrink-0 items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+                        <input
+                          type="number"
+                          min={0}
+                          value={p.price || ''}
+                          onChange={(e) => updatePass(i, 'price', e.target.value)}
+                          placeholder="Price"
+                          className="w-14 border-0 bg-transparent text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
+                        />
+                        {p.price === 0 && <span className="text-xs font-semibold text-black">Free</span>}
+                      </div>
+                      <button type="button" onClick={() => removePass(i)} className="text-black/70" aria-label="Remove pass">
+                        ×
+                      </button>
                     </div>
-                    <button type="button" onClick={() => removePass(i)} className="shrink-0 text-black/70 hover:text-black" aria-label="Remove pass">×</button>
-                  </div>
-                  <div className="border-t border-[#E5E5EA] pt-2">
-                    <p className="mb-1.5 text-xs font-semibold text-black">Ticket image (optional)</p>
-                    {(() => {
-                      const ticketUrl = (p.mediaUrl ?? '').trim();
-                      const ticketFile = p.mediaFile ?? null;
-                      const ticketPreview = ticketFile ? URL.createObjectURL(ticketFile) : (ticketUrl || null);
-                      return (
-                        <div className="flex flex-wrap items-start gap-2">
-                          {ticketPreview ? (
-                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
-                              <img src={ticketPreview} alt="" className="h-full w-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => { updatePass(i, 'mediaUrl', ''); updatePass(i, 'mediaFile', null); }}
-                                className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-sm hover:bg-black/80"
-                                aria-label="Remove ticket image"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ) : null}
-                          <div className="min-w-0 flex-1 space-y-1.5">
-                            <input
-                              type="url"
-                              value={p.mediaUrl ?? ''}
-                              onChange={(e) => updatePass(i, 'mediaUrl', e.target.value)}
-                              placeholder="Paste URL or upload below"
-                              className="w-full rounded-lg border border-neutral-200 bg-[#F5F5F7] px-3 py-2 text-sm text-black placeholder:text-neutral-500"
-                            />
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                id={`ticket-image-${i}`}
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) updatePass(i, 'mediaFile', f);
-                                  e.target.value = '';
-                                }}
-                              />
-                              <label
-                                htmlFor={`ticket-image-${i}`}
-                                className="cursor-pointer rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-black hover:bg-neutral-50"
-                              >
-                                Upload from device
-                              </label>
-                              {ticketFile && <span className="text-xs text-neutral-600 truncate">{ticketFile.name}</span>}
-                            </div>
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-black">Ticket image (optional)</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ticketPreview ? (
+                          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
+                            <img src={ticketPreview} alt="" className="h-full w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePass(i, 'mediaUrl', '');
+                                updatePass(i, 'mediaFile', null);
+                              }}
+                              className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+                              aria-label="Remove ticket image"
+                            >
+                              ×
+                            </button>
                           </div>
-                        </div>
-                      );
-                    })()}
+                        ) : null}
+                        <label className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) updatePass(i, 'mediaFile', f);
+                              e.target.value = '';
+                            }}
+                          />
+                          {ticketFile ? ticketFile.name : ticketUrl ? 'Replace image' : 'Choose image'}
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <button type="button" onClick={addPass} className="text-sm font-semibold text-black">+ Add ticket type</button>
+                );
+              })}
+              <button type="button" onClick={addPass} className="text-sm font-semibold text-black">
+                + Add type
+              </button>
             </div>
           )}
         </section>
@@ -733,7 +752,11 @@ export default function BusinessEditPlanPage() {
                       const id = e.target.value;
                       const opt = ADDITIONAL_DETAIL_OPTIONS.find((o) => o.id === id);
                       const next = [...additionalDetails];
-                      next[i] = { detail_type: id, title: opt?.label ?? '', description: next[i].description };
+                      next[i] = {
+                        detail_type: id,
+                        title: id === 'additional_info' ? '' : (opt?.label ?? ''),
+                        description: next[i].description,
+                      };
                       setAdditionalDetails(next);
                     }}
                     className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black [color-scheme:light]"
@@ -808,6 +831,7 @@ export default function BusinessEditPlanPage() {
           </button>
         </section>
 
+        {/* Toggles — same order as create; limit registration last */}
         <section className="mb-3 rounded-2xl bg-[#EBEBED] p-3 sm:mb-4 sm:p-4">
           <div className="py-2">
             <div className="flex items-center justify-between">
@@ -837,17 +861,57 @@ export default function BusinessEditPlanPage() {
               type="button"
               onClick={() => setShowFormSelector(true)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                formId ? 'bg-green-100 text-green-800' : 'bg-neutral-300 text-neutral-700 hover:bg-neutral-400'
+                formId ? 'bg-green-100 text-green-700' : 'bg-neutral-300 text-neutral-600 hover:bg-neutral-400'
               }`}
             >
-              {formId ? 'Form added' : 'Add form'}
+              {formId ? 'Change form' : 'Add'}
             </button>
           </div>
           {formId ? (
-            <p className="pb-2 text-sm text-neutral-600">
-              A registration form is attached. Attendees will complete it when they register.
-            </p>
+            <div className="mt-2 space-y-2">
+              <p className="text-sm text-neutral-600">
+                Attendees will see this form after they choose a ticket (or right away if there are no tickets).
+              </p>
+              <RegistrationFormPreview formId={formId} refreshKey={formPreviewTick} />
+              <button
+                type="button"
+                onClick={() => void openFormBuilderEdit()}
+                className="text-sm font-semibold text-[#1C1C1E] underline"
+              >
+                Edit form questions
+              </button>
+            </div>
           ) : null}
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <span className="text-[16px] font-semibold text-black">Limit Registration</span>
+              {limitRegistrationEnabled && (
+                <p className="mt-2 text-sm text-neutral-600">Maximum number of attendees allowed to register for this event.</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={limitRegistrationEnabled}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setLimitRegistrationEnabled(on);
+                  if (!on) setRegistrationLimit('');
+                }}
+                className="h-5 w-5 rounded"
+              />
+              {limitRegistrationEnabled && (
+                <input
+                  type="number"
+                  min={1}
+                  value={registrationLimit}
+                  onChange={(e) => setRegistrationLimit(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="Max attendees"
+                  className="ml-2 w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black"
+                />
+              )}
+            </div>
+          </div>
         </section>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
@@ -869,7 +933,7 @@ export default function BusinessEditPlanPage() {
           onSelect={handleFormSelectorSelect}
           onCreateNew={() => {
             setShowFormSelector(false);
-            setShowFormBuilder(true);
+            openFormBuilderNew();
           }}
           onCancel={() => setShowFormSelector(false)}
           loading={savingForm}
@@ -878,6 +942,8 @@ export default function BusinessEditPlanPage() {
 
       {showFormBuilder ? (
         <FormBuilder
+          key={formBuilderMountKey}
+          initialFields={formBuilderInitialFields}
           onSave={handleFormBuilderSave}
           onCancel={() => setShowFormBuilder(false)}
           loading={savingForm}

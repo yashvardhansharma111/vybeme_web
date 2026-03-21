@@ -73,29 +73,45 @@ export default function TicketsPage() {
     return dateStr || timeStr || '—';
   };
 
-  if (!mounted || !user?.user_id) {
+  if (!mounted) {
     return <WekndLoadingScreen />;
+  }
+  if (!user?.user_id) {
+    return <WekndLoadingScreen />;
+  }
+
+  const ticketsHeader = (
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-4 md:px-6">
+      <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
+        vybeme.
+      </Link>
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+          {profile?.profile_image ? (
+            <Image src={profile.profile_image} alt="" width={36} height={36} className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
+              {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
+            </span>
+          )}
+        </div>
+        <span className="text-sm font-medium text-neutral-700">{profile?.name ?? 'My tickets'}</span>
+      </div>
+    </header>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-100">
+        {ticketsHeader}
+        <WekndLoadingScreen className="min-h-0 flex-1 w-full" />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-100">
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:px-6">
-        <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
-          vybeme.
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
-            {profile?.profile_image ? (
-              <Image src={profile.profile_image} alt="" width={36} height={36} className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
-                {profile?.name?.charAt(0) ?? user.user_id?.charAt(0) ?? '?'}
-              </span>
-            )}
-          </div>
-          <span className="text-sm font-medium text-neutral-700">{profile?.name ?? 'My tickets'}</span>
-        </div>
-      </header>
+      {ticketsHeader}
 
       <main className="mx-auto max-w-md px-4 py-6">
         <h1 className="text-xl font-bold text-neutral-900">My tickets</h1>
@@ -103,9 +119,7 @@ export default function TicketsPage() {
           {tickets.length === 0 ? 'No tickets yet' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}
         </p>
 
-        {loading ? (
-          <WekndLoadingScreen className="mt-8 min-h-[min(55vh,420px)] rounded-2xl" />
-        ) : tickets.length === 0 ? (
+        {tickets.length === 0 ? (
           <p className="mt-8 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
         ) : (
           <ul className="mt-6 space-y-3">

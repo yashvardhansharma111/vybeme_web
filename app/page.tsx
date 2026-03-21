@@ -40,6 +40,17 @@ export default function Home() {
   const businessPosts = posts.filter((p) => p.type === 'business');
   const regularPosts = posts.filter((p) => p.type !== 'business');
 
+  // Initial feed load: full-page loader (no hero + small box)
+  if (loading && posts.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gradient-to-b from-rose-100/80 to-neutral-200 md:bg-neutral-200">
+        <AppHeader />
+        <WekndLoadingScreen className="min-h-0 flex-1 w-full" />
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-100/80 to-neutral-200 md:bg-neutral-200">
       <AppHeader />
@@ -54,9 +65,7 @@ export default function Home() {
           </p>
         </div>
 
-        {loading && posts.length === 0 ? (
-          <WekndLoadingScreen className="min-h-[min(70vh,520px)] rounded-2xl" />
-        ) : error && posts.length === 0 ? (
+        {error && posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 px-4 py-8">
             <p className="text-red-600">{error}</p>
             <button
@@ -154,7 +163,7 @@ export default function Home() {
               </section>
             )}
 
-            {!loading && posts.length === 0 && (
+            {posts.length === 0 && (
               <div className="px-4 py-8 text-center text-neutral-500">
                 No posts yet. Open the app to discover plans.
               </div>

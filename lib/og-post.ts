@@ -1,7 +1,7 @@
 /**
  * Server-only: fetch post + author name + tags for OG image and metadata.
  */
-const BASE_API = process.env.NEXT_PUBLIC_API_URL || 'https://api.vybeme.in';
+const BASE_API = process.env.NEXT_PUBLIC_API_URL || 'https://api.weknd.in';
 
 function toAbsoluteImageUrl(raw: string | null | undefined): string | null {
   if (!raw || typeof raw !== 'string' || !raw.trim()) return null;

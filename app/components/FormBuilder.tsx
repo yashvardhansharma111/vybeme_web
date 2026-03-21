@@ -57,9 +57,19 @@ function normalizeFieldsForSave(fields: FormField[]): FormField[] {
   });
 }
 
+function needsOptions(type: FormField['type']) {
+  return type === 'select' || type === 'radio' || type === 'checkbox';
+}
+
 export default function FormBuilder({ onSave, onCancel, initialFields = [], loading = false }: FormBuilderProps) {
-  const [fields, setFields] = useState<FormField[]>(
-    initialFields.length > 0 ? initialFields : []
+  const [fields, setFields] = useState<FormField[]>(() =>
+    initialFields.length > 0
+      ? initialFields.map((f, i) => ({
+          ...f,
+          order: f.order ?? i,
+          options: Array.isArray(f.options) ? [...f.options] : [],
+        }))
+      : []
   );
 
   const addField = () => {
@@ -78,7 +88,47 @@ export default function FormBuilder({ onSave, onCancel, initialFields = [], load
   const updateField = (index: number, patch: Partial<FormField>) => {
     setFields((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], ...patch };
+      const cur = next[index];
+      let merged = { ...cur, ...patch };
+      if (patch.type && needsOptions(patch.type) && (!merged.options || merged.options.length === 0)) {
+        merged = { ...merged, options: ['Option 1', 'Option 2'] };
+      }
+      if (patch.type && !needsOptions(patch.type)) {
+        merged = { ...merged, options: [] };
+      }
+      next[index] = merged;
+      return next;
+    });
+  };
+
+  const updateOption = (fieldIndex: number, optIndex: number, value: string) => {
+    setFields((prev) => {
+      const next = [...prev];
+      const f = { ...next[fieldIndex] };
+      const opts = [...(f.options || [])];
+      opts[optIndex] = value;
+      f.options = opts;
+      next[fieldIndex] = f;
+      return next;
+    });
+  };
+
+  const addOption = (fieldIndex: number) => {
+    setFields((prev) => {
+      const next = [...prev];
+      const f = { ...next[fieldIndex] };
+      f.options = [...(f.options || []), `Option ${(f.options?.length || 0) + 1}`];
+      next[fieldIndex] = f;
+      return next;
+    });
+  };
+
+  const removeOption = (fieldIndex: number, optIndex: number) => {
+    setFields((prev) => {
+      const next = [...prev];
+      const f = { ...next[fieldIndex] };
+      f.options = (f.options || []).filter((_, i) => i !== optIndex);
+      next[fieldIndex] = f;
       return next;
     });
   };
@@ -172,6 +222,40 @@ export default function FormBuilder({ onSave, onCancel, initialFields = [], load
                   </button>
                   <span className="text-sm text-white/90">Required</span>
                 </div>
+
+                {needsOptions(field.type) && (
+                  <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                      {field.type === 'select' ? 'Dropdown choices' : field.type === 'radio' ? 'Choices (pick one)' : 'Choices (pick any)'}
+                    </p>
+                    {(field.options || []).map((opt, oi) => (
+                      <div key={oi} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={(e) => updateOption(index, oi, e.target.value)}
+                          placeholder={`Option ${oi + 1}`}
+                          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-[#0d0d0d] px-3 py-2 text-sm text-white placeholder:text-white/35"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeOption(index, oi)}
+                          className="shrink-0 rounded-lg px-2 text-sm text-white/50 hover:bg-white/10 hover:text-white"
+                          aria-label="Remove option"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => addOption(index)}
+                      className="text-sm font-medium text-white/80 hover:text-white"
+                    >
+                      + Add option
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

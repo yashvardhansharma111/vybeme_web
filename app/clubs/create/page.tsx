@@ -4,9 +4,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import FormBuilder, { FormField } from '@/app/components/FormBuilder';
+import { RegistrationFormPreview } from '@/app/components/RegistrationFormPreview';
 import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
 import FormSelector from '@/app/components/FormSelector';
-import { getWebUser, getCurrentUserProfile, createBusinessPlan, createBusinessPlanWithFiles, updateBusinessPlan, updateBusinessPlanWithFiles, getBusinessPlanDetails, createForm } from '@/lib/api';
+import {
+  getWebUser,
+  getCurrentUserProfile,
+  createBusinessPlan,
+  createBusinessPlanWithFiles,
+  updateBusinessPlan,
+  updateBusinessPlanWithFiles,
+  getBusinessPlanDetails,
+  createForm,
+  updateForm,
+  getForm,
+} from '@/lib/api';
 import { FaFlagCheckered, FaMusic, FaBasketballBall, FaDumbbell, FaGlassCheers } from 'react-icons/fa';
 import { FaPersonRunning } from 'react-icons/fa6';
 import { IoMdShirt } from 'react-icons/io';
@@ -69,7 +81,6 @@ export default function BusinessCreatePage() {
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [ticketImageFile, setTicketImageFile] = useState<File | null>(null);
-  const [mediaUrl, setMediaUrl] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -98,6 +109,10 @@ export default function BusinessCreatePage() {
   const [formId, setFormId] = useState<string | null>(null);
   const [showFormSelector, setShowFormSelector] = useState(false);
   const [showFormBuilder, setShowFormBuilder] = useState(false);
+  const [formBuilderMountKey, setFormBuilderMountKey] = useState(0);
+  const [formBuilderInitialFields, setFormBuilderInitialFields] = useState<FormField[]>([]);
+  const [formBuilderMode, setFormBuilderMode] = useState<'create' | 'edit'>('create');
+  const [formPreviewTick, setFormPreviewTick] = useState(0);
   const [savingForm, setSavingForm] = useState(false);
   const [registrationRequired, setRegistrationRequired] = useState(false); // whether we ask users to fill a survey/form
   const [limitRegistrationEnabled, setLimitRegistrationEnabled] = useState(false);
@@ -205,6 +220,33 @@ export default function BusinessCreatePage() {
   const handleFormSelectorSelect = async (selectedFormId: string) => {
     setFormId(selectedFormId);
     setShowFormSelector(false);
+    setFormPreviewTick((t) => t + 1);
+  };
+
+  const openFormBuilderNew = () => {
+    setFormBuilderMode('create');
+    setFormBuilderInitialFields([]);
+    setFormBuilderMountKey((k) => k + 1);
+    setShowFormBuilder(true);
+  };
+
+  const openFormBuilderEdit = async () => {
+    if (!formId) {
+      openFormBuilderNew();
+      return;
+    }
+    setFormBuilderMode('edit');
+    try {
+      const res = await getForm(formId);
+      const raw = res.success && res.data && Array.isArray((res.data as { fields?: FormField[] }).fields)
+        ? (res.data as { fields: FormField[] }).fields
+        : [];
+      setFormBuilderInitialFields(raw);
+    } catch {
+      setFormBuilderInitialFields([]);
+    }
+    setFormBuilderMountKey((k) => k + 1);
+    setShowFormBuilder(true);
   };
 
   const handleFormBuilderSave = async (fields: FormField[]) => {
@@ -215,22 +257,38 @@ export default function BusinessCreatePage() {
 
     setSavingForm(true);
     try {
-      const res = await createForm({
-        user_id: user.user_id,
-        name: `Form ${new Date().toLocaleDateString()}`,
-        description: 'Custom registration form',
-        fields: fields
-      });
-
-      if (res.success && res.data?.form_id) {
-        setFormId(res.data.form_id);
-        setShowFormBuilder(false);
-        setError(null);
+      if (formBuilderMode === 'edit' && formId) {
+        const res = await updateForm(formId, {
+          name: `Form ${new Date().toLocaleDateString()}`,
+          description: 'Custom registration form',
+          fields,
+        });
+        if (res.success) {
+          setShowFormBuilder(false);
+          setFormPreviewTick((t) => t + 1);
+          setError(null);
+        } else {
+          setError('Failed to update form');
+        }
       } else {
-        setError('Failed to create form');
+        const res = await createForm({
+          user_id: user.user_id,
+          name: `Form ${new Date().toLocaleDateString()}`,
+          description: 'Custom registration form',
+          fields,
+        });
+
+        if (res.success && res.data?.form_id) {
+          setFormId(res.data.form_id);
+          setShowFormBuilder(false);
+          setFormPreviewTick((t) => t + 1);
+          setError(null);
+        } else {
+          setError('Failed to create form');
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create form');
+      setError(err instanceof Error ? err.message : 'Failed to save form');
     } finally {
       setSavingForm(false);
     }
@@ -301,13 +359,13 @@ export default function BusinessCreatePage() {
       if (location.trim()) body.location_text = location.trim();
       if (date) body.date = new Date(date).toISOString();
       if (time.trim()) body.time = time.trim();
-      if (formId) body.form_id = formId;
+      if (formId) {
+        body.form_id = formId;
+        body.registration_required = true;
+      }
       if (limitRegistrationEnabled && registrationLimit) {
         const n = parseInt(registrationLimit, 10);
         if (!Number.isNaN(n) && n > 0) body.registration_limit = n;
-      }
-      if (mediaUrl.trim() && mediaFiles.length === 0) {
-        body.media = [{ url: mediaUrl.trim(), type: 'image' }];
       }
       if (ticketsEnabled && passes.filter((p) => p.name.trim()).length > 0) {
         body.passes = passes.filter((p) => p.name.trim()).map((p, i) => ({
@@ -459,14 +517,6 @@ export default function BusinessCreatePage() {
               </>
             )}
           </div>
-          <p className="mt-2 text-xs text-black/70">Or paste image URL below</p>
-          <input
-            type="url"
-            value={mediaUrl}
-            onChange={(e) => setMediaUrl(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600 placeholder:opacity-100"
-            placeholder="https://..."
-          />
         </section>
 
         {/* Address */}
@@ -616,7 +666,7 @@ export default function BusinessCreatePage() {
                           next[i] = { ...next[i], title: e.target.value };
                           setAdditionalDetails(next);
                         }}
-                        placeholder="header"
+                        placeholder="Heading"
                         className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
                       />
                       <input
@@ -627,7 +677,7 @@ export default function BusinessCreatePage() {
                           next[i] = { ...next[i], description: e.target.value };
                           setAdditionalDetails(next);
                         }}
-                        placeholder="field"
+                        placeholder="Description"
                         className="min-w-0 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black placeholder:text-neutral-600"
                       />
                     </>
@@ -686,7 +736,7 @@ export default function BusinessCreatePage() {
             <input type="checkbox" checked={registrationRequired} onChange={(e) => setRegistrationRequired(e.target.checked)} className="h-5 w-5 rounded" />
           </div>
           <div className="flex items-center justify-between py-2">
-            <span className="text-[16px] font-semibold text-black">Add form</span>
+            <span className="text-[16px] font-semibold text-black">Registration form</span>
             <button
               type="button"
               onClick={() => setShowFormSelector(true)}
@@ -696,14 +746,24 @@ export default function BusinessCreatePage() {
                   : 'bg-neutral-300 text-neutral-600 hover:bg-neutral-400'
               }`}
             >
-              {formId ? '✓ Added' : 'Add'}
+              {formId ? 'Change form' : 'Add'}
             </button>
           </div>
-          {formId && (
-            <p className="mt-2 text-sm text-neutral-600">
-              Form attached: Your registration form is ready. Users will fill it when registering.
-            </p>
-          )}
+          {formId ? (
+            <div className="mt-2 space-y-2">
+              <p className="text-sm text-neutral-600">
+                Attendees will see this form after they choose a ticket (or right away if there are no tickets).
+              </p>
+              <RegistrationFormPreview formId={formId} refreshKey={formPreviewTick} />
+              <button
+                type="button"
+                onClick={() => void openFormBuilderEdit()}
+                className="text-sm font-semibold text-[#1C1C1E] underline"
+              >
+                Edit form questions
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between py-2">
             <div>
               <span className="text-[16px] font-semibold text-black">Limit Registration</span>
@@ -759,12 +819,8 @@ export default function BusinessCreatePage() {
             <div className="mx-auto max-w-md pb-12">
               {/* Hero image */}
               <div className="relative aspect-[4/3] w-full bg-[#E5E5EA]">
-                {(mediaFiles[0] || mediaUrl) ? (
-                  mediaFiles[0] ? (
-                    <img src={URL.createObjectURL(mediaFiles[0])} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <img src={mediaUrl} alt="" className="h-full w-full object-cover" />
-                  )
+                {mediaFiles[0] ? (
+                  <img src={URL.createObjectURL(mediaFiles[0])} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[#8E8E93]">
                     <span className="text-sm">No image</span>
@@ -865,7 +921,7 @@ export default function BusinessCreatePage() {
           onSelect={handleFormSelectorSelect}
           onCreateNew={() => {
             setShowFormSelector(false);
-            setShowFormBuilder(true);
+            openFormBuilderNew();
           }}
           onCancel={() => setShowFormSelector(false)}
           loading={savingForm}
@@ -875,6 +931,8 @@ export default function BusinessCreatePage() {
       {/* Form Builder Modal */}
       {showFormBuilder && (
         <FormBuilder
+          key={formBuilderMountKey}
+          initialFields={formBuilderInitialFields}
           onSave={handleFormBuilderSave}
           onCancel={() => setShowFormBuilder(false)}
           loading={savingForm}

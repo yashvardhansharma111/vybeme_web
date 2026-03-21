@@ -192,6 +192,21 @@ function BusinessScanContent() {
   if (!user?.user_id) return null;
   if (!loading && profile && !profile.is_business) return null;
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#1C1C1E]">
+        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+          <Link href="/clubs" className="flex h-11 w-11 items-center justify-center text-white" aria-label="Back">
+            <span className="text-2xl">×</span>
+          </Link>
+          <h1 className="text-lg font-bold text-white">Scan tickets</h1>
+          <div className="w-11" />
+        </div>
+        <WekndLoadingScreen className="min-h-0 flex-1 w-full" />
+      </div>
+    );
+  }
+
   const selectedPlan = plans.find((p) => p.plan_id === selectedPlanId);
   const formatPlanDate = (d: string | Date | undefined) => {
     if (!d) return '';
@@ -214,11 +229,7 @@ function BusinessScanContent() {
         </div>
         <div className="mx-auto max-w-lg px-4 py-6">
           <p className="mb-3 text-sm text-[#8E8E93]">Select an event, then open the scanner.</p>
-          {loading ? (
-            <div className="overflow-hidden rounded-2xl">
-              <WekndLoadingScreen className="min-h-[220px]" />
-            </div>
-          ) : plans.length === 0 ? (
+          {plans.length === 0 ? (
             <p className="text-[#8E8E93]">No events yet.</p>
           ) : (
             <>

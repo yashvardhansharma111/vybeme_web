@@ -282,8 +282,18 @@ export default function BusinessPage() {
   }
   if (!user?.user_id) return null;
 
+  // Full-page loader until profile + events are ready (avoid a tiny loader only inside "Events")
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-neutral-50">
+        <AppHeader />
+        <WekndLoadingScreen className="min-h-0 flex-1 w-full" />
+      </div>
+    );
+  }
+
   // When profile loaded and is_business is false, show "Enable business account" instead of redirecting
-  const showEnablePrompt = !loading && profile && profile.is_business === false;
+  const showEnablePrompt = profile && profile.is_business === false;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -328,9 +338,7 @@ export default function BusinessPage() {
 
           <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3">
             <h2 className="text-sm font-medium text-neutral-800">Events</h2>
-            {loading ? (
-              <WekndLoadingScreen className="mt-2 min-h-[200px] rounded-xl" />
-            ) : plans.length === 0 ? (
+            {plans.length === 0 ? (
               <p className="mt-2 text-sm text-neutral-500">No events yet. Create a post above.</p>
             ) : (
               <ul className="mt-2 space-y-2">

@@ -73,6 +73,9 @@ export default function BusinessAttendeesIndexPage() {
   }
   if (!user?.user_id) return null;
   if (!loading && profile && !profile.is_business) return null;
+  if (loading) {
+    return <WekndLoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
@@ -89,9 +92,7 @@ export default function BusinessAttendeesIndexPage() {
           <h1 className="text-lg font-bold text-white">View Registrations</h1>
           <div className="w-14" />
         </div>
-        {loading ? (
-          <WekndLoadingScreen className="min-h-[220px] rounded-2xl" />
-        ) : plans.length === 0 ? (
+        {plans.length === 0 ? (
           <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
             <p className="text-neutral-500">No business events yet.</p>
             <Link href="/clubs/create" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
