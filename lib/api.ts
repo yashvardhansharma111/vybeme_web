@@ -220,6 +220,47 @@ export async function getUserStats(user_id: string) {
   );
 }
 
+export async function reportUserWeb(
+  reported_user_id: string,
+  reason: string,
+  options?: { post_id?: string; message?: string | null }
+) {
+  return request<{ report_id: string; status: string }>('/user/report', {
+    method: 'POST',
+    body: JSON.stringify({
+      reported_user_id,
+      reason,
+      post_id: options?.post_id,
+      message: options?.message ?? undefined,
+    }),
+  });
+}
+
+export async function blockUserWeb(blocked_user_id: string, reason?: string) {
+  return request<any>('/user/block', {
+    method: 'POST',
+    body: JSON.stringify({ blocked_user_id, reason }),
+  });
+}
+
+export async function unblockUserWeb(blocked_user_id: string) {
+  return request<any>('/user/unblock', {
+    method: 'POST',
+    body: JSON.stringify({ blocked_user_id }),
+  });
+}
+
+export async function getBlockedUsersWeb() {
+  return request<{
+    blocked_users: Array<{
+      blocked_user_id: string;
+      created_at?: string;
+      reason?: string | null;
+      user?: { user_id: string; name: string; profile_image?: string | null } | null;
+    }>;
+  }>('/user/blocks', { method: 'GET' });
+}
+
 // Feed / Post — image from media (same as app)
 const DEFAULT_POST_IMAGE = 'https://picsum.photos/id/1011/200/300';
 

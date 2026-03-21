@@ -242,8 +242,20 @@ export default function YashvardhanPage() {
         yasvardhanAdminListReports(adminKey.trim()),
         yasvardhanAdminListBannedUsers(adminKey.trim()),
       ]);
-      setReports(rRes.success ? (rRes.data?.reports ?? []) : []);
-      setBannedUsers(bRes.success ? (bRes.data?.users ?? []) : []);
+      const errs: string[] = [];
+      if (!rRes.success) {
+        errs.push(rRes.message || 'Could not load reports (check ADMIN_KEY matches the server).');
+        setReports([]);
+      } else {
+        setReports(rRes.data?.reports ?? []);
+      }
+      if (!bRes.success) {
+        errs.push(bRes.message || 'Could not load banned users.');
+        setBannedUsers([]);
+      } else {
+        setBannedUsers(bRes.data?.users ?? []);
+      }
+      setError(errs.length ? errs.join(' ') : null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load reports');
     } finally {
@@ -534,6 +546,10 @@ export default function YashvardhanPage() {
             </button>
           </div>
           <p className="mt-2 text-xs text-white/60">Use this to review reports within 24 hours and take action.</p>
+          <p className="mt-2 text-xs text-amber-200/90">
+            Reports are created when someone uses <strong className="text-white">Report</strong> in the app or on a web profile (with a reason). The admin key must match{' '}
+            <code className="rounded bg-black/30 px-1">ADMIN_KEY</code> on the API server.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -623,7 +639,12 @@ export default function YashvardhanPage() {
           })}
         </div>
 
-        {reports.length === 0 && !loadingReports ? <p className="text-white/70">No reports found.</p> : null}
+        {reports.length === 0 && !loadingReports ? (
+          <p className="text-white/70">
+            No reports yet. If you expected some, confirm users are on an app build that submits reports (not the old “fake success” flow) and that this key matches production{' '}
+            <code className="rounded bg-white/10 px-1 text-xs">ADMIN_KEY</code>.
+          </p>
+        ) : null}
       </div>
     );
   }

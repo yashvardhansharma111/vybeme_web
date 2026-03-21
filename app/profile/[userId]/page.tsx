@@ -7,7 +7,16 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
 import { WekndLoadingScreen } from '../../components/WekndLoadingScreen';
 import { DownloadAppCTA } from '../../components/DownloadAppCTA';
-import { getUserProfile, getUserStats, getWebUser, setWebUser } from '@/lib/api';
+import {
+  blockUserWeb,
+  getBlockedUsersWeb,
+  getUserProfile,
+  getUserStats,
+  getWebUser,
+  setWebUser,
+  unblockUserWeb,
+} from '@/lib/api';
+import { ReportUserModalWeb } from '../../components/ReportUserModalWeb';
 
 function InstagramIcon({ className = 'h-6 w-6' }: { className?: string }) {
   const id = useId().replace(/:/g, '');
@@ -38,6 +47,29 @@ function XIcon({ className = 'h-6 w-6' }: { className?: string }) {
   );
 }
 
+function snapchatProfileHref(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://www.snapchat.com/add/${t.replace(/^@/, '')}`;
+}
+
+function whatsappProfileHref(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  const digits = t.replace(/\D/g, '');
+  return digits ? `https://wa.me/${digits}` : null;
+}
+
+function stravaProfileHref(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^\d+$/.test(t)) return `https://www.strava.com/athletes/${t}`;
+  return `https://www.strava.com/athletes/${encodeURIComponent(t)}`;
+}
+
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -48,10 +80,26 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [safetyBusy, setSafetyBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [safetyToast, setSafetyToast] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrentUserId(getWebUser()?.user_id ?? null);
-  }, []);
+    const uid = getWebUser()?.user_id ?? null;
+    setCurrentUserId(uid);
+    if (!uid || !userId || uid === userId) {
+      setBlockedIds(new Set());
+      return;
+    }
+    getBlockedUsersWeb()
+      .then((r) => {
+        if (r.success && r.data?.blocked_users) {
+          setBlockedIds(new Set(r.data.blocked_users.map((b) => String(b.blocked_user_id))));
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -96,9 +144,54 @@ export default function ProfilePage() {
   const stripHandle = (v: string) => (v || '').replace(/^@/, '').replace(/.*(instagram\.com|twitter\.com|x\.com)\/([^/?]+).*/i, (_, __, h) => h).trim();
   const igHandle = stripHandle(social.instagram ?? '');
   const xHandle = stripHandle(social.x ?? social.twitter ?? '');
+  const snapchatRaw = (social.snapchat ?? '').trim();
+  const snapchatHref = snapchatRaw ? snapchatProfileHref(snapchatRaw) : null;
+  const whatsappRaw = (social.whatsapp ?? '').trim();
+  const whatsappHref = whatsappRaw ? whatsappProfileHref(whatsappRaw) : null;
+  const stravaRaw = (social.strava ?? '').trim();
+  const stravaHref = stravaRaw ? stravaProfileHref(stravaRaw) : null;
   const verified = profile.verified ?? false;
-  const isOwnProfile = currentUserId && userId && currentUserId === userId;
+  const isOwnProfile = !!(currentUserId && userId && currentUserId === userId);
   const isBusinessProfile = profile.is_business === true;
+  const showSafetyActions = !!(currentUserId && userId && !isOwnProfile);
+  const isBlockedUser = showSafetyActions && blockedIds.has(String(userId));
+
+  const handleToggleBlockWeb = async () => {
+    if (!userId || !currentUserId) return;
+    setSafetyBusy(true);
+    setSafetyToast(null);
+    const target = String(userId);
+    try {
+      if (isBlockedUser) {
+        const r = await unblockUserWeb(target);
+        if (!r.success) {
+          setSafetyToast(r.message || 'Could not unblock');
+          return;
+        }
+        setBlockedIds((prev) => {
+          const n = new Set(prev);
+          n.delete(target);
+          return n;
+        });
+        setSafetyToast('User unblocked');
+      } else {
+        const r = await blockUserWeb(target);
+        if (!r.success) {
+          setSafetyToast(r.message || 'Could not block');
+          return;
+        }
+        setBlockedIds((prev) => new Set(prev).add(target));
+        setSafetyToast('User blocked');
+      }
+    } catch (e: unknown) {
+      setSafetyToast(e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setSafetyBusy(false);
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => setSafetyToast(null), 3200);
+      }
+    }
+  };
 
   const businessLatestLink =
     typeof window !== 'undefined' && userId
@@ -190,13 +283,72 @@ export default function ProfilePage() {
           {igHandle ? `@${igHandle}` : '—'}
         </span>
       </div>
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-neutral-100 px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center text-black">
           <XIcon className="h-5 w-5" />
         </div>
         <span className={xHandle ? 'text-sm text-neutral-600' : 'text-sm text-neutral-400'}>
           {xHandle ? `@${xHandle}` : '—'}
         </span>
+      </div>
+      <div className="flex items-center gap-3 border-b border-neutral-100 px-4 py-3">
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FFFC00] text-lg font-bold text-black"
+          aria-hidden
+        >
+          S
+        </div>
+        {snapchatHref ? (
+          <a
+            href={snapchatHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-neutral-600 underline-offset-2 hover:underline"
+          >
+            {snapchatRaw.replace(/^@/, '')}
+          </a>
+        ) : (
+          <span className="text-sm text-neutral-400">—</span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 border-b border-neutral-100 px-4 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center text-[#25D366]">
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.883 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+        </div>
+        {whatsappHref ? (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-neutral-600 underline-offset-2 hover:underline"
+          >
+            {whatsappRaw}
+          </a>
+        ) : (
+          <span className="text-sm text-neutral-400">—</span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FC5200] text-sm font-extrabold text-white"
+          aria-hidden
+        >
+          S
+        </div>
+        {stravaHref ? (
+          <a
+            href={stravaHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-neutral-600 underline-offset-2 hover:underline"
+          >
+            {stravaRaw.length > 40 ? 'Strava profile' : stravaRaw}
+          </a>
+        ) : (
+          <span className="text-sm text-neutral-400">—</span>
+        )}
       </div>
     </div>
   );
@@ -289,6 +441,27 @@ export default function ProfilePage() {
         </div>
       )}
       <main className="mx-auto max-w-md px-4 pb-8 pt-2 md:max-w-5xl md:grid md:grid-cols-2 md:gap-6 md:py-8 md:px-6">
+        {showSafetyActions && (
+          <div className="col-span-full mb-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleBlockWeb}
+              disabled={safetyBusy}
+              className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              {safetyBusy ? 'Please wait…' : isBlockedUser ? 'Unblock user' : 'Block user'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              disabled={safetyBusy}
+              className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 disabled:opacity-50"
+            >
+              Report
+            </button>
+            {safetyToast ? <span className="text-sm text-neutral-600">{safetyToast}</span> : null}
+          </div>
+        )}
         {/* Mobile: single column */}
         <div className="flex flex-col gap-3 md:hidden">
           {profileCard}
@@ -315,6 +488,19 @@ export default function ProfilePage() {
       <div className="mx-auto mt-4 max-w-md px-4 md:max-w-5xl md:px-6">
         <DownloadAppCTA />
       </div>
+
+      <ReportUserModalWeb
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        reportedUserId={String(userId)}
+        onSubmitted={() => {
+          setReportOpen(false);
+          setSafetyToast('Thanks — we received your report.');
+          if (typeof window !== 'undefined') {
+            window.setTimeout(() => setSafetyToast(null), 4000);
+          }
+        }}
+      />
     </div>
   );
 }
