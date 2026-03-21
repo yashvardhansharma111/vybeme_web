@@ -66,7 +66,7 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
           const normalized = raw.map(normalizeField);
           setFields(normalized);
           const initial: Record<string, any> = {};
-          normalized.forEach((f) => {
+          normalized.forEach((f: FormField) => {
             initial[f.field_id] = f.type === 'checkbox' ? [] : '';
           });
           setValues(initial);
