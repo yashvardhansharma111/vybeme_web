@@ -2,13 +2,13 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { FaFlagCheckered, FaInstagram, FaMusic, FaWhatsapp, FaYoutube, FaGlassCheers } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { HiOutlineLocationMarker, HiOutlineCalendar, HiOutlineShare, HiOutlinePhotograph } from 'react-icons/hi';
-import { IoChevronBack } from 'react-icons/io5';
+import { HiOutlineLocationMarker, HiOutlineCalendar, HiOutlinePhotograph } from 'react-icons/hi';
+import { IoChevronBack, IoClose, IoPaperPlaneOutline } from 'react-icons/io5';
 import { IoMdShirt } from 'react-icons/io';
 import { GiRunningShoe } from 'react-icons/gi';
 import { MdFastfood } from 'react-icons/md';
@@ -235,12 +235,18 @@ export function BusinessDetailCard({
   /** When set (e.g. event ticket URL), profile circle links here instead of user profile. Profile link commented out as of now. */
   profileCircleHref?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const author = post.user;
   const authorId = author?.user_id ?? author?.id ?? post.user_id;
   const avatar = author?.profile_image;
   const profileHref = authorId ? `/profile/${authorId}` : undefined;
   const images = getAllImages(post);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
+  const [lightboxStartIndex, setLightboxStartIndex] = useState(0);
+  const [lightboxSlideIndex, setLightboxSlideIndex] = useState(0);
+  const lightboxScrollRef = useRef<HTMLDivElement>(null);
   const [shareSnackbar, setShareSnackbar] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
   const [organizerSocials, setOrganizerSocials] = useState<OrganizerSocials | null>(null);
@@ -249,7 +255,6 @@ export function BusinessDetailCard({
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
   const planTitle = (post.title as string) || 'Event on vybeme';
-  const router = useRouter();
   const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
   const showCancelledMessage = !!isCancelled;
   const organizerCreatedLabel = formatOrganizerCreatedAt(post.created_at ?? post.date);
@@ -263,12 +268,50 @@ export function BusinessDetailCard({
   }, [images.length]);
 
   useEffect(() => {
-    if (images.length <= 1) return undefined;
+    if (images.length <= 1 || imageLightboxOpen) return undefined;
     const n = images.length;
     const t = setInterval(() => {
       setCarouselIndex((i) => (i + 1) % n);
     }, CAROUSEL_INTERVAL_MS);
     return () => clearInterval(t);
+  }, [images.length, imageLightboxOpen]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (imageLightboxOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [imageLightboxOpen]);
+
+  useEffect(() => {
+    if (!imageLightboxOpen || !lightboxScrollRef.current) return;
+    const el = lightboxScrollRef.current;
+    const slideW = el.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
+    if (slideW <= 0) return;
+    const idx = Math.min(Math.max(0, lightboxStartIndex), Math.max(0, images.length - 1));
+    setLightboxSlideIndex(idx);
+    requestAnimationFrame(() => {
+      el.scrollTo({ left: idx * slideW, behavior: 'auto' });
+    });
+  }, [imageLightboxOpen, lightboxStartIndex, images.length]);
+
+  useEffect(() => {
+    if (!imageLightboxOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setImageLightboxOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [imageLightboxOpen]);
+
+  const openImageLightbox = useCallback((index: number) => {
+    if (!images.length) return;
+    setLightboxStartIndex(Math.min(Math.max(0, index), images.length - 1));
+    setImageLightboxOpen(true);
   }, [images.length]);
 
   useEffect(() => {
@@ -354,85 +397,125 @@ export function BusinessDetailCard({
         )}
 
         <main className="min-h-0 flex-1 overflow-y-auto pb-28" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-neutral-100 bg-white px-3 py-2.5 pt-[max(10px,env(safe-area-inset-top))] shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ECECEC] text-neutral-800 transition-colors active:bg-[#E0E0E0]"
-              aria-label="Back"
-            >
-              <IoChevronBack className="h-6 w-6" />
-            </button>
-            <div className="flex min-w-0 flex-1 items-center justify-center px-1">
-              {profileHref ? (
-                <Link href={profileHref} className="flex min-w-0 max-w-full items-center gap-2.5">
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-200">
-                    {avatar ? (
-                      <Image src={avatar} alt="" fill className="object-cover" sizes="40px" />
+          <div className="sticky top-0 z-40">
+            {/* App bar: weknd. + signed-in viewer (matches tickets / app shell) */}
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-100 bg-white px-4 pt-[max(8px,env(safe-area-inset-top))] pb-2 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+              <Link href="/" className="text-lg font-bold text-neutral-900 no-underline">
+                weknd.
+              </Link>
+              {currentUserProfileHref ? (
+                <Link
+                  href={currentUserProfileHref}
+                  className="flex max-w-[55%] items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-1 transition-opacity active:opacity-80"
+                  aria-label={currentUserName ? `Your profile, ${currentUserName}` : 'Your profile'}
+                >
+                  <span className="min-w-0 truncate text-right text-sm font-semibold text-neutral-800">
+                    {currentUserName ?? 'Account'}
+                  </span>
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                    {currentUserAvatar ? (
+                      <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="36px" />
                     ) : (
-                      <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
-                        {authorName.charAt(0)}
+                      <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-neutral-600">
+                        {(currentUserName ?? 'You').charAt(0)}
                       </span>
                     )}
-                  </div>
-                  <div className="min-w-0 flex flex-col items-start justify-center text-left">
-                    <p className="max-w-full truncate text-[15px] font-bold text-neutral-900">{authorName}</p>
-                    {organizerSubtitle ? (
-                      <p className="max-w-full truncate text-[12px] text-slate-500">{organizerSubtitle}</p>
-                    ) : null}
                   </div>
                 </Link>
               ) : (
-                <div className="flex min-w-0 max-w-full items-center gap-2.5">
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-200">
-                    {avatar ? (
-                      <Image src={avatar} alt="" fill className="object-cover" sizes="40px" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
-                        {authorName.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex flex-col items-start justify-center text-left">
-                    <p className="max-w-full truncate text-[15px] font-bold text-neutral-900">{authorName}</p>
-                    {organizerSubtitle ? (
-                      <p className="max-w-full truncate text-[12px] text-slate-500">{organizerSubtitle}</p>
-                    ) : null}
-                  </div>
-                </div>
+                <Link href={`/login?redirect=${encodeURIComponent(pathname || '/')}`} className="text-sm font-semibold text-neutral-700 no-underline">
+                  Log in
+                </Link>
               )}
             </div>
-            <button
-              type="button"
-              onClick={onShare}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ECECEC] text-neutral-800 transition-colors active:bg-[#E0E0E0]"
-              aria-label="Share event"
-            >
-              <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
-            </button>
-          </header>
 
-          <div className="px-4 pt-4">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] bg-neutral-200 shadow-sm">
+            {/* Second row: transparent bar so hero shows through — back | frosted owner pill | share */}
+            <div className="flex items-center gap-2 bg-transparent px-2 py-2.5">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200/80 transition-colors active:bg-neutral-50"
+                aria-label="Back"
+              >
+                <IoChevronBack className="h-5 w-5" />
+              </button>
+              <div className="flex min-w-0 flex-1 justify-center px-1">
+                {profileHref ? (
+                  <Link
+                    href={profileHref}
+                    className="flex max-w-full items-center gap-2 rounded-full border border-neutral-200/60 bg-stone-200/45 py-1 pl-1 pr-3 shadow-sm backdrop-blur-xl backdrop-saturate-150 no-underline supports-[backdrop-filter]:bg-stone-300/35"
+                  >
+                    <div
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00B4E8] text-[16px] font-bold leading-none text-white shadow-sm"
+                      aria-hidden
+                    >
+                      ;
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <p className="truncate text-[14px] font-bold leading-tight text-neutral-900">{authorName}</p>
+                      {organizerSubtitle ? (
+                        <p className="mt-0.5 truncate text-[11px] font-medium leading-tight text-neutral-600">{organizerSubtitle}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="flex max-w-full items-center gap-2 rounded-full border border-neutral-200/60 bg-stone-200/45 py-1 pl-1 pr-3 shadow-sm backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-stone-300/35">
+                    <div
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00B4E8] text-[16px] font-bold leading-none text-white shadow-sm"
+                      aria-hidden
+                    >
+                      ;
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <p className="truncate text-[14px] font-bold leading-tight text-neutral-900">{authorName}</p>
+                      {organizerSubtitle ? (
+                        <p className="mt-0.5 truncate text-[11px] font-medium leading-tight text-neutral-600">{organizerSubtitle}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onShare}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200/80 transition-colors active:bg-neutral-50"
+                aria-label="Share event"
+              >
+                <IoPaperPlaneOutline className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Pull hero under transparent second bar (~60px) */}
+          <div className="px-4 -mt-[3.75rem] pt-1">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[24px] bg-neutral-200 shadow-sm">
               {hasImage ? (
                 <>
-                  {images.map((url, i) => (
-                    <div
-                      key={`${url}-${i}`}
-                      className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100' : 'opacity-0'}`}
-                    >
-                      <Image src={url} alt="" fill className="object-cover" sizes="100vw" priority={i === 0} />
-                    </div>
-                  ))}
+                  <button
+                    type="button"
+                    className="absolute inset-0 z-0 cursor-zoom-in border-0 bg-transparent p-0 text-left"
+                    aria-label="View photos full screen"
+                    onClick={() => openImageLightbox(carouselIndex)}
+                  >
+                    {images.map((url, i) => (
+                      <div
+                        key={`${url}-${i}`}
+                        className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100' : 'opacity-0'}`}
+                      >
+                        <Image src={url} alt="" fill className="object-cover" sizes="100vw" priority={i === 0} />
+                      </div>
+                    ))}
+                  </button>
                 </>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-neutral-200">
                   <HiOutlinePhotograph className="h-14 w-14 text-neutral-500" aria-hidden />
                 </div>
               )}
+
               {images.length > 1 && (
                 <div
-                  className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5 px-3"
+                  className="pointer-events-auto absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5 px-3"
                   role="tablist"
                   aria-label="Event photos"
                 >
@@ -442,7 +525,10 @@ export function BusinessDetailCard({
                       type="button"
                       role="tab"
                       aria-selected={i === carouselIndex}
-                      onClick={() => setCarouselIndex(i)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCarouselIndex(i);
+                      }}
                       className={`h-2 min-w-2 rounded-full transition-all ${i === carouselIndex ? 'w-7 bg-white shadow-md ring-1 ring-black/10' : 'w-2 bg-white/70 hover:bg-white/90'}`}
                       aria-label={`Photo ${i + 1} of ${images.length}`}
                     />
@@ -563,16 +649,6 @@ export function BusinessDetailCard({
               </div>
             </div>
 
-            {(profileCircleHref ?? currentUserProfileHref) && (
-              <div className="flex justify-center pb-2">
-                <Link
-                  href={profileCircleHref ?? currentUserProfileHref!}
-                  className="text-sm font-medium text-neutral-600 underline underline-offset-2"
-                >
-                  {profileCircleHref === '/tickets' ? 'My tickets' : 'My profile'}
-                </Link>
-              </div>
-            )}
           </div>
         </main>
       </div>
@@ -655,7 +731,14 @@ export function BusinessDetailCard({
             </div>
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-neutral-200">
               {hasImage ? (
-                <Image src={images[carouselIndex] ?? images[0]} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 40vw" />
+                <button
+                  type="button"
+                  className="absolute inset-0 z-0 cursor-zoom-in border-0 bg-transparent p-0"
+                  aria-label="View photos full screen"
+                  onClick={() => openImageLightbox(carouselIndex)}
+                >
+                  <Image src={images[carouselIndex] ?? images[0]} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 40vw" />
+                </button>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <HiOutlinePhotograph className="h-16 w-16 text-neutral-400" aria-hidden />
@@ -772,6 +855,67 @@ export function BusinessDetailCard({
           </div>
         </div>
       </div>
+
+      {/* Full-screen image gallery: close (top-left), horizontal scroll between images */}
+      {imageLightboxOpen && images.length > 0 ? (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col bg-black"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Event photos"
+        >
+          <button
+            type="button"
+            onClick={() => setImageLightboxOpen(false)}
+            className="absolute z-[210] flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
+            style={{
+              top: 'max(1rem, env(safe-area-inset-top))',
+              left: 'max(1rem, env(safe-area-inset-left))',
+            }}
+            aria-label="Close gallery"
+          >
+            <IoClose className="h-7 w-7" aria-hidden />
+          </button>
+          <div
+            ref={lightboxScrollRef}
+            className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const w = el.clientWidth;
+              if (w <= 0) return;
+              const i = Math.round(el.scrollLeft / w);
+              setLightboxSlideIndex(Math.min(Math.max(0, i), images.length - 1));
+            }}
+          >
+            {images.map((url, i) => (
+              <div
+                key={`lb-${url}-${i}`}
+                className="relative flex h-full w-screen min-w-[100vw] shrink-0 snap-center snap-always items-center justify-center px-2 pt-16 pb-8"
+              >
+                <div className="relative h-full w-full max-h-[calc(100dvh-5rem)] min-h-[40vh]">
+                  <Image src={url} alt="" fill className="object-contain" sizes="100vw" priority={i === lightboxStartIndex} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {images.length > 1 ? (
+            <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center gap-1.5 px-4 pb-[env(safe-area-inset-bottom)]">
+              {images.map((_, i) => (
+                <span
+                  key={`dot-${i}`}
+                  className="h-1.5 rounded-full bg-white/40 transition-all"
+                  style={{
+                    width: i === lightboxSlideIndex ? 24 : 6,
+                    opacity: i === lightboxSlideIndex ? 1 : 0.65,
+                  }}
+                  aria-hidden
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

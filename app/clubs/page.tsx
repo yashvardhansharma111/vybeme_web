@@ -142,7 +142,7 @@ function EventCard({
       <div className="mt-3 flex w-full flex-wrap gap-2 sm:flex-nowrap">
         <Link href={`/clubs/registration/${p.plan_id}`} className={`${pillPrimary} ${pillWidthRegistration} no-underline`}>
           <IconRegistration className="shrink-0 text-white" />
-          <span className="truncate">Registration</span>
+          <span className="truncate">Registrations</span>
         </Link>
         <Link href={`/clubs/plan/${p.plan_id}/edit`} className={`${pillOutline} ${pillWidthEdit} no-underline`}>
           <IconPencil className="shrink-0" />
