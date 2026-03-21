@@ -2,11 +2,17 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
-import { FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+import { FaFlagCheckered, FaInstagram, FaMusic, FaWhatsapp, FaYoutube, FaGlassCheers } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { HiOutlineLocationMarker, HiOutlineCalendar, HiOutlineShare, HiOutlinePhotograph } from 'react-icons/hi';
+import { IoChevronBack } from 'react-icons/io5';
+import { IoMdShirt } from 'react-icons/io';
+import { GiRunningShoe } from 'react-icons/gi';
+import { MdFastfood } from 'react-icons/md';
+import { PiLinkSimpleBold } from 'react-icons/pi';
 import { getUserProfile } from '@/lib/api';
 
 export interface BusinessDetailPost {
@@ -109,6 +115,58 @@ function formatOrganizerCreatedAt(createdAt: string | Date | undefined): string 
   });
 }
 
+/** Subtitle under organizer name: "Today 3:44 PM" style */
+function formatOrganizerSubtitle(createdAt: string | Date | undefined): string {
+  if (!createdAt) return '';
+  const d = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startThat = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((startToday.getTime() - startThat.getTime()) / 86400000);
+  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (diffDays === 0) return `Today ${timeStr}`;
+  if (diffDays === 1) return `Yesterday ${timeStr}`;
+  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · ${timeStr}`;
+}
+
+const DETAIL_TYPE_LABELS: Record<string, string> = {
+  distance: 'Distance',
+  starting_point: 'Starting Point',
+  dress_code: 'Dress Code',
+  music_type: 'Music Type',
+  parking: 'Parking',
+  'f&b': 'F&B',
+  links: 'Links',
+  strava_link: 'Strava Link',
+  google_drive_link: 'Link for photos',
+  additional_info: 'Additional Info',
+};
+
+const MOBILE_DETAIL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  distance: GiRunningShoe,
+  starting_point: FaFlagCheckered,
+  dress_code: IoMdShirt,
+  music_type: FaMusic,
+  parking: FaGlassCheers,
+  'f&b': MdFastfood,
+  links: PiLinkSimpleBold,
+  strava_link: PiLinkSimpleBold,
+  google_drive_link: PiLinkSimpleBold,
+  additional_info: FaMusic,
+};
+
+function detailRowLabel(detail: { detail_type?: string; title?: string }): string {
+  const t = (detail.detail_type || '').trim();
+  if (t && DETAIL_TYPE_LABELS[t]) return DETAIL_TYPE_LABELS[t];
+  return (detail.title || '').trim() || 'Detail';
+}
+
+function DetailRowIcon({ detailType }: { detailType?: string }) {
+  const Icon = MOBILE_DETAIL_ICONS[detailType || ''] ?? FaMusic;
+  return <Icon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-neutral-700" aria-hidden />;
+}
+
 type OrganizerSocials = {
   instagram?: string;
   x?: string;
@@ -191,14 +249,24 @@ export function BusinessDetailCard({
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
   const planTitle = (post.title as string) || 'Event on vybeme';
+  const router = useRouter();
   const showWomenOnlyMessage = !!(isWomenOnly && womenOnlyBlocked);
   const showCancelledMessage = !!isCancelled;
   const organizerCreatedLabel = formatOrganizerCreatedAt(post.created_at ?? post.date);
+  const organizerSubtitle = formatOrganizerSubtitle(post.created_at);
 
   useEffect(() => {
-    if (images.length <= 1) return;
+    setCarouselIndex((i) => {
+      if (images.length === 0) return 0;
+      return i >= images.length ? 0 : i;
+    });
+  }, [images.length]);
+
+  useEffect(() => {
+    if (images.length <= 1) return undefined;
+    const n = images.length;
     const t = setInterval(() => {
-      setCarouselIndex((i) => (i + 1) % images.length);
+      setCarouselIndex((i) => (i + 1) % n);
     }, CAROUSEL_INTERVAL_MS);
     return () => clearInterval(t);
   }, [images.length]);
@@ -253,7 +321,7 @@ export function BusinessDetailCard({
   }, [planUrl, planTitle, copyAndSnackbar]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-white">
+    <div className="flex min-h-screen w-full flex-col bg-white max-md:min-h-0 max-md:h-full md:min-h-screen">
       {/* Desktop: top bar – profile leftmost (sticky), then vybeme., Download app right */}
       <header className="hidden md:flex fixed left-0 right-0 top-0 z-40 h-14 items-center justify-between border-b border-neutral-200 bg-white px-6">
         <div className="flex items-center gap-4">
@@ -277,181 +345,254 @@ export function BusinessDetailCard({
         </div>
       )}
 
-      {/* Mobile: profile top right when logged in — links to ticket (profileCircleHref) when passed, else profile */}
-      {(profileCircleHref ?? currentUserProfileHref) ? (
-        <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-end px-4 pt-[env(safe-area-inset-top)] bg-gradient-to-b from-black/40 to-transparent md:hidden">
-          <Link href={profileCircleHref ?? currentUserProfileHref!} className="flex shrink-0 items-center justify-center rounded-full bg-white/20 p-1 backdrop-blur-sm transition-opacity hover:bg-white/30" aria-label={profileCircleHref === '/' || profileCircleHref === '/tickets' ? 'My tickets' : (profileCircleHref ? 'View your pass' : (currentUserName ?? 'Your profile'))}>
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-white/40">
-              {currentUserAvatar ? <Image src={currentUserAvatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">{(currentUserName ?? 'You').charAt(0)}</span>}
-            </div>
-          </Link>
-        </header>
-      ) : null}
-
-      {/* Mobile: Hero image – ~60% viewport */}
-      <div className="fixed left-1/2 top-0 z-10 h-[60vh] min-h-[280px] w-screen max-w-none -translate-x-1/2 overflow-hidden md:hidden">
-        {hasImage ? (
-          <>
-            {images.map((url, i) => (
-              <div
-                key={url}
-                className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'}`}
-              >
-                <Image src={url} alt="" fill className="object-cover" sizes="100vw" />
-              </div>
-            ))}
-          </>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-neutral-200">
-            <HiOutlinePhotograph className="h-14 w-14 text-neutral-500" aria-hidden />
+      {/* Mobile: viewport-bound column so scroll stays in main; header is sticky inside main */}
+      <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-white md:hidden">
+        {shareSnackbar && (
+          <div className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#1C1C1E] px-4 py-2.5 text-sm font-medium text-white shadow-xl" role="status">
+            Copied plan link
           </div>
         )}
-        {images.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setCarouselIndex(i)}
-                className={`h-2 rounded-full transition-all ${i === carouselIndex ? 'w-5 bg-white' : 'w-2 bg-white/60'}`}
-                aria-label={`Image ${i + 1} of ${images.length}`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Mobile: Sticky bar – organiser pill on left, share on right */}
-      <div className={`fixed left-4 right-4 z-30 flex items-center gap-2 pt-[env(safe-area-inset-top)] ${(profileCircleHref ?? currentUserProfileHref) ? 'top-14' : 'top-10'} md:hidden`}>
-        <div className="flex min-w-0 flex-1 justify-start">
-          <div className="rounded-full border border-white/40 bg-white shadow-2xl pl-2 pr-3 py-1.5 flex items-center gap-2 max-w-[200px] min-w-0">
-            {profileHref ? (
-              <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-2 transition-opacity hover:opacity-90 overflow-hidden">
-                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                  {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-                </div>
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
-                  {organizerCreatedLabel ? <p className="truncate text-[11px] text-[#6B7280]">{organizerCreatedLabel}</p> : null}
-                </div>
-              </Link>
-            ) : (
-              <>
-                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#E5E5EA]">
-                  {avatar ? <Image src={avatar} alt="" fill className="object-cover" sizes="32px" /> : <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#8E8E93]">{authorName.charAt(0)}</span>}
-                </div>
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-semibold text-[#1C1C1E]">{authorName}</p>
-                  {organizerCreatedLabel ? <p className="truncate text-[11px] text-[#6B7280]">{organizerCreatedLabel}</p> : null}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onShare}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-xl border border-white/30 hover:bg-white/30 transition-opacity"
-          aria-label="Share plan"
-        >
-          <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
-        </button>
-      </div>
-
-      {shareSnackbar && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#1C1C1E] px-4 py-2.5 text-sm font-medium text-white shadow-xl" role="status">
-          Copied plan link
-        </div>
-      )}
-
-      {/* Mobile: Scrollable area – white card starts where hero image (60vh) ends */}
-      <div
-        className="relative z-20 flex-1 min-h-0 overflow-y-auto pt-[60vh] mx-[5px] md:hidden"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div
-          className="rounded-t-[24px] px-5 pb-24 pt-6 shadow-lg min-h-[40vh]"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 12%, rgb(255,255,255) 25%, rgb(255,255,255) 100%)',
-          }}
-        >
-          <h1 className="text-[22px] font-extrabold text-[#1C1C1E]">{post.title}</h1>
-          <p className="mt-2 text-sm leading-[21px] text-[#444] whitespace-pre-line">
-            {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-              /^https?:\/\//.test(part) ? (
-                <a key={i} href={part.trim()} target="_blank" rel="noopener noreferrer" className="text-[#007AFF] underline break-all">
-                  {trimUrlForDisplay(part.trim())}
-                </a>
+        <main className="min-h-0 flex-1 overflow-y-auto pb-28" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-neutral-100 bg-white px-3 py-2.5 pt-[max(10px,env(safe-area-inset-top))] shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ECECEC] text-neutral-800 transition-colors active:bg-[#E0E0E0]"
+              aria-label="Back"
+            >
+              <IoChevronBack className="h-6 w-6" />
+            </button>
+            <div className="flex min-w-0 flex-1 items-center justify-center px-1">
+              {profileHref ? (
+                <Link href={profileHref} className="flex min-w-0 max-w-full items-center gap-2.5">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                    {avatar ? (
+                      <Image src={avatar} alt="" fill className="object-cover" sizes="40px" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
+                        {authorName.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex flex-col items-start justify-center text-left">
+                    <p className="max-w-full truncate text-[15px] font-bold text-neutral-900">{authorName}</p>
+                    {organizerSubtitle ? (
+                      <p className="max-w-full truncate text-[12px] text-slate-500">{organizerSubtitle}</p>
+                    ) : null}
+                  </div>
+                </Link>
               ) : (
-                part
-              )
-            )}
-          </p>
-          {(post.location_text || post.date) && (
-            <div className="mt-4 rounded-[14px] bg-[#F2F2F7] p-3.5">
-              {post.location_text && (
-                <div className="flex gap-2">
-                  <HiOutlineLocationMarker className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
-                  <p className="text-sm font-semibold text-[#1C1C1E]">{post.location_text}</p>
-                </div>
-              )}
-              {post.date && (
-                <div className={`flex gap-2 ${post.location_text ? 'mt-3' : ''}`}>
-                  <HiOutlineCalendar className="h-4 w-4 shrink-0 text-neutral-600 mt-0.5" aria-hidden />
-                  <p className="text-sm font-semibold text-[#1C1C1E] leading-tight">{formatDayAndTime(post.date, post.time)}</p>
+                <div className="flex min-w-0 max-w-full items-center gap-2.5">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                    {avatar ? (
+                      <Image src={avatar} alt="" fill className="object-cover" sizes="40px" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-neutral-600">
+                        {authorName.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex flex-col items-start justify-center text-left">
+                    <p className="max-w-full truncate text-[15px] font-bold text-neutral-900">{authorName}</p>
+                    {organizerSubtitle ? (
+                      <p className="max-w-full truncate text-[12px] text-slate-500">{organizerSubtitle}</p>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>
-          )}
-          {socialLinks.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-[#6B7280]">Follow {authorName}</p>
-              <div className="mt-2 flex items-center gap-2">
-                {socialLinks.map(({ href, label, Icon }) => (
+            <button
+              type="button"
+              onClick={onShare}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ECECEC] text-neutral-800 transition-colors active:bg-[#E0E0E0]"
+              aria-label="Share event"
+            >
+              <HiOutlineShare className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </header>
+
+          <div className="px-4 pt-4">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px] bg-neutral-200 shadow-sm">
+              {hasImage ? (
+                <>
+                  {images.map((url, i) => (
+                    <div
+                      key={`${url}-${i}`}
+                      className={`absolute inset-0 transition-opacity duration-500 ${i === carouselIndex ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                      <Image src={url} alt="" fill className="object-cover" sizes="100vw" priority={i === 0} />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-neutral-200">
+                  <HiOutlinePhotograph className="h-14 w-14 text-neutral-500" aria-hidden />
+                </div>
+              )}
+              {images.length > 1 && (
+                <div
+                  className="absolute bottom-3 left-0 right-0 z-10 flex justify-center gap-1.5 px-3"
+                  role="tablist"
+                  aria-label="Event photos"
+                >
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      role="tab"
+                      aria-selected={i === carouselIndex}
+                      onClick={() => setCarouselIndex(i)}
+                      className={`h-2 min-w-2 rounded-full transition-all ${i === carouselIndex ? 'w-7 bg-white shadow-md ring-1 ring-black/10' : 'w-2 bg-white/70 hover:bg-white/90'}`}
+                      aria-label={`Photo ${i + 1} of ${images.length}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4 px-4 pt-6">
+            <h1 className="text-2xl font-bold leading-tight tracking-tight text-neutral-900">{post.title}</h1>
+
+            {(post.location_text || post.date) && (
+              <div className="rounded-2xl bg-[#F2F2F7] p-4">
+                {post.location_text && (
+                  <div className="flex gap-3">
+                    <HiOutlineLocationMarker className="mt-0.5 h-5 w-5 shrink-0 text-neutral-600" aria-hidden />
+                    <p className="text-sm font-semibold text-neutral-900">{post.location_text}</p>
+                  </div>
+                )}
+                {post.date && (
+                  <div className={`flex gap-3 ${post.location_text ? 'mt-3' : ''}`}>
+                    <HiOutlineCalendar className="mt-0.5 h-5 w-5 shrink-0 text-neutral-600" aria-hidden />
+                    <p className="text-sm font-semibold leading-snug text-neutral-900">
+                      {formatDayAndTime(post.date, post.time)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="text-sm leading-relaxed text-neutral-800 whitespace-pre-line">
+              {post.description?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                /^https?:\/\//.test(part) ? (
                   <a
-                    key={label}
-                    href={href}
+                    key={i}
+                    href={part.trim()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] transition-opacity hover:opacity-75"
-                    aria-label={label}
+                    className="break-all text-[#007AFF] underline"
                   >
-                    <Icon className="h-4 w-4" />
+                    {trimUrlForDisplay(part.trim())}
                   </a>
+                ) : (
+                  part
+                )
+              )}
+            </div>
+
+            {addDetails.length > 0 && (
+              <div className="space-y-4 rounded-2xl bg-[#F2F2F7] p-4">
+                {addDetails.map((detail, i) => (
+                  <div key={i} className="flex gap-3">
+                    <DetailRowIcon detailType={detail.detail_type} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                        {detailRowLabel(detail)}
+                      </p>
+                      {detail.description ? (
+                        <p className="mt-1 text-sm font-semibold text-neutral-900 whitespace-pre-line">
+                          {renderDetailDescription(detail.description, 'text-[#007AFF] underline break-all')}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
-          {addDetails.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              {addDetails.slice(0, 4).map((detail, i) => (
-                <div key={i} className="min-w-[47%] flex-1 rounded-xl bg-[#F2F2F7] px-3 py-2.5">
-                  <p className="text-xs font-semibold text-[#8E8E93]">{detail.title}</p>
-                  {detail.description ? (
-                    <p className="mt-1 text-sm font-semibold text-[#1C1C1E] whitespace-pre-line">
-                      {renderDetailDescription(detail.description, 'text-[#007AFF] underline break-all')}
-                    </p>
-                  ) : null}
+            )}
+
+            {socialLinks.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-neutral-500">Follow {authorName}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {socialLinks.map(({ href, label, Icon }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#F2F2F7] text-neutral-900 transition-opacity hover:opacity-75"
+                      aria-label={label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#1C1C1E] px-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">See who&apos;s coming</p>
+                <p className="mt-0.5 text-xs text-white/70">Join event to view</p>
+              </div>
+              <div className="flex shrink-0 -space-x-2">
+                {attendees && attendees.length > 0 ? (
+                  attendees.slice(0, 4).map((a, idx) => (
+                    <div
+                      key={idx}
+                      className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-[#1C1C1E] bg-neutral-600"
+                    >
+                      {a.profile_image ? (
+                        <Image src={a.profile_image} alt="" fill className="object-cover" sizes="36px" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
+                          {(a.name || '?').charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="h-9 w-9 rounded-full border-2 border-[#1C1C1E] bg-neutral-700" />
+                    <div className="h-9 w-9 rounded-full border-2 border-[#1C1C1E] bg-neutral-600" />
+                    <div className="h-9 w-9 rounded-full border-2 border-[#1C1C1E] bg-neutral-700" />
+                  </>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+
+            {(profileCircleHref ?? currentUserProfileHref) && (
+              <div className="flex justify-center pb-2">
+                <Link
+                  href={profileCircleHref ?? currentUserProfileHref!}
+                  className="text-sm font-medium text-neutral-600 underline underline-offset-2"
+                >
+                  {profileCircleHref === '/tickets' ? 'My tickets' : 'My profile'}
+                </Link>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
-      {/* Mobile: Full-width Register / View ticket – white strip behind button */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 md:hidden">
-        <div className="w-full max-w-md mx-auto">
+      {/* Mobile: sticky View Pass / Register */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-100 bg-white pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] px-4 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] md:hidden">
+        <div className="mx-auto w-full max-w-md">
           {registered && viewTicketHref ? (
-            <Link href={viewTicketHref} className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
-              View your pass
+            <Link
+              href={viewTicketHref}
+              className="flex w-full items-center justify-center rounded-full bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline"
+            >
+              View Pass
             </Link>
           ) : eventFull ? (
             <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={onBookEvent}
-                className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed"
+                className="w-full cursor-not-allowed rounded-full bg-neutral-400 py-3.5 text-base font-bold text-white"
               >
                 Register
               </button>
@@ -459,24 +600,24 @@ export function BusinessDetailCard({
             </div>
           ) : showWomenOnlyMessage ? (
             <div className="flex flex-col items-center gap-2">
-              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+              <button type="button" disabled className="w-full cursor-not-allowed rounded-full bg-neutral-400 py-3.5 text-base font-bold text-white">
                 Register
               </button>
               <p className="text-sm text-amber-700">This event is only for women.</p>
             </div>
           ) : showCancelledMessage ? (
             <div className="flex flex-col items-center gap-2">
-              <button type="button" disabled className="w-full rounded-[25px] bg-neutral-400 py-3.5 text-base font-bold text-white shadow-xl cursor-not-allowed">
+              <button type="button" disabled className="w-full cursor-not-allowed rounded-full bg-neutral-400 py-3.5 text-base font-bold text-white">
                 Register
               </button>
               <p className="text-sm text-red-600">{actionError || 'This event has been cancelled.'}</p>
             </div>
           ) : onBookEvent ? (
-            <button type="button" onClick={onBookEvent} className="w-full rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white shadow-xl">
+            <button type="button" onClick={onBookEvent} className="w-full rounded-full bg-[#1C1C1E] py-3.5 text-base font-bold text-white">
               Register
             </button>
           ) : (
-            <a href="/login" className="flex w-full items-center justify-center rounded-[25px] bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline shadow-xl">
+            <a href="/login" className="flex w-full items-center justify-center rounded-full bg-[#1C1C1E] py-3.5 text-base font-bold text-white no-underline">
               Register
             </a>
           )}

@@ -721,8 +721,9 @@ export default function PostPage() {
   return (
     <div className={`min-h-screen ${isTicketsStep || isBusinessDetailView ? 'bg-white' : 'bg-gradient-to-b from-rose-100/80 to-neutral-900 md:bg-neutral-200'} ${isBusinessDetailView ? 'overflow-x-hidden' : ''}`}>
       {showAppHeader && <AppHeader />}
-      {isBusinessDetailView ? <div className="md:hidden"><AppHeader /></div> : null}
-      <main className={`mx-auto flex flex-col gap-4 pb-8 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 md:max-w-none' : 'max-w-md p-4 md:max-w-4xl'}`}>
+      <main
+        className={`mx-auto flex flex-col gap-4 md:py-8 ${isBusinessDetailView ? 'max-w-full p-0 pb-0 md:max-w-none max-md:h-[100dvh] max-md:min-h-0 max-md:overflow-hidden md:h-auto md:overflow-visible md:pb-8' : 'max-w-md p-4 pb-8 md:max-w-4xl'}`}
+      >
         {/* Back + Share: only when not on detail/tickets/survey */}
         {!isBusinessDetailView && !isTicketsStep && !isSurveyStep && (
           <div className="flex items-center justify-between gap-2">
