@@ -145,6 +145,8 @@ export default function PostPage() {
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
   const appliedPassFromUrlKeyRef = useRef<string | null>(null);
+  /** Prevents double Razorpay open when app WebView URL already includes the paid pass */
+  const autoAppPaidCheckoutDoneRef = useRef<string | null>(null);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -328,6 +330,7 @@ export default function PostPage() {
   const passFromUrl = searchParams.get('pass');
   useEffect(() => {
     appliedPassFromUrlKeyRef.current = null;
+    autoAppPaidCheckoutDoneRef.current = null;
   }, [postId]);
   useEffect(() => {
     if (!postId || !post || !isBusiness || !passFromUrl) return;
@@ -352,9 +355,15 @@ export default function PostPage() {
     setSelectedPassId(passId);
     const pass = passes.find((p) => p.pass_id === passId);
     const isPaid = pass && pass.price > 0;
+    const fromApp = searchParams.get('app') === '1';
+    const urlPass = searchParams.get('pass')?.trim() ?? '';
+    const urlHasSamePaidPass = !!passId && urlPass === passId && isPaid;
     if (isPaid) {
       setBusinessStep('tickets');
-      setTriggerPaymentAfterLogin(true);
+      // App checkout URL (?app=1&pass=) auto-starts Razorpay — avoid also firing triggerPaymentAfterLogin
+      if (!(fromApp && urlHasSamePaidPass)) {
+        setTriggerPaymentAfterLogin(true);
+      }
     } else {
       // non‑paid: either free ticket or no passes
       if (passes.length === 0) {
@@ -365,7 +374,7 @@ export default function PostPage() {
         setBusinessStep('tickets');
       }
     }
-  }, [postId, user?.user_id, isBusiness, post, passes]);
+  }, [postId, user?.user_id, isBusiness, post, passes, searchParams]);
 
   // Restore payment-verified from sessionStorage (e.g. after mobile redirect/reload)
   useEffect(() => {
@@ -649,6 +658,42 @@ export default function PostPage() {
       await doRegister();
     }
   }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey, ensureWomenOnlyAllowedForBusiness]);
+
+  const handleProceedToSurveyRef = useRef(handleProceedToSurvey);
+  handleProceedToSurveyRef.current = handleProceedToSurvey;
+
+  // App already had "Pay & continue" — open Razorpay once on web without a second button tap
+  const fromAppCheckout = searchParams.get('app') === '1';
+  useEffect(() => {
+    if (!fromAppCheckout || !passFromUrl?.trim()) return;
+    if (!user?.user_id || !post || !isBusiness) return;
+    const list = (post as { passes?: Array<{ pass_id: string; price: number }> }).passes ?? [];
+    const pass = list.find((p) => p.pass_id === passFromUrl);
+    if (!pass || pass.price <= 0) return;
+    if (selectedPassId !== passFromUrl || businessStep !== 'tickets') return;
+    if (businessWomenOnlyBlocked || eventFull) return;
+    if (paymentOpening) return;
+    const key = `${postId}:${passFromUrl}`;
+    const id = window.setTimeout(() => {
+      if (autoAppPaidCheckoutDoneRef.current === key) return;
+      autoAppPaidCheckoutDoneRef.current = key;
+      void handleProceedToSurveyRef.current();
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [
+    fromAppCheckout,
+    passFromUrl,
+    user?.user_id,
+    post,
+    isBusiness,
+    selectedPassId,
+    businessStep,
+    postId,
+    businessWomenOnlyBlocked,
+    eventFull,
+    paymentOpening,
+  ]);
+
   // Trigger payment when returning from login with a paid pass selected (must run after handleProceedToSurvey is defined)
   useEffect(() => {
     if (!triggerPaymentAfterLogin || !user?.user_id || !selectedPassId) return;
