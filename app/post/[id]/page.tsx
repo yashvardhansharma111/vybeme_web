@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
 import { WekndLoadingScreen } from '../../components/WekndLoadingScreen';
@@ -64,10 +64,19 @@ function getPendingBusinessRegistration(): { planId: string; passId: string } | 
     const raw = sessionStorage.getItem(PENDING_BUSINESS_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    return data?.planId && data?.passId ? data : null;
+    // passId may be '' when user tapped Book before choosing a pass — still restore plan + tickets step
+    if (!data?.planId) return null;
+    return { planId: String(data.planId), passId: typeof data.passId === 'string' ? data.passId : '' };
   } catch {
     return null;
   }
+}
+
+/** Preserve ?app=1, ?pass=…, etc. when sending users through login / profile onboarding */
+function postPagePathWithQuery(postId: string): string {
+  if (typeof window === 'undefined') return `/post/${postId}`;
+  const q = window.location.search;
+  return q ? `/post/${postId}${q}` : `/post/${postId}`;
 }
 
 function setPendingBusinessRegistration(planId: string, passId: string) {
@@ -135,6 +144,7 @@ export default function PostPage() {
   const [whatBringsYou, setWhatBringsYou] = useState('');
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
+  const appliedPassFromUrlKeyRef = useRef<string | null>(null);
 
   const user = getWebUser();
   const isBusiness = post ? (post as PostData).type === 'business' : false;
@@ -314,13 +324,31 @@ export default function PostPage() {
     return true;
   }, [isWomenOnlyBusiness, user?.session_id, user?.user_id]);
 
+  // Deep link from app: /post/:id?app=1&pass=:passId — skip re-selecting the same ticket on web
+  const passFromUrl = searchParams.get('pass');
+  useEffect(() => {
+    appliedPassFromUrlKeyRef.current = null;
+  }, [postId]);
+  useEffect(() => {
+    if (!postId || !post || !isBusiness || !passFromUrl) return;
+    const list = (post as { passes?: Array<{ pass_id: string }> }).passes ?? [];
+    if (list.length === 0) return;
+    const valid = list.some((p) => p.pass_id === passFromUrl);
+    if (!valid) return;
+    const key = `${postId}:${passFromUrl}`;
+    if (appliedPassFromUrlKeyRef.current === key) return;
+    appliedPassFromUrlKeyRef.current = key;
+    setSelectedPassId(passFromUrl);
+    setBusinessStep('tickets');
+  }, [postId, post, isBusiness, passFromUrl]);
+
   // After login return: for paid pass go to tickets and trigger payment; for free pass go to survey (form)
   useEffect(() => {
     if (!postId || !user?.user_id || !isBusiness || !post) return;
     const pending = getPendingBusinessRegistration();
     if (!pending || pending.planId !== postId) return;
     clearPendingBusinessRegistration();
-    const passId = pending.passId || null;
+    const passId = pending.passId.trim() ? pending.passId : null;
     setSelectedPassId(passId);
     const pass = passes.find((p) => p.pass_id === passId);
     const isPaid = pass && pass.price > 0;
@@ -349,7 +377,7 @@ export default function PostPage() {
 
   const handleJoin = useCallback(async () => {
     if (!user?.user_id) {
-      const redirect = `/post/${postId}`;
+      const redirect = postPagePathWithQuery(postId);
       router.push(`/login?redirect=${encodeURIComponent(redirect)}`);
       return;
     }
@@ -383,8 +411,9 @@ export default function PostPage() {
       return;
     }
     if (!user?.user_id) {
-      setPendingBusinessRegistration(postId, '');
-      router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
+      const passHint = searchParams.get('pass')?.trim() ?? '';
+      setPendingBusinessRegistration(postId, passHint);
+      router.push(`/login?redirect=${encodeURIComponent(postPagePathWithQuery(postId))}`);
       return;
     }
 
@@ -426,7 +455,7 @@ export default function PostPage() {
     } else {
       setBusinessStep('tickets');
     }
-  }, [eventFull, passes.length, postId, router, user?.user_id, post, ensureWomenOnlyAllowedForBusiness, currentUserProfile?.name]);
+  }, [eventFull, passes.length, postId, router, searchParams, user?.user_id, post, ensureWomenOnlyAllowedForBusiness, currentUserProfile?.name]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -454,7 +483,7 @@ export default function PostPage() {
     if (passes.length > 0 && !passId) return;
     if (!user?.user_id) {
       setPendingBusinessRegistration(postId, passId ?? '');
-      router.push(`/login?redirect=${encodeURIComponent(`/post/${postId}`)}`);
+      router.push(`/login?redirect=${encodeURIComponent(postPagePathWithQuery(postId))}`);
       return;
     }
 

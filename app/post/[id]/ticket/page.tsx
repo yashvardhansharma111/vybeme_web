@@ -98,7 +98,11 @@ export default function TicketPage() {
 
   const loadTicket = useCallback(async () => {
     if (!planId || !user?.user_id) {
-      if (!user?.user_id) router.push(`/login?redirect=${encodeURIComponent(`/post/${planId}/ticket`)}`);
+      if (!user?.user_id) {
+        const qs = searchParams.toString();
+        const path = qs ? `/post/${planId}/ticket?${qs}` : `/post/${planId}/ticket`;
+        router.push(`/login?redirect=${encodeURIComponent(path)}`);
+      }
       setLoading(false);
       return;
     }
@@ -116,7 +120,7 @@ export default function TicketPage() {
     } finally {
       setLoading(false);
     }
-  }, [planId, user?.user_id, router]);
+  }, [planId, user?.user_id, router, searchParams]);
 
   useEffect(() => {
     loadTicket();
