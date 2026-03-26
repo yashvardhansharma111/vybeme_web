@@ -200,10 +200,24 @@ function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
   const seen = new Set<string>();
 
+  const normalizeKey = (url: string): string => {
+    const u = url.trim();
+    if (!u) return '';
+    try {
+      const parsed = new URL(u);
+      // Dedup by actual asset path (ignore cache-bust query / hash).
+      return `${parsed.origin}${parsed.pathname}`.toLowerCase();
+    } catch {
+      // Fallback: strip query/hash if it looks like a URL string
+      return u.split('#')[0].split('?')[0].trim().toLowerCase();
+    }
+  };
+
   const push = (urlRaw: unknown) => {
     const url = String(urlRaw ?? '').trim();
     if (!url) return;
-    const key = url.toLowerCase();
+    const key = normalizeKey(url);
+    if (!key) return;
     if (seen.has(key)) return;
     seen.add(key);
     list.push(url);
