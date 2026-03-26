@@ -42,13 +42,25 @@ interface Props {
   planId: string;
   userId?: string | null;
   registrationId?: string | null;
+  showHeading?: boolean;
+  onFormMetaLoaded?: (meta: { title: string; description: string }) => void;
   onSubmitted?: () => void;
   onSubmit: (responses: Record<string, any>) => Promise<void>;
 }
 
-export default function FormRenderer({ formId, planId, userId, registrationId, onSubmit, onSubmitted }: Props) {
+export default function FormRenderer({
+  formId,
+  planId,
+  userId,
+  registrationId,
+  showHeading = false,
+  onFormMetaLoaded,
+  onSubmit,
+  onSubmitted,
+}: Props) {
   const [loading, setLoading] = useState(true);
-  const [formName, setFormName] = useState<string | null>(null);
+  const [formTitle, setFormTitle] = useState<string>('');
+  const [formDescription, setFormDescription] = useState<string>('');
   const [fields, setFields] = useState<FormField[]>([]);
   const [values, setValues] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +73,11 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
       .then((res) => {
         if (!mounted) return;
         if (res.success && res.data) {
-          setFormName(res.data.name ?? null);
+          const title = String(res.data.title ?? res.data.name ?? '').trim();
+          const description = String(res.data.description ?? '').trim();
+          setFormTitle(title);
+          setFormDescription(description);
+          onFormMetaLoaded?.({ title, description });
           const raw = Array.isArray(res.data.fields) ? res.data.fields : [];
           const normalized = raw.map(normalizeField);
           setFields(normalized);
@@ -77,7 +93,7 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
       .catch(() => setError('Could not load form'))
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
-  }, [formId]);
+  }, [formId, onFormMetaLoaded]);
 
   const setValue = (fieldId: string, v: any) => setValues((s) => ({ ...s, [fieldId]: v }));
 
@@ -99,7 +115,8 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
 
   return (
     <div className="space-y-5">
-      {formName ? <h3 className="text-lg font-semibold">{formName}</h3> : null}
+      {showHeading && formTitle ? <h3 className="text-lg font-semibold text-black">{formTitle}</h3> : null}
+      {showHeading && formDescription ? <p className="text-sm text-black">{formDescription}</p> : null}
       {fields.map((f) => (
         <div key={f.field_id}>
           <label className="mb-2 block text-sm font-medium text-neutral-800">{f.label}{f.required ? ' *' : ''}</label>
@@ -127,11 +144,11 @@ export default function FormRenderer({ formId, planId, userId, registrationId, o
             </div>
           ) : f.type === 'radio' ? (
             <div className="flex flex-col gap-2">{(f.options || []).map((opt) => (
-              <label key={opt} className="inline-flex items-center gap-2"><input type="radio" name={f.field_id} checked={values[f.field_id] === opt} onChange={() => setValue(f.field_id, opt)} /> {opt}</label>
+              <label key={opt} className="inline-flex items-center gap-2 text-sm font-medium text-black"><input type="radio" name={f.field_id} checked={values[f.field_id] === opt} onChange={() => setValue(f.field_id, opt)} /> {opt}</label>
             ))}</div>
           ) : f.type === 'checkbox' ? (
             <div className="flex flex-col gap-2">{(f.options || []).map((opt) => (
-              <label key={opt} className="inline-flex items-center gap-2"><input type="checkbox" checked={(values[f.field_id] || []).includes(opt)} onChange={(e) => {
+              <label key={opt} className="inline-flex items-center gap-2 text-sm font-medium text-black"><input type="checkbox" checked={(values[f.field_id] || []).includes(opt)} onChange={(e) => {
                 const next = new Set(values[f.field_id] || [] as string[]);
                 if (e.target.checked) next.add(opt); else next.delete(opt);
                 setValue(f.field_id, Array.from(next));

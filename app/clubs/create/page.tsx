@@ -111,6 +111,8 @@ export default function BusinessCreatePage() {
   const [showFormBuilder, setShowFormBuilder] = useState(false);
   const [formBuilderMountKey, setFormBuilderMountKey] = useState(0);
   const [formBuilderInitialFields, setFormBuilderInitialFields] = useState<FormField[]>([]);
+  const [formBuilderInitialTitle, setFormBuilderInitialTitle] = useState('');
+  const [formBuilderInitialDescription, setFormBuilderInitialDescription] = useState('');
   const [formBuilderMode, setFormBuilderMode] = useState<'create' | 'edit'>('create');
   const [formPreviewTick, setFormPreviewTick] = useState(0);
   const [savingForm, setSavingForm] = useState(false);
@@ -226,6 +228,8 @@ export default function BusinessCreatePage() {
   const openFormBuilderNew = () => {
     setFormBuilderMode('create');
     setFormBuilderInitialFields([]);
+    setFormBuilderInitialTitle('');
+    setFormBuilderInitialDescription('');
     setFormBuilderMountKey((k) => k + 1);
     setShowFormBuilder(true);
   };
@@ -242,14 +246,18 @@ export default function BusinessCreatePage() {
         ? (res.data as { fields: FormField[] }).fields
         : [];
       setFormBuilderInitialFields(raw);
+      setFormBuilderInitialTitle(String((res.data as { title?: string; name?: string } | undefined)?.title ?? (res.data as { title?: string; name?: string } | undefined)?.name ?? ''));
+      setFormBuilderInitialDescription(String((res.data as { description?: string } | undefined)?.description ?? ''));
     } catch {
       setFormBuilderInitialFields([]);
+      setFormBuilderInitialTitle('');
+      setFormBuilderInitialDescription('');
     }
     setFormBuilderMountKey((k) => k + 1);
     setShowFormBuilder(true);
   };
 
-  const handleFormBuilderSave = async (fields: FormField[]) => {
+  const handleFormBuilderSave = async ({ title: formTitle, description: formDescription, fields }: { title: string; description: string; fields: FormField[] }) => {
     if (!user?.user_id) {
       setError('User ID not available');
       return;
@@ -259,8 +267,9 @@ export default function BusinessCreatePage() {
     try {
       if (formBuilderMode === 'edit' && formId) {
         const res = await updateForm(formId, {
-          name: `Form ${new Date().toLocaleDateString()}`,
-          description: 'Custom registration form',
+          title: formTitle,
+          name: formTitle || `Form ${new Date().toLocaleDateString()}`,
+          description: formDescription,
           fields,
         });
         if (res.success) {
@@ -273,8 +282,9 @@ export default function BusinessCreatePage() {
       } else {
         const res = await createForm({
           user_id: user.user_id,
-          name: `Form ${new Date().toLocaleDateString()}`,
-          description: 'Custom registration form',
+          title: formTitle,
+          name: formTitle || `Form ${new Date().toLocaleDateString()}`,
+          description: formDescription,
           fields,
         });
 
@@ -933,6 +943,8 @@ export default function BusinessCreatePage() {
         <FormBuilder
           key={formBuilderMountKey}
           initialFields={formBuilderInitialFields}
+          initialTitle={formBuilderInitialTitle}
+          initialDescription={formBuilderInitialDescription}
           onSave={handleFormBuilderSave}
           onCancel={() => setShowFormBuilder(false)}
           loading={savingForm}

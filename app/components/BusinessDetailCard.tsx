@@ -162,37 +162,14 @@ function detailRowLabel(detail: { detail_type?: string; title?: string }): strin
   return (detail.title || '').trim() || 'Detail';
 }
 
-/** Only these four tags appear in the description / quick-info box (mobile + desktop). */
-const DESCRIPTION_BOX_DETAIL_ORDER = ['distance', 'starting_point', 'f&b', 'dress_code'] as const;
-
 type AddDetailRow = { detail_type?: string; title: string; description?: string };
-
-function normalizeToDescriptionBoxKey(d: AddDetailRow): (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number] | null {
-  const dt = (d.detail_type || '').trim().toLowerCase();
-  if (dt === 'f and b') return 'f&b';
-  if ((DESCRIPTION_BOX_DETAIL_ORDER as readonly string[]).includes(dt)) return dt as (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number];
-  const title = (d.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
-  const map: Record<string, (typeof DESCRIPTION_BOX_DETAIL_ORDER)[number]> = {
-    distance: 'distance',
-    'starting point': 'starting_point',
-    starting_point: 'starting_point',
-    'f&b': 'f&b',
-    'f and b': 'f&b',
-    'dress code': 'dress_code',
-    dress_code: 'dress_code',
-  };
-  return map[title] ?? null;
-}
-
-/** Pick at most the four allowed tags, in fixed order; ignores music, parking, links, etc. */
-function getDescriptionBoxDetails(addDetails: AddDetailRow[] | undefined): AddDetailRow[] {
+function getAllVisibleDetails(addDetails: AddDetailRow[] | undefined): AddDetailRow[] {
   if (!addDetails?.length) return [];
-  const byKey = new Map<(typeof DESCRIPTION_BOX_DETAIL_ORDER)[number], AddDetailRow>();
-  for (const d of addDetails) {
-    const key = normalizeToDescriptionBoxKey(d);
-    if (key && !byKey.has(key)) byKey.set(key, { ...d, detail_type: key });
-  }
-  return DESCRIPTION_BOX_DETAIL_ORDER.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
+  return addDetails.filter((d) => {
+    const label = (detailRowLabel(d) || '').trim();
+    const value = (d.description || '').trim();
+    return !!label || !!value;
+  });
 }
 
 function DetailRowIcon({ detailType }: { detailType?: string }) {
@@ -221,13 +198,23 @@ function normalizeSocialLink(value: string | undefined, type: 'instagram' | 'x' 
 
 function getAllImages(post: BusinessDetailPost): string[] {
   const list: string[] = [];
+  const seen = new Set<string>();
+
+  const push = (urlRaw: unknown) => {
+    const url = String(urlRaw ?? '').trim();
+    if (!url) return;
+    const key = url.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    list.push(url);
+  };
+
   if (post.media?.length) {
-    post.media.forEach((m) => { if (m?.url) list.push(m.url); });
+    post.media.forEach((m) => push(m?.url));
   }
-  if (post.image && String(post.image).trim() && !list.includes(String(post.image))) {
-    list.push(String(post.image));
-  }
-  return list.length ? list : [];
+  push(post.image);
+
+  return list;
 }
 
 const CAROUSEL_INTERVAL_MS = 2000;
@@ -285,7 +272,7 @@ export function BusinessDetailCard({
   const [organizerSocials, setOrganizerSocials] = useState<OrganizerSocials | null>(null);
   const hasImage = images.length > 0;
   const addDetails = post.add_details ?? [];
-  const descriptionBoxDetails = getDescriptionBoxDetails(addDetails);
+  const visibleDetails = getAllVisibleDetails(addDetails);
   const planId = post.plan_id ?? (post as { post_id?: string }).post_id ?? '';
   const planUrl = typeof window !== 'undefined' && planId ? `${window.location.origin}/post/${planId}` : '';
   const planTitle = (post.title as string) || 'Event on weknd';
@@ -300,6 +287,19 @@ export function BusinessDetailCard({
       return i >= images.length ? 0 : i;
     });
   }, [images.length]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    const mediaUrls = (post.media ?? []).map((m) => String(m?.url ?? '').trim()).filter(Boolean);
+    const imageUrl = String(post.image ?? '').trim();
+    console.log('[BusinessDetailCard:image-debug]', {
+      planId: post.plan_id ?? (post as { post_id?: string }).post_id ?? null,
+      mediaUrls,
+      imageUrl,
+      dedupedImages: images,
+      carouselCount: images.length,
+    });
+  }, [post, images]);
 
   useEffect(() => {
     if (images.length <= 1 || imageLightboxOpen) return undefined;
@@ -520,9 +520,8 @@ export function BusinessDetailCard({
             </div>
           </div>
 
-          {/* Pull hero under transparent second bar (~60px) */}
-          <div className="px-4 -mt-[3.75rem] pt-1">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[24px] bg-neutral-200 shadow-sm">
+          <div className="px-4 pt-1">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[24px] bg-neutral-200 shadow-sm">
               {hasImage ? (
                 <>
                   <button
@@ -612,9 +611,9 @@ export function BusinessDetailCard({
               )}
             </div>
 
-            {descriptionBoxDetails.length > 0 && (
+            {visibleDetails.length > 0 && (
               <div className="space-y-4 rounded-2xl bg-[#F2F2F7] p-4">
-                {descriptionBoxDetails.map((detail, i) => (
+                {visibleDetails.map((detail, i) => (
                   <div key={`${detail.detail_type ?? detail.title}-${i}`} className="flex gap-3">
                     <DetailRowIcon detailType={detail.detail_type} />
                     <div className="min-w-0 flex-1">
@@ -623,7 +622,7 @@ export function BusinessDetailCard({
                       </p>
                       {detail.description ? (
                         <p className="mt-1 text-sm font-semibold text-neutral-900 whitespace-pre-line">
-                          {renderDetailDescription(detail.description, 'text-[#007AFF] underline break-all')}
+                          {renderDetailDescription(detail.description, 'text-[#007AFF] underline break-words')}
                         </p>
                       ) : null}
                     </div>
@@ -763,7 +762,7 @@ export function BusinessDetailCard({
                 )}
               </div>
             </div>
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-neutral-200">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-neutral-200">
               {hasImage ? (
                 <button
                   type="button"
@@ -821,14 +820,14 @@ export function BusinessDetailCard({
                 <p className="text-sm font-semibold text-neutral-800">{post.location_text}</p>
               </div>
             )}
-            {descriptionBoxDetails.length > 0 && (
+            {visibleDetails.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-3">
-                {descriptionBoxDetails.map((detail, i) => (
+                {visibleDetails.map((detail, i) => (
                   <div key={`${detail.detail_type ?? detail.title}-d-${i}`} className="min-w-[200px] rounded-xl bg-neutral-100 px-4 py-3">
                     <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{detailRowLabel(detail)}</p>
                     {detail.description ? (
                       <p className="mt-1 text-sm font-semibold text-neutral-800 whitespace-pre-line">
-                        {renderDetailDescription(detail.description, 'text-neutral-900 underline break-all')}
+                        {renderDetailDescription(detail.description, 'text-neutral-900 underline break-words')}
                       </p>
                     ) : null}
                   </div>

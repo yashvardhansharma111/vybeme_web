@@ -13,9 +13,11 @@ export interface FormField {
 }
 
 export interface FormBuilderProps {
-  onSave: (fields: FormField[]) => void;
+  onSave: (payload: { title: string; description: string; fields: FormField[] }) => void;
   onCancel: () => void;
   initialFields?: FormField[];
+  initialTitle?: string;
+  initialDescription?: string;
   loading?: boolean;
 }
 
@@ -61,7 +63,16 @@ function needsOptions(type: FormField['type']) {
   return type === 'select' || type === 'radio' || type === 'checkbox';
 }
 
-export default function FormBuilder({ onSave, onCancel, initialFields = [], loading = false }: FormBuilderProps) {
+export default function FormBuilder({
+  onSave,
+  onCancel,
+  initialFields = [],
+  initialTitle = '',
+  initialDescription = '',
+  loading = false,
+}: FormBuilderProps) {
+  const [formTitle, setFormTitle] = useState(initialTitle);
+  const [formDescription, setFormDescription] = useState(initialDescription);
   const [fields, setFields] = useState<FormField[]>(() =>
     initialFields.length > 0
       ? initialFields.map((f, i) => ({
@@ -142,8 +153,12 @@ export default function FormBuilder({ onSave, onCancel, initialFields = [], load
       alert('Please add at least one question');
       return;
     }
-    onSave(normalizeFieldsForSave(fields));
-  }, [fields, onSave]);
+    onSave({
+      title: formTitle.trim(),
+      description: formDescription.trim(),
+      fields: normalizeFieldsForSave(fields),
+    });
+  }, [fields, formTitle, formDescription, onSave]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
@@ -161,6 +176,22 @@ export default function FormBuilder({ onSave, onCancel, initialFields = [], load
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="mb-4 space-y-2 rounded-2xl bg-[#1a1a1a] p-3 ring-1 ring-white/10">
+            <input
+              type="text"
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              placeholder="Form title"
+              className="w-full rounded-xl border border-white/15 bg-[#0d0d0d] px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none focus:ring-0"
+            />
+            <textarea
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Form description"
+              rows={2}
+              className="w-full resize-none rounded-xl border border-white/15 bg-[#0d0d0d] px-3 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none focus:ring-0"
+            />
+          </div>
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div

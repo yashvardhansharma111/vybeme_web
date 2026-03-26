@@ -151,6 +151,8 @@ export default function PostPage() {
   const [whatBringsYou, setWhatBringsYou] = useState('');
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ name?: string; profile_image?: string | null; phone_number?: string | null; gender?: string | null } | null>(null);
+  const [registrationFormTitle, setRegistrationFormTitle] = useState('');
+  const [registrationFormDescription, setRegistrationFormDescription] = useState('');
   const appliedPassFromUrlKeyRef = useRef<string | null>(null);
   /** Prevents double Razorpay open when app WebView URL already includes the paid pass */
   const autoAppPaidCheckoutDoneRef = useRef<string | null>(null);
@@ -966,6 +968,11 @@ export default function PostPage() {
 
             // Custom form attached to the event — always show it (free, paid, with or without passes)
             if (planFormId) {
+              const normalizedTitle = registrationFormTitle.trim();
+              const hasMeaningfulTitle = normalizedTitle.length > 0 && normalizedTitle.toLowerCase() !== 'untitled form';
+              const effectiveFormTitle = hasMeaningfulTitle ? normalizedTitle : 'Almost there';
+              const effectiveFormDescription =
+                registrationFormDescription.trim() || 'Complete this form to proceed.';
               return (
                 <div className="rounded-2xl bg-white shadow-xl min-h-screen flex flex-col pb-24">
                   <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-neutral-200 bg-white px-4 py-3">
@@ -992,13 +999,18 @@ export default function PostPage() {
                         </button>
                       </div>
                     ) : null}
-                    <h2 className="mb-4 text-xl font-bold text-neutral-900">Almost there</h2>
-                    <p className="mb-6 text-sm text-neutral-600">Complete the registration form to finish your booking.</p>
+                    <h2 className="mb-4 text-sm font-bold text-black">{effectiveFormTitle}</h2>
+                    <p className="mb-6 text-sm text-black">{effectiveFormDescription}</p>
                     <FormRenderer
                       formId={String(planFormId)}
                       planId={postId}
                       userId={user?.user_id}
                       registrationId={registrationId}
+                      showHeading={false}
+                      onFormMetaLoaded={({ title, description }) => {
+                        setRegistrationFormTitle(title);
+                        setRegistrationFormDescription(description);
+                      }}
                       onSubmit={async (responses) => {
                         setBusinessRegistering(true);
                         setError(null);
@@ -1059,7 +1071,7 @@ export default function PostPage() {
             if (passes.length === 0) {
               return (
                 <div className="flex min-h-screen flex-col items-center justify-center rounded-2xl bg-white p-6 shadow-xl">
-                  <p className="text-center text-lg font-bold text-neutral-900">
+                  <p className="text-center text-sm font-bold text-neutral-900">
                     Would you like to join us in a post-run coffee at Paragon?
                   </p>
                   <div className="mt-6 flex gap-4">
