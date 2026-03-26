@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const getBaseUrl = (): string => {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (url) return url.endsWith('/api') ? url : `${url}/api`;
-  return 'https://api.weknd.in/api';
+  return 'https://vybeme.in/api';
 };
 
 /** GET: ticket for plan_id + user_id (for yashvardhan view/download). Uses server-side token. */
