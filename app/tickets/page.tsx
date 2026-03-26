@@ -7,6 +7,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { IoChevronBack } from 'react-icons/io5';
 import { getWebUser, getCurrentUserProfile, getTicketsByUser, setWebUser } from '@/lib/api';
 import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
+import { QRCodeCanvas } from 'qrcode.react';
+import { buildDetailPills } from '@/lib/ticketDetailPills';
 
 export default function TicketsPage() {
   const router = useRouter();
@@ -16,13 +18,18 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState<Array<{
     ticket_id: string;
     ticket_number: string;
+    qr_code_hash?: string;
+    pass_id?: string | null;
     plan: {
       plan_id: string;
       title?: string;
       date?: string;
       time?: string;
+      location_text?: string | null;
       media?: Array<{ url?: string; type?: string }>;
       image?: string | null;
+      ticket_image?: string | null;
+      passes?: Array<{ pass_id: string; name: string; price?: number }>;
     } | null;
   }>>([]);
   const [loading, setLoading] = useState(true);
@@ -161,43 +168,170 @@ export default function TicketsPage() {
 
       <main className="mx-auto max-w-md px-5 py-5 md:max-w-lg">
         <p className="text-sm text-neutral-600">
-          {tickets.length === 0 ? 'No tickets yet' : `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`}
+          {tickets.length === 0 ? 'No tickets yet' : `${tickets.length} item${tickets.length === 1 ? '' : 's'}`}
         </p>
 
         {tickets.length === 0 ? (
           <p className="mt-8 text-center text-sm text-neutral-500">Register for an event to see your tickets here.</p>
         ) : (
-          <ul className="mt-5 space-y-3.5">
-            {tickets.map((t) => (
-              <li key={t.ticket_id}>
+          (() => {
+            const items = tickets || [];
+            const isPassItem = (t: any) => {
+              const passes = t?.plan?.passes;
+              return !!t?.pass_id || (Array.isArray(passes) && passes.length > 0);
+            };
+            const passes = items.filter(isPassItem);
+            const onlyTickets = items.filter((t) => !isPassItem(t));
+
+            const CardThumb = ({ t }: { t: any }) => {
+              const img = t?.plan?.ticket_image || t?.plan?.media?.[0]?.url || t?.plan?.image || null;
+              return (
+                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14px] bg-neutral-200">
+                  {img ? (
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-neutral-400">—</div>
+                  )}
+                </div>
+              );
+            };
+
+            const QrMini = ({ value }: { value?: string }) => {
+              const v = (value || '').trim();
+              if (!v) return null;
+              return (
+                <div className="shrink-0 rounded-[14px] bg-[#F2F2F7] p-2 ring-1 ring-black/[0.06]">
+                  <QRCodeCanvas value={v} size={58} level="M" includeMargin={false} />
+                </div>
+              );
+            };
+
+            const PassCard = ({ t }: { t: any }) => {
+              const passName = (() => {
+                const pid = t?.pass_id;
+                const passes = t?.plan?.passes;
+                if (pid && Array.isArray(passes)) {
+                  const p = passes.find((x: any) => String(x?.pass_id) === String(pid));
+                  if (p?.name) return String(p.name);
+                }
+                return 'General admission';
+              })();
+              const img = t?.plan?.ticket_image || t?.plan?.media?.[0]?.url || t?.plan?.image || null;
+              const location = String(t?.plan?.location_text || '').trim();
+              const tags = (() => {
+                const add = buildDetailPills(t?.plan?.add_details);
+                const sub = Array.isArray(t?.plan?.category_sub) ? t.plan.category_sub : [];
+                const out: string[] = [];
+                const seen = new Set<string>();
+                const push = (v: unknown) => {
+                  const s = String(v ?? '').trim();
+                  if (!s) return;
+                  const key = s.toLowerCase();
+                  if (seen.has(key)) return;
+                  seen.add(key);
+                  out.push(s);
+                };
+                add.forEach((p) => push(p.label));
+                sub.forEach((s: string) => push(s));
+                return out.slice(0, 3);
+              })();
+              const code = String(t?.ticket_number || '').trim().toUpperCase() || '—';
+
+              return (
                 <Link
                   href={`/post/${t.plan?.plan_id ?? ''}/ticket?from=tickets`}
-                  className="block rounded-[18px] bg-white p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] no-underline transition hover:bg-neutral-50/90"
+                  className="block rounded-[22px] bg-white p-4 shadow-[0_6px_18px_rgba(0,0,0,0.10)] no-underline transition hover:bg-neutral-50/90"
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14px] bg-neutral-200">
-                      {t.plan?.media?.[0]?.url || t.plan?.image ? (
-                        <img
-                          src={(t.plan?.media?.[0]?.url || t.plan?.image) as string}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
+                  <div className="rounded-2xl bg-[#F2F2F7] p-4 ring-1 ring-black/[0.04]">
+                    <div className="mx-auto w-full max-w-[240px] overflow-hidden rounded-2xl bg-neutral-200">
+                      {img ? (
+                        <img src={img} alt="" className="h-44 w-full object-cover" />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-neutral-400">—</div>
+                        <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-neutral-300 to-neutral-400" />
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[17px] font-bold leading-tight text-black">{t.plan?.title ?? 'Event'}</p>
-                      <p className="mt-1 text-sm leading-snug text-[#6B7280]">{formatDateOrdinal(t.plan?.date, t.plan?.time)}</p>
-                    </div>
-                    <span className="shrink-0 text-xl text-[#AEAEB2]" aria-hidden>
-                      ›
-                    </span>
+                    <p className="mt-4 text-center text-[16px] font-extrabold leading-tight tracking-tight text-neutral-900">
+                      {t.plan?.title ?? 'Event'}
+                    </p>
+                    <p className="mt-2 text-center text-sm font-medium leading-snug text-neutral-600">
+                      {formatDateOrdinal(t.plan?.date, t.plan?.time)}
+                    </p>
+                    {location ? (
+                      <p className="mt-1 text-center text-sm font-medium leading-snug text-neutral-600">{location}</p>
+                    ) : null}
                   </div>
+
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {tags.map((tag, idx) => (
+                      <span
+                        key={`${tag}-${idx}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#ECECED] px-4 py-2 text-[13px] font-semibold text-[#1C1C1E]"
+                      >
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1C1C1E]/40" aria-hidden />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="mt-6 text-center text-[14px] font-medium text-neutral-600">Your check-in code is</p>
+                  <div className="mx-auto mt-3 w-full max-w-sm rounded-full bg-[#F2F2F7] px-5 py-5 text-center ring-1 ring-black/[0.06]">
+                    <p className="text-2xl font-extrabold uppercase tracking-wide text-neutral-900">{code}</p>
+                  </div>
+
+                  <p className="mt-3 text-center text-[13px] font-semibold text-neutral-700">{passName}</p>
                 </Link>
-              </li>
-            ))}
-          </ul>
+              );
+            };
+
+            const TicketCard = ({ t }: { t: any }) => (
+              <Link
+                href={`/post/${t.plan?.plan_id ?? ''}/ticket?from=tickets`}
+                className="block rounded-[22px] bg-white p-4 shadow-[0_6px_18px_rgba(0,0,0,0.10)] no-underline transition hover:bg-neutral-50/90"
+              >
+                <div className="flex items-center gap-3.5">
+                  <CardThumb t={t} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[17px] font-bold leading-tight text-black">{t.plan?.title ?? 'Event'}</p>
+                    <p className="mt-1 text-sm leading-snug text-[#6B7280]">{formatDateOrdinal(t.plan?.date, t.plan?.time)}</p>
+                    <p className="mt-1 text-xs font-semibold tracking-wide text-neutral-500">
+                      #{String(t.ticket_number || '').toUpperCase()}
+                    </p>
+                  </div>
+                  <QrMini value={t.qr_code_hash} />
+                </div>
+              </Link>
+            );
+
+            return (
+              <div className="mt-5 space-y-8">
+                {passes.length > 0 && (
+                  <section>
+                    <h2 className="text-sm font-semibold text-neutral-900">Passes</h2>
+                    <ul className="mt-3 space-y-3.5">
+                      {passes.map((t: any) => (
+                        <li key={t.ticket_id}>
+                          <PassCard t={t} />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {onlyTickets.length > 0 && (
+                  <section>
+                    <h2 className="text-sm font-semibold text-neutral-900">Tickets</h2>
+                    <ul className="mt-3 space-y-3.5">
+                      {onlyTickets.map((t: any) => (
+                        <li key={t.ticket_id}>
+                          <TicketCard t={t} />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </div>
+            );
+          })()
         )}
 
         <div className="mt-10 flex flex-col gap-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">

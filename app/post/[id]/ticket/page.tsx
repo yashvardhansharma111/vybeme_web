@@ -3,14 +3,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { getWebUser, getUserTicket } from '@/lib/api';
 import { buildDetailPills } from '@/lib/ticketDetailPills';
 import { TicketCategoryPills } from '@/app/components/TicketCategoryPills';
 import { WekndLoadingScreen } from '@/app/components/WekndLoadingScreen';
-import QRCode from 'qrcode';
-
-const QRCodeSVG = dynamic(() => import('qrcode.react').then((m) => m.QRCodeSVG), { ssr: false });
+import { QRCodeCanvas } from 'qrcode.react';
 
 function getProxiedImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -33,10 +30,15 @@ function withCacheBust(url: string | null | undefined, bust: string | null | und
   return `${url}${sep}v=${encodeURIComponent(v)}`;
 }
 
-function formatDate(date: string | Date | null | undefined): string {
+function formatOrdinalDate(date?: string | Date | null): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (Number.isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const ord =
+    day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+  const rest = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return `${day}${ord} ${rest}`;
 }
 
 function formatTime(time: string | null | undefined): string {
@@ -54,11 +56,6 @@ function formatTime(time: string | null | undefined): string {
   return `${h}:${m} ${period}`;
 }
 
-/** Compact QR — reference is smaller than hero; not full-width of lower panel */
-const QR_BOX_PX = 112;
-const QR_INNER_PX = 100;
-const QR_GENERATE_SIZE = 180;
-
 export default function TicketPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,17 +66,6 @@ export default function TicketPage() {
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!ticket?.qr_code_hash) {
-      setQrDataUrl(null);
-      return;
-    }
-    QRCode.toDataURL(ticket.qr_code_hash, { width: QR_GENERATE_SIZE, margin: 0 })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null));
-  }, [ticket?.qr_code_hash]);
 
   const user = getWebUser();
 
@@ -153,152 +139,243 @@ export default function TicketPage() {
   const latestMediaUrl = planMedia.length ? planMedia[planMedia.length - 1]?.url : null;
   const mainImage = plan.ticket_image ?? latestMediaUrl ?? null;
   const mainImageWithVersion = withCacheBust(mainImage, plan.updated_at);
-  const passes = plan.passes ?? [];
-  const passId = ticket?.pass_id;
-  const selectedPass = passId && passes.length ? passes.find((p: any) => p.pass_id === passId) : passes[0];
-  const passName = selectedPass?.name ?? 'Ticket';
   const ticketBackgroundImage =
     getProxiedImageUrl(mainImageWithVersion) ?? mainImageWithVersion ?? getProxiedImageUrl(mainImage) ?? mainImage;
   const eventTitle = plan.title ?? 'Event';
-  const eventDate = formatDate(plan.date);
+  const dateStr = formatOrdinalDate(plan.date);
   const eventTime = formatTime(plan.time);
+  const eventDateLine = eventTime ? `${dateStr || '—'} | ${eventTime} onwards` : dateStr || '—';
+  const locationText = String(plan.location_text || '').trim();
+  const metaLineWithLocation = locationText
+    ? `${eventDateLine || '—'} | ${locationText}`
+    : eventDateLine || '—';
   const displayCode = (
     (ticket?.checkin_code as string | undefined)?.trim() ||
     (ticket?.ticket_number as string | undefined)?.trim() ||
     '—'
   ).toUpperCase();
   const detailPills = buildDetailPills(plan.add_details);
+  const categorySub: string[] = Array.isArray(plan.category_sub) ? plan.category_sub : [];
+  const mergedPills = (() => {
+    const out: Array<{ key: string; label: string; detailType?: string }> = [];
+    const seen = new Set<string>();
+
+    const push = (labelRaw: unknown, detailType?: string, keyHint?: string) => {
+      const label = String(labelRaw ?? '').trim();
+      if (!label) return;
+      const sig = `${(detailType || 'tag').toLowerCase()}::${label.toLowerCase()}`;
+      if (seen.has(sig)) return;
+      seen.add(sig);
+      out.push({ key: keyHint || sig, label, detailType });
+    };
+
+    // 1) Prefer add_details (distance, music_type, etc.)
+    detailPills.forEach((p, i) => push(p.label, p.detailType, p.key || `ad-${i}`));
+
+    // 2) Add category_sub as extra tags (dynamic from backend)
+    categorySub.forEach((t: string, i: number) => push(t, 'category', `cat-${i}`));
+
+    return out.slice(0, 8);
+  })();
   const groupId = plan.group_id as string | undefined;
+  const qrValue =
+    (ticket?.qr_code_hash as string | undefined)?.trim() ||
+    (ticket?.qr_code as string | undefined)?.trim() ||
+    '';
+  const hasQr = !!qrValue;
+  const hasPassProducts = Array.isArray(plan?.passes) && plan.passes.length > 0;
+  const passTitle = (() => {
+    const pid = (ticket?.pass_id as string | null | undefined) ?? null;
+    const passes = plan?.passes as Array<{ pass_id: string; name?: string }> | undefined;
+    if (pid && Array.isArray(passes)) {
+      const p = passes.find((x) => String(x.pass_id) === String(pid));
+      if (p?.name) return String(p.name);
+    }
+    return hasPassProducts ? 'General admission' : '';
+  })();
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-black">
-      {ticketBackgroundImage ? (
-        <img src={ticketBackgroundImage} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover blur-xl" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-b from-[#2d2640] to-black" />
-      )}
-      <div className="absolute inset-0 bg-black/50" />
+  // Match app segregation: pass UI when plan has pass products or ticket has pass_id.
+  const isPassUi = hasPassProducts || !!ticket?.pass_id;
+  const dateLineShort = formatOrdinalDate(plan.date);
+  const timeLineShort = formatTime(plan.time);
 
-      <div className="relative z-10 flex min-h-screen flex-col pb-28">
-        {/* Header — white X + centered title (reference) */}
-        <header className="relative flex shrink-0 items-center justify-center px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+  const close = () => {
+    if (fromTickets) router.push('/tickets');
+    else router.push(`/post/${planId}`);
+  };
+
+  const serialNumber = String(ticket?.ticket_number || '').toUpperCase();
+
+  if (isPassUi) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white">
+        <header className="relative flex shrink-0 items-center justify-center border-b border-neutral-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <button
             type="button"
-            onClick={() => (fromTickets ? router.push('/tickets') : router.push(`/post/${planId}`))}
-            className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-white"
+            onClick={close}
+            className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-neutral-800"
             aria-label="Close"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-center text-lg font-semibold tracking-tight text-white">Booking Confirmed</h1>
+          <h1 className="text-center text-lg font-bold tracking-tight text-neutral-900">Booking Confirmed</h1>
         </header>
 
-        <div className="flex flex-1 flex-col items-center justify-center px-4 pt-2">
-          {/*
-            Figma ~60–65% hero / ~35–40% white: fixed card height + 63fr / 37fr grid
-            (max width ~305px per design)
-          */}
-          {/*
-            White card base; hero uses matching top radius + rounded bottom corners so
-            white peeks through (ticket curve into the lower panel).
-          */}
-          <div className="grid h-[min(540px,78dvh)] w-full max-w-[308px] grid-rows-[63fr_37fr] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-            {/* Hero image band: rounded top (card) + rounded bottom (ticket notch) */}
-            <div className="relative isolate min-h-0 overflow-hidden rounded-tl-[28px] rounded-tr-[28px] rounded-bl-[26px] rounded-br-[26px] bg-white">
-              <div className="absolute inset-0 bg-white" aria-hidden />
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 pb-8 pt-6">
+          <div className="overflow-hidden rounded-2xl bg-[#F2F2F7] p-4 shadow-sm ring-1 ring-black/[0.04] sm:p-5">
+            <div className="mx-auto w-full max-w-[240px] overflow-hidden rounded-2xl bg-neutral-200">
               {ticketBackgroundImage ? (
-                <img
-                  src={ticketBackgroundImage}
-                  alt=""
-                  className="absolute inset-0 z-[1] h-full w-full rounded-tl-[28px] rounded-tr-[28px] rounded-bl-[26px] rounded-br-[26px] object-cover"
-                />
+                <img src={ticketBackgroundImage} alt="" className="h-44 w-full object-cover" />
               ) : (
-                <div className="absolute inset-0 z-[1] rounded-tl-[28px] rounded-tr-[28px] rounded-bl-[26px] rounded-br-[26px] bg-gradient-to-br from-[#6B5B8E] to-[#3d3554]" />
+                <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-neutral-300 to-neutral-400" />
               )}
-              <div
-                className="absolute inset-0 z-[2] rounded-tl-[28px] rounded-tr-[28px] rounded-bl-[26px] rounded-br-[26px] bg-gradient-to-t from-black/85 via-black/35 to-black/10"
-                aria-hidden
-              />
-              <div className="relative z-[3] flex h-full min-h-0 flex-col justify-end p-4 pb-5 text-white sm:p-5">
-                <h2 className="text-[21px] font-bold leading-tight sm:text-[22px]">{eventTitle}</h2>
-                <div className="mt-2.5 flex items-baseline justify-between gap-3 text-[14px] font-medium text-white/95 sm:text-[15px]">
-                  <span>{eventDate || '—'}</span>
-                  <span className="shrink-0">{eventTime || ''}</span>
-                </div>
-                {plan.location_text ? (
-                  <p className="mt-1.5 line-clamp-2 text-[13px] text-white/85 sm:text-sm">{plan.location_text}</p>
-                ) : null}
-              </div>
             </div>
-
-            {/* Lower ~37%: gap below curved image, then pills (w-fit) + QR */}
-            <div className="flex min-h-0 gap-3 overflow-y-auto rounded-b-[28px] bg-white px-3 pb-3 pt-4 sm:gap-3.5 sm:px-4 sm:pb-4 sm:pt-5">
-              <div className="min-w-0 flex-1">
-                <TicketCategoryPills pills={detailPills} emptyLabel="Event details" />
-              </div>
-              <div className="flex w-[112px] shrink-0 flex-col items-center justify-center sm:w-[118px]">
-                <div
-                  className="flex items-center justify-center rounded-xl bg-white p-1.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04]"
-                  style={{ width: QR_BOX_PX, height: QR_BOX_PX }}
-                >
-                  {qrDataUrl ? (
-                    <img
-                      src={qrDataUrl}
-                      width={QR_INNER_PX}
-                      height={QR_INNER_PX}
-                      alt=""
-                      className="block object-contain"
-                      style={{ width: QR_INNER_PX, height: QR_INNER_PX }}
-                    />
-                  ) : ticket?.qr_code_hash ? (
-                    <QRCodeSVG value={ticket.qr_code_hash} size={QR_INNER_PX} level="M" />
-                  ) : (
-                    <div
-                      className="rounded-md bg-[#F2F2F7]"
-                      style={{ width: QR_INNER_PX, height: QR_INNER_PX }}
-                    />
-                  )}
-                </div>
-                <p className="mt-2 max-w-full truncate text-center text-[11px] font-medium text-[#636366] sm:text-[12px]">
-                  {passName}
-                </p>
-                <p className="mt-0.5 max-w-full truncate text-center text-[12px] font-bold tracking-[0.1em] text-[#1C1C1E] sm:text-[13px]">
-                  {displayCode}
-                </p>
-              </div>
-            </div>
+            <h2 className="mt-4 text-center text-[18px] font-extrabold leading-tight tracking-tight text-neutral-900">
+              {eventTitle}
+            </h2>
+            <p className="mt-2 text-center text-sm font-medium leading-snug text-neutral-600">{eventDateLine}</p>
+            {locationText ? (
+              <p className="mt-1 text-center text-sm font-medium leading-snug text-neutral-600">{locationText}</p>
+            ) : null}
           </div>
+
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {mergedPills.slice(0, 4).map((p, idx) => (
+              <span
+                key={`${p.key}-${idx}`}
+                className="inline-flex items-center gap-2 rounded-full bg-[#ECECED] px-4 py-2 text-[13px] font-semibold text-[#1C1C1E]"
+              >
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1C1C1E]/40" aria-hidden />
+                {p.label}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-7 text-center text-[15px] text-neutral-600">Your check-in code is</p>
+          <div className="mx-auto mt-3 w-full max-w-sm rounded-full bg-[#F2F2F7] px-5 py-5 text-center ring-1 ring-black/[0.06]">
+            <p className="text-2xl font-extrabold uppercase tracking-wide text-neutral-900 sm:text-3xl">{displayCode}</p>
+          </div>
+
+          <p className="mt-6 text-center text-[13px] leading-relaxed text-neutral-500">
+            You will receive a WhatsApp confirmation within 24 hours
+          </p>
 
           <Link
             href={`/post/${planId}`}
-            className="mt-6 w-full max-w-[308px] rounded-full bg-white/15 py-3 text-center text-sm font-semibold text-white backdrop-blur-sm no-underline ring-1 ring-white/25"
+            className="mt-8 w-full rounded-full bg-[#1C1C1E] py-4 text-center text-base font-bold text-white no-underline shadow-sm"
           >
             View event
           </Link>
-        </div>
+        </main>
+      </div>
+    );
+  }
 
-        {/* Bottom bar — weknd app CTA */}
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-[#1C1C1E]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-          <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-            <p className="min-w-0 flex-1 text-[13px] leading-snug text-white/90">
-              Join the event chat on the <span className="font-semibold text-white">weknd.</span> app
-            </p>
-            <a
-              href={
-                groupId ? `vybeme://chat/${encodeURIComponent(groupId)}` : 'vybeme://'
-              }
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#1C1C1E] shadow-lg"
-              aria-label="Open app"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
-              </svg>
-            </a>
+  // Ticket UI (kept as-is): shows QR card layout
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-transparent">
+      {/* Frosted / transparent blur backdrop (no black) */}
+      {ticketBackgroundImage ? (
+        <div className="absolute inset-0">
+          <img
+            src={ticketBackgroundImage}
+            alt=""
+            className="h-full w-full scale-110 object-cover blur-3xl opacity-80"
+          />
+          <div className="absolute inset-0 bg-white/20 backdrop-blur-2xl" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F7F7F8] via-[#EBEBED] to-[#F2F2F4]" />
+      )}
+
+      <main className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col items-center justify-center px-6 py-10">
+        <div className="w-full rounded-[28px]">
+          {/* Banner (rounded, sits above white section) */}
+          <div className="relative z-10 overflow-hidden rounded-[28px] bg-neutral-200 shadow-[0_18px_40px_rgba(0,0,0,0.22)]">
+            {ticketBackgroundImage ? (
+              <img src={ticketBackgroundImage} alt="" className="h-[340px] w-full object-cover" />
+            ) : (
+              <div className="h-[340px] w-full bg-gradient-to-br from-neutral-300 to-neutral-400" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+              <p className="text-[26px] font-extrabold tracking-tight text-white">{eventTitle}</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-[13px] font-semibold text-white/90">{dateLineShort || '—'}</p>
+                <p className="text-[13px] font-semibold text-white/90">{timeLineShort || ''}</p>
+              </div>
+              {locationText ? (
+                <p className="mt-2 text-[12px] font-medium text-white/85">{locationText}</p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* White section (overlaps under image like screenshot) */}
+          <div className="-mt-10 rounded-[28px] bg-white px-5 pb-6 pt-14 shadow-[0_18px_40px_rgba(0,0,0,0.16)]">
+            <div className="flex items-start gap-4">
+              {/* Pills (hug text width, align left) */}
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+              {(mergedPills.length ? mergedPills : []).slice(0, 4).map((p: any, idx: number) => (
+                  <div
+                    key={`${p?.label ?? 'pill'}-${idx}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#ECECED] px-4 py-2 text-[13px] font-semibold text-[#1C1C1E]"
+                  >
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1C1C1E]/40" aria-hidden />
+                    <span className="max-w-[220px] truncate">{String(p?.label ?? '')}</span>
+                  </div>
+                ))}
+              {mergedPills.length === 0 ? (
+                  <div className="mt-1">
+                    <TicketCategoryPills layout="row" pills={detailPills} emptyLabel="Event details" />
+                  </div>
+                ) : null}
+              </div>
+
+              {/* QR */}
+              <div className="shrink-0">
+                <div className="rounded-[14px] bg-white p-2 ring-1 ring-black/[0.10]">
+                  <div className="rounded-[12px] bg-white">
+                    <QRCodeCanvas value={qrValue || serialNumber || '—'} size={120} level="M" includeMargin={false} />
+                  </div>
+                </div>
+                <p className="mt-2 text-center text-[12px] font-semibold text-[#1C1C1E]">
+                  {passTitle || 'Ticket'}
+                </p>
+                <p className="mt-0.5 text-center text-[10px] font-semibold tracking-wide text-[#6B7280]">
+                  {serialNumber || '—'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Done button */}
+        <button
+          type="button"
+          onClick={close}
+          className="mt-9 w-full rounded-full bg-[#1C1C1E] py-4 text-center text-[16px] font-semibold text-white shadow-[0_10px_28px_rgba(0,0,0,0.25)]"
+        >
+          Done
+        </button>
+
+        {/* Deep link row */}
+        <div className="mt-7 flex w-full items-center justify-between gap-3 rounded-2xl bg-white/35 px-4 py-3 text-[#1C1C1E] ring-1 ring-black/[0.06] backdrop-blur-xl">
+          <p className="min-w-0 flex-1 text-[13px] leading-snug text-neutral-800">
+            Join the event chat on the <span className="font-semibold text-neutral-900">weknd.</span> app
+          </p>
+          <a
+            href={groupId ? `vybeme://chat/${encodeURIComponent(groupId)}` : 'vybeme://'}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#1C1C1E] text-white shadow-md"
+            aria-label="Open app"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+            </svg>
+          </a>
+        </div>
+      </main>
     </div>
   );
 }

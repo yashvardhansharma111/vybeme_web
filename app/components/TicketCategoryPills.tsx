@@ -29,24 +29,32 @@ function getDetailIcon(detailType: string): ComponentType<{ className?: string }
 export function TicketCategoryPills({
   pills,
   emptyLabel,
+  layout = 'column',
 }: {
   pills: TicketDetailPill[];
   emptyLabel?: string;
+  /** `row` = horizontal wrap (booking confirmed / pass UI reference) */
+  layout?: 'column' | 'row';
 }) {
   if (!pills.length) {
     return emptyLabel ? <p className="text-xs text-[#8E8E93] sm:text-sm">{emptyLabel}</p> : null;
   }
 
+  const containerClass =
+    layout === 'row'
+      ? 'flex flex-row flex-wrap items-center gap-2'
+      : 'flex flex-col items-start gap-2';
+
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className={containerClass}>
       {pills.map((pill) => {
         const Icon = getDetailIcon(pill.detailType);
         return (
           <div
             key={pill.key}
-            className="inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-left text-[12px] font-medium text-[#1C1C1E] sm:text-[13px]"
+            className="inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-[#ECECED] px-3 py-2 text-left text-[12px] font-medium text-[#1C1C1E] sm:text-[13px]"
           >
-            <Icon className="h-4 w-4 shrink-0 text-[#636366]" aria-hidden />
+            <Icon className="h-4 w-4 shrink-0 text-[#1C1C1E]" aria-hidden />
             <span className="min-w-0 truncate">{pill.label}</span>
           </div>
         );

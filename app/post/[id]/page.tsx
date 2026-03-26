@@ -45,17 +45,24 @@ function formatEventDateAndTime(date: string | Date | undefined, time: string | 
   return timeStr ? `${dateStr} | ${timeStr}` : dateStr;
 }
 
-function buildRsvpCode(name?: string | null, seed?: string | null): string {
-  const cleanName = (name ?? 'Guest').replace(/[^a-zA-Z0-9 ]/g, '').trim();
-  const firstWord = cleanName.split(/\s+/)[0] || 'Guest';
-  const namePart = firstWord.slice(0, 10).toUpperCase();
+/** Fallback only when API omits checkin_code — matches server shape: "ORGANIZER 01". */
+function buildRsvpCode(organizerName?: string | null, seed?: string | null): string {
+  const clean = (organizerName ?? 'Guest').replace(/[^a-zA-Z ]/g, '').trim();
+  const firstWord = clean.split(/\s+/)[0] || 'Guest';
+  const prefix = firstWord.slice(0, 12).toUpperCase();
   const source = seed && seed.trim() ? seed.trim() : `${Date.now()}_${Math.random()}`;
   let hash = 0;
   for (let i = 0; i < source.length; i += 1) {
     hash = (hash * 31 + source.charCodeAt(i)) | 0;
   }
-  const randomPart = Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').slice(-4);
-  return `${namePart}-${randomPart}`;
+  const n = (Math.abs(hash) % 99) + 1;
+  return `${prefix} ${String(n).padStart(2, '0')}`;
+}
+
+function organizerNameFromPost(post: PostData | null): string | null {
+  if (!post) return null;
+  const p = post as PostData & { user?: { name?: string }; author?: { name?: string } };
+  return p.user?.name ?? p.author?.name ?? null;
 }
 
 function getPendingBusinessRegistration(): { planId: string; passId: string } | null {
@@ -452,7 +459,8 @@ export default function PostPage() {
             (res as any)?.data?.registration?.checkin_code ??
             (res as any)?.registration?.checkin_code ??
             null;
-          const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+          const resolvedCode =
+            checkinCode || buildRsvpCode(organizerNameFromPost(post), regId ?? `${user.user_id}_${postId}`);
           setConfirmationCode(resolvedCode);
           router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
         } catch (e) {
@@ -464,7 +472,7 @@ export default function PostPage() {
     } else {
       setBusinessStep('tickets');
     }
-  }, [eventFull, passes.length, postId, router, searchParams, user?.user_id, post, ensureWomenOnlyAllowedForBusiness, currentUserProfile?.name]);
+  }, [eventFull, passes.length, postId, router, searchParams, user?.user_id, post, ensureWomenOnlyAllowedForBusiness]);
 
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -540,7 +548,8 @@ export default function PostPage() {
           null;
         const regId = (res?.data as any)?.registration?.registration_id ?? (res as any)?.registration?.registration_id ?? null;
         if (regId) setRegistrationId(regId);
-        const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+        const resolvedCode =
+          checkinCode || buildRsvpCode(organizerNameFromPost(post), regId ?? `${user.user_id}_${postId}`);
         setConfirmationCode(resolvedCode);
         if (isFreeNoPasses) {
           router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
@@ -657,7 +666,7 @@ export default function PostPage() {
       // No form: skip survey and register directly
       await doRegister();
     }
-  }, [postId, selectedPassId, passes, user?.user_id, router, currentUserProfile?.name, needsSurvey, ensureWomenOnlyAllowedForBusiness]);
+  }, [postId, selectedPassId, passes, user?.user_id, router, post, needsSurvey, ensureWomenOnlyAllowedForBusiness, currentUserProfile]);
 
   const handleProceedToSurveyRef = useRef(handleProceedToSurvey);
   handleProceedToSurveyRef.current = handleProceedToSurvey;
@@ -743,7 +752,8 @@ export default function PostPage() {
           (res as any)?.data?.registration?.checkin_code ??
           (res as any)?.registration?.checkin_code ??
           null;
-        const resolvedCode = checkinCode || buildRsvpCode(currentUserProfile?.name, regId ?? `${user.user_id}_${postId}`);
+        const resolvedCode =
+          checkinCode || buildRsvpCode(organizerNameFromPost(post), regId ?? `${user.user_id}_${postId}`);
         setConfirmationCode(resolvedCode);
         if (isFreeNoPasses) {
           router.push(`/post/${postId}/confirmation?code=${encodeURIComponent(resolvedCode)}${window?.location?.search?.includes('app=1') ? '&app=1' : ''}`);
@@ -753,7 +763,7 @@ export default function PostPage() {
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Registration failed'))
       .finally(() => setBusinessRegistering(false));
-  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router, currentUserProfile?.name]);
+  }, [postId, selectedPassId, passes.length, user?.user_id, ageRange, gender, runningExperience, whatBringsYou, router, post]);
 
   // Open "Select Passes" from top every time.
   useEffect(() => {
@@ -1023,7 +1033,7 @@ export default function PostPage() {
                           const isFreeNoPasses = passes.length === 0;
                           const resolvedCode =
                             checkinFromRegister ||
-                            buildRsvpCode(currentUserProfile?.name, `${regId}_${postId}`);
+                            buildRsvpCode(organizerNameFromPost(post), `${regId}_${postId}`);
                           setConfirmationCode(resolvedCode);
                           if (isFreeNoPasses) {
                             router.push(

@@ -340,7 +340,26 @@ export async function getTicketsByUser(user_id: string) {
   return request<{ tickets: Array<{
     ticket_id: string;
     ticket_number: string;
-    plan: { plan_id: string; title?: string; date?: string; media?: Array<{ url: string }> } | null;
+    qr_code_hash?: string;
+    status?: string;
+    price_paid?: number;
+    pass_id?: string | null;
+    plan: {
+      plan_id: string;
+      title?: string;
+      date?: string | null;
+      time?: string | null;
+      location_text?: string | null;
+      media?: Array<{ url?: string; type?: string }>;
+      image?: string | null;
+      ticket_image?: string | null;
+      updated_at?: string | null;
+      passes?: Array<{ pass_id: string; name: string; price?: number; description?: string; media?: Array<{ url?: string }> }>;
+      add_details?: Array<{ detail_type?: string; title?: string; description?: string }>;
+      category_main?: string | null;
+      category_sub?: string[];
+      group_id?: string | null;
+    } | null;
   }> }>(`/ticket/user/${user_id}`, { method: 'GET' });
 }
 
