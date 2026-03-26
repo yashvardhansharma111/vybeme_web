@@ -23,8 +23,8 @@ export default function TicketsPage() {
     plan: {
       plan_id: string;
       title?: string;
-      date?: string;
-      time?: string;
+      date?: string | null;
+      time?: string | null;
       location_text?: string | null;
       media?: Array<{ url?: string; type?: string }>;
       image?: string | null;
