@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { PostData } from './PostCard';
+import { TagIcon, type PostData } from './PostCard';
 
 function getAllTags(post: PostData): string[] {
   const from = (v: unknown) => (Array.isArray(v) ? v : v ? [String(v)] : []);
@@ -152,8 +152,9 @@ export function PostDetailDesktop({
             {allTags.map((tag, i) => (
               <span
                 key={i}
-                className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-700"
+                className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-700"
               >
+                <TagIcon tag={tag} />
                 {tag}
               </span>
             ))}

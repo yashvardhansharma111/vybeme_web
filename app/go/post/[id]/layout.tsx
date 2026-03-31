@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostOgData } from '@/lib/og-post';
 
-const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.weknd.in';
+const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

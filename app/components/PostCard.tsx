@@ -45,19 +45,38 @@ function getAllTags(post: PostData): string[] {
   return Array.from(seen);
 }
 
-// Match app: Hitchhiking = walk icon, others = checkbox (Ionicons names)
-function TagIcon({ tag }: { tag: string }) {
-  const t = tag.toLowerCase();
+// Match app: Running = sneaker asset (replaces walk-outline / shoe icon); Hitchhiking = walk; others = checkbox
+export function TagIcon({ tag }: { tag: string }) {
+  const t = tag.toLowerCase().trim();
+  const isRunning = t === 'running';
   const isHitch = t.includes('hitch') || t.includes('travel');
   return (
-    <span className="mr-1.5 inline-flex shrink-0 text-neutral-500" aria-hidden>
-      {isHitch ? (
+    <span className="mr-1.5 inline-flex shrink-0 items-center text-neutral-500" aria-hidden>
+      {isRunning ? (
+        <Image
+          src="/icons/sneaker.png"
+          alt=""
+          width={12}
+          height={12}
+          className="h-3 w-3 object-contain"
+        />
+      ) : isHitch ? (
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8v8m-8-8h8" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 7h8m0 0v8m0-8v8m-8-8h8"
+          />
         </svg>
       ) : (
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       )}
     </span>

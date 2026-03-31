@@ -12,7 +12,7 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
-const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.weknd.in';
+const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(WEB_BASE),

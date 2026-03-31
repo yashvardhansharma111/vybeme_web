@@ -111,7 +111,7 @@ export async function GET(
             {shortDesc ? (
               <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 1.3 }}>{shortDesc}</div>
             ) : null}
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>app.weknd.in</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>app.vybeme.in</div>
           </div>
         </div>
       ),

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostOgData } from '@/lib/og-post';
 
-const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.weknd.in';
+const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || 'https://app.vybeme.in';
 
 // Ensure metadata (and og:image) is generated on each request so WhatsApp/crawlers get fresh tags
 export const dynamic = 'force-dynamic';
