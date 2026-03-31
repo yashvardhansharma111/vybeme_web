@@ -196,28 +196,9 @@ export default function TicketsPage() {
               );
             };
 
-            const QrMini = ({ value }: { value?: string }) => {
-              const v = (value || '').trim();
-              if (!v) return null;
-              return (
-                <div className="shrink-0 rounded-[14px] bg-[#F2F2F7] p-2 ring-1 ring-black/[0.06]">
-                  <QRCodeCanvas value={v} size={58} level="M" includeMargin={false} />
-                </div>
-              );
-            };
 
             const PassCard = ({ t }: { t: any }) => {
-              const passName = (() => {
-                const pid = t?.pass_id;
-                const passes = t?.plan?.passes;
-                if (pid && Array.isArray(passes)) {
-                  const p = passes.find((x: any) => String(x?.pass_id) === String(pid));
-                  if (p?.name) return String(p.name);
-                }
-                return 'General admission';
-              })();
               const img = t?.plan?.ticket_image || t?.plan?.media?.[0]?.url || t?.plan?.image || null;
-              const location = String(t?.plan?.location_text || '').trim();
               const tags = (() => {
                 const add = buildDetailPills(t?.plan?.add_details);
                 const sub = Array.isArray(t?.plan?.category_sub) ? t.plan.category_sub : [];
@@ -235,50 +216,36 @@ export default function TicketsPage() {
                 sub.forEach((s: string) => push(s));
                 return out.slice(0, 3);
               })();
-              const code = String(t?.ticket_number || '').trim().toUpperCase() || '—';
 
               return (
                 <Link
                   href={`/post/${t.plan?.plan_id ?? ''}/ticket?from=tickets`}
                   className="block rounded-[22px] bg-white p-4 shadow-[0_6px_18px_rgba(0,0,0,0.10)] no-underline transition hover:bg-neutral-50/90"
                 >
-                  <div className="rounded-2xl bg-[#F2F2F7] p-4 ring-1 ring-black/[0.04]">
-                    <div className="mx-auto w-full max-w-[240px] overflow-hidden rounded-2xl bg-neutral-200">
+                  <div className="flex items-start gap-3.5">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14px] bg-neutral-200">
                       {img ? (
-                        <img src={img} alt="" className="h-44 w-full object-cover" />
+                        <img src={img} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-neutral-300 to-neutral-400" />
+                        <div className="flex h-full w-full items-center justify-center text-neutral-400">—</div>
                       )}
                     </div>
-                    <p className="mt-4 text-center text-[16px] font-extrabold leading-tight tracking-tight text-neutral-900">
-                      {t.plan?.title ?? 'Event'}
-                    </p>
-                    <p className="mt-2 text-center text-sm font-medium leading-snug text-neutral-600">
-                      {formatDateOrdinal(t.plan?.date, t.plan?.time)}
-                    </p>
-                    {location ? (
-                      <p className="mt-1 text-center text-sm font-medium leading-snug text-neutral-600">{location}</p>
-                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[17px] font-bold leading-tight text-black">{t.plan?.title ?? 'Event'}</p>
+                      <p className="mt-1 text-sm leading-snug text-[#6B7280]">{formatDateOrdinal(t.plan?.date, t.plan?.time)}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {tags.map((tag, idx) => (
+                          <span
+                            key={`${tag}-${idx}`}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[#ECECED] px-2.5 py-1 text-[11px] font-semibold text-[#1C1C1E]"
+                          >
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#1C1C1E]/40" aria-hidden />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {tags.map((tag, idx) => (
-                      <span
-                        key={`${tag}-${idx}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#ECECED] px-4 py-2 text-[13px] font-semibold text-[#1C1C1E]"
-                      >
-                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#1C1C1E]/40" aria-hidden />
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <p className="mt-6 text-center text-[14px] font-medium text-neutral-600">Your check-in code is</p>
-                  <div className="mx-auto mt-3 w-full max-w-sm rounded-full bg-[#F2F2F7] px-5 py-5 text-center ring-1 ring-black/[0.06]">
-                    <p className="text-2xl font-extrabold uppercase tracking-wide text-neutral-900">{code}</p>
-                  </div>
-
-                  <p className="mt-3 text-center text-[13px] font-semibold text-neutral-700">{passName}</p>
                 </Link>
               );
             };
@@ -297,7 +264,6 @@ export default function TicketsPage() {
                       #{String(t.ticket_number || '').toUpperCase()}
                     </p>
                   </div>
-                  <QrMini value={t.qr_code_hash} />
                 </div>
               </Link>
             );
