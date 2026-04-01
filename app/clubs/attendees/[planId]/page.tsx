@@ -195,6 +195,22 @@ export default function BusinessAttendeesPage() {
     );
   }, [attendees, searchQuery]);
 
+  const noTicketSeqByRegId = useMemo(() => {
+    const sorted = [...attendees].sort((a, b) => {
+      const ta = a?.created_at ? Date.parse(a.created_at) : 0;
+      const tb = b?.created_at ? Date.parse(b.created_at) : 0;
+      return ta - tb;
+    });
+    const map = new Map<string, number>();
+    let i = 0;
+    for (const a of sorted) {
+      if (a.ticket_number) continue;
+      i += 1;
+      map.set(a.registration_id, i);
+    }
+    return map;
+  }, [attendees]);
+
   if (!mounted) {
     return <WekndLoadingScreen />;
   }
@@ -289,9 +305,19 @@ export default function BusinessAttendeesPage() {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-neutral-900">{a.user?.name ?? 'Guest'}</p>
+                  <p className="font-semibold text-neutral-900">
+                    {(a.user?.name ?? 'Guest') +
+                      (!a.ticket_number && noTicketSeqByRegId.has(a.registration_id)
+                        ? ` ${String(noTicketSeqByRegId.get(a.registration_id)).padStart(2, '0')}`
+                        : '')}
+                  </p>
                   <p className="text-sm text-neutral-500">{a.gender ?? '—'}</p>
                 </div>
+                {!a.ticket_number && noTicketSeqByRegId.has(a.registration_id) ? (
+                  <span className="shrink-0 rounded-full bg-[#F2F2F7] px-3 py-1 text-xs font-bold tracking-wide text-neutral-700 ring-1 ring-black/[0.06]">
+                    {String(noTicketSeqByRegId.get(a.registration_id)).padStart(2, '0')}
+                  </span>
+                ) : null}
                 <label className="flex shrink-0 items-center gap-2">
                   <span className="text-sm font-medium text-neutral-600">Check-in</span>
                   <input

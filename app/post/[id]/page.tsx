@@ -940,6 +940,7 @@ export default function PostPage() {
               ) : null}
             </div>
 
+            {/* 10% platform fee + GST disabled in BillSummaryModal — totals = ticket fare only; prop below kept for when re-enabled */}
             <BillSummaryModal
               open={showBillSummary}
               ticketFare={Number(selectedPassPrice) || 0}

@@ -22,13 +22,17 @@ export interface BillSummaryModalProps {
 export default function BillSummaryModal({
   open,
   ticketFare,
+  /** Kept for API compatibility; 10% + GST billing is disabled below (see comments). */
   platformFeePercent = 10,
   onClose,
   onProceed,
   proceeding,
 }: BillSummaryModalProps) {
-  const platformFee = (ticketFare * platformFeePercent) / 100;
-  const totalFare = ticketFare + platformFee;
+  /** Disabled: 10% platform fee + GST — totals are ticket fare only. Re-enable by uncommenting below and the UI row. */
+  // const platformFee = (ticketFare * platformFeePercent) / 100;
+  // const totalFare = ticketFare + platformFee;
+  const platformFee = 0;
+  const totalFare = ticketFare;
 
   useEffect(() => {
     if (!open) return;
@@ -71,10 +75,12 @@ export default function BillSummaryModal({
               <span className="text-neutral-600">Ticket Fare</span>
               <span className="font-semibold text-neutral-900">{formatINR(ticketFare)}</span>
             </div>
+            {/* Disabled: Platform Fee + GST line (10% + GST) — re-enable with calculations above
             <div className="flex items-center justify-between">
               <span className="text-neutral-600">Platform Fee + GST</span>
               <span className="font-semibold text-neutral-900">{formatINR(platformFee)}</span>
             </div>
+            */}
             <div className="h-px w-full bg-neutral-200" />
             <div className="flex items-center justify-between">
               <span className="text-neutral-900 font-semibold">Total Fare</span>
